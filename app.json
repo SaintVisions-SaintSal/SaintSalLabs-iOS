@@ -1,0 +1,63 @@
+{
+  "expo": {
+    "name": "SaintSal Labs",
+    "slug": "saintsallabs",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "saintsallabs",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0A0F"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.saintvision.saintsallabs",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "SaintSal Labs needs microphone access for voice AI features.",
+        "NSCameraUsageDescription": "SaintSal Labs needs camera access for image-based AI features.",
+        "NSPhotoLibraryUsageDescription": "SaintSal Labs needs photo library access to share and upload images.",
+        "UIBackgroundModes": ["audio"]
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0A0A0F"
+      },
+      "package": "com.saintvision.saintsallabs"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-haptics",
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0A0A0F"
+        }
+      ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "saintsallabs"
+      }
+    },
+    "owner": "saintvision"
+  }
+}

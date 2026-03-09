@@ -1,0 +1,23 @@
+node_modules/
+.expo/
+dist/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+ios/
+android/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# EAS
+eas-credentials/
+
+# macOS
+.DS_Store
