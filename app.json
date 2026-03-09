@@ -21,7 +21,9 @@
         "NSMicrophoneUsageDescription": "SaintSal Labs needs microphone access for voice AI features.",
         "NSCameraUsageDescription": "SaintSal Labs needs camera access for image-based AI features.",
         "NSPhotoLibraryUsageDescription": "SaintSal Labs needs photo library access to share and upload images.",
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio"
+        ]
       },
       "config": {
         "usesNonExemptEncryption": false
@@ -37,9 +39,6 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-haptics",
-      "expo-secure-store",
-      "expo-web-browser",
       [
         "expo-splash-screen",
         {
@@ -55,9 +54,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "saintsallabs"
+        "projectId": "af0fb455-43bc-4de1-a3e0-52db3e394651"
       }
     },
-    "owner": "saintvision"
+    "owner": "saint-vision-technologies-llc"
   }
 }
