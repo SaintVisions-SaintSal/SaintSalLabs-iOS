@@ -5,7 +5,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, FlatList, StyleSheet, KeyboardAvoidingView, Platform,
-  ActivityIndicator, TouchableOpacity, Alert,
+  ActivityIndicator, TouchableOpacity, Alert, Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontSize, Spacing, BorderRadius, TierColors } from '@/config/theme';
@@ -132,9 +132,7 @@ export default function ChatScreen() {
   // Empty state — show welcome + verticals
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <View style={styles.salLogo}>
-        <Text style={styles.salLogoText}>SAL</Text>
-      </View>
+      <Image source={require('../../assets/logo-120.png')} style={{ width: 80, height: 80, borderRadius: 22, marginBottom: Spacing.lg }} />
       <Text style={styles.welcomeTitle}>SaintSal™ Labs</Text>
       <Text style={styles.welcomeSubtitle}>Full Spectrum Intelligence</Text>
       <Text style={styles.welcomeDesc}>
@@ -280,27 +278,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxl,
     paddingBottom: Spacing.huge,
   },
-  salLogo: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: Colors.bgTertiary,
-    borderWidth: 2,
-    borderColor: Colors.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.lg,
-    shadowColor: Colors.gold,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-  },
-  salLogoText: {
-    color: Colors.gold,
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: 2,
-  },
   welcomeTitle: {
     color: Colors.textPrimary,
     fontSize: FontSize.xxl,
@@ -329,7 +306,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.bgCard,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: 'rgba(212, 160, 23, 0.2)',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },

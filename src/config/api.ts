@@ -32,7 +32,7 @@ export const SAL_MODELS = {
 // Tier definitions
 export const TIERS = {
   free: { name: 'Free', price: 0, compute: 100, color: '#6B6B7B' },
-  starter: { name: 'Starter', price: 27, compute: 500, color: '#4A9EFF' },
+  starter: { name: 'Starter', price: 27, compute: 500, color: '#D4A017' },
   pro: { name: 'Pro', price: 97, compute: 2000, color: '#D4A017' },
   teams: { name: 'Teams', price: 297, compute: 10000, color: '#8B5CF6' },
   enterprise: { name: 'Enterprise', price: 497, compute: -1, color: '#FF4757' },
@@ -42,7 +42,7 @@ export const TIERS = {
 export const VERTICALS = [
   { id: 'finance', name: 'Finance', icon: '📊', color: '#00D68F', description: 'Markets, watchlists, SEC filings' },
   { id: 'sports', name: 'Sports', icon: '🏈', color: '#FF8C42', description: 'Scores, stats, favorites' },
-  { id: 'real_estate', name: 'Real Estate', icon: '🏠', color: '#4A9EFF', description: 'Properties, deal analysis' },
+  { id: 'real_estate', name: 'Real Estate', icon: '🏠', color: '#D4A017', description: 'Properties, deal analysis' },
   { id: 'news', name: 'News', icon: '📰', color: '#8B5CF6', description: 'Breaking news intelligence' },
   { id: 'medical', name: 'Medical', icon: '🏥', color: '#FF4757', description: 'ICD-10, NPI, clinical' },
   { id: 'tech', name: 'Tech', icon: '💻', color: '#2DD4BF', description: 'Code, docs, debugging' },

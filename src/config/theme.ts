@@ -27,7 +27,7 @@ export const Colors = {
   textMuted: '#4A4A5A',
 
   // Accent
-  blue: '#4A9EFF',
+  blue: '#D4A017',
   purple: '#8B5CF6',
   red: '#FF4757',
   orange: '#FF8C42',
@@ -37,6 +37,10 @@ export const Colors = {
   border: '#2A2A3A',
   borderLight: '#3A3A4A',
   borderFocus: '#D4A017',
+
+  // Glow
+  goldGlow: 'rgba(212, 160, 23, 0.15)',
+  greenGlow: 'rgba(57, 255, 20, 0.1)',
 
   // Overlay
   overlay: 'rgba(0,0,0,0.7)',
@@ -99,7 +103,7 @@ export const Shadow = {
 
 // SAL Tier colors
 export const TierColors = {
-  mini: '#4A9EFF',
+  mini: '#D4A017',
   pro: '#D4A017',
   max: '#8B5CF6',
   max_fast: '#FF4757',
@@ -109,7 +113,7 @@ export const TierColors = {
 export const VerticalColors = {
   finance: '#00D68F',
   sports: '#FF8C42',
-  real_estate: '#4A9EFF',
+  real_estate: '#D4A017',
   news: '#8B5CF6',
   medical: '#FF4757',
   tech: '#2DD4BF',

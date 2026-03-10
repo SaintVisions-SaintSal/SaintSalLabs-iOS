@@ -29,9 +29,7 @@ export default function SALHeader({ title, subtitle, showLogo = false, rightActi
         <View style={styles.titleContainer}>
           {showLogo ? (
             <View style={styles.logoRow}>
-              <View style={styles.logoGlow}>
-                <Text style={styles.logoText}>SAL</Text>
-              </View>
+              <Image source={require('../../assets/logo-48.png')} style={{ width: 40, height: 40, borderRadius: 12 }} />
               <View>
                 <Text style={styles.brandName}>SaintSal™ Labs</Text>
                 <Text style={styles.brandTag}>Full Spectrum Intelligence</Text>
@@ -88,22 +86,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-  },
-  logoGlow: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Colors.bgTertiary,
-    borderWidth: 1.5,
-    borderColor: Colors.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoText: {
-    color: Colors.gold,
-    fontSize: 14,
-    fontWeight: '900',
-    letterSpacing: 1,
   },
   brandName: {
     color: Colors.textPrimary,

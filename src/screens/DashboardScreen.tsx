@@ -79,7 +79,7 @@ export default function DashboardScreen() {
             {/* Stats Grid */}
             <View style={styles.statsGrid}>
               {[
-                { label: 'Conversations', value: String(conversations.length), icon: '💬', color: Colors.blue },
+                { label: 'Conversations', value: String(conversations.length), icon: '💬', color: Colors.gold },
                 { label: 'Projects', value: String(builderProjects.length), icon: '🏗️', color: Colors.gold },
                 { label: 'Searches', value: '—', icon: '🔍', color: Colors.purple },
                 { label: 'API Calls', value: '—', icon: '⚡', color: Colors.green },

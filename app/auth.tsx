@@ -59,9 +59,7 @@ export default function AuthScreen() {
       <View style={styles.container}>
         {/* Logo */}
         <View style={styles.logoContainer}>
-          <View style={styles.logo}>
-            <Text style={styles.logoText}>SAL</Text>
-          </View>
+          <Image source={require('../assets/logo-120.png')} style={{ width: 100, height: 100, borderRadius: 28, marginBottom: Spacing.md }} />
           <Text style={styles.brand}>SaintSal™ Labs</Text>
           <Text style={styles.tagline}>Full Spectrum Intelligence</Text>
         </View>
@@ -151,13 +149,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', paddingHorizontal: Spacing.xxl },
   // Logo
   logoContainer: { alignItems: 'center', marginBottom: Spacing.huge },
-  logo: {
-    width: 80, height: 80, borderRadius: 24, backgroundColor: Colors.bgTertiary,
-    borderWidth: 2, borderColor: Colors.gold, alignItems: 'center', justifyContent: 'center',
-    marginBottom: Spacing.md,
-    shadowColor: Colors.gold, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 20,
-  },
-  logoText: { color: Colors.gold, fontSize: 26, fontWeight: '900', letterSpacing: 2 },
   brand: { color: Colors.textPrimary, fontSize: FontSize.xxl, fontWeight: '700' },
   tagline: { color: Colors.gold, fontSize: FontSize.sm, fontWeight: '500', marginTop: 4 },
   // Form
@@ -186,7 +177,7 @@ const styles = StyleSheet.create({
   googleIcon: { color: Colors.textPrimary, fontSize: FontSize.lg, fontWeight: '700' },
   googleText: { color: Colors.textPrimary, fontSize: FontSize.md, fontWeight: '500' },
   skipBtn: { alignItems: 'center', marginTop: Spacing.xl },
-  skipText: { color: Colors.textTertiary, fontSize: FontSize.md },
+  skipText: { color: Colors.gold, fontSize: FontSize.md },
   // Sent
   sentContainer: { alignItems: 'center', marginBottom: Spacing.huge },
   sentIcon: { fontSize: 56, marginBottom: Spacing.lg },

@@ -181,9 +181,9 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start', marginTop: Spacing.sm, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.bgCard,
   },
-  deepToggleActive: { borderColor: Colors.purple, backgroundColor: `${Colors.purple}15` },
+  deepToggleActive: { borderColor: Colors.gold, backgroundColor: Colors.goldGlow },
   deepToggleText: { color: Colors.textTertiary, fontSize: FontSize.sm },
-  deepToggleTextActive: { color: Colors.purple },
+  deepToggleTextActive: { color: Colors.gold },
   // Loading
   loadingContainer: { alignItems: 'center', paddingVertical: Spacing.huge },
   loadingText: { color: Colors.textSecondary, fontSize: FontSize.sm, marginTop: Spacing.md },

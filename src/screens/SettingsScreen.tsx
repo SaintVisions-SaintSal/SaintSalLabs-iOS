@@ -136,9 +136,7 @@ export default function SettingsScreen() {
 
         {/* Engine info */}
         <View style={styles.engineInfo}>
-          <View style={styles.engineLogo}>
-            <Text style={styles.engineLogoText}>SAL</Text>
-          </View>
+          <Image source={require('../../assets/logo-48.png')} style={{ width: 48, height: 48, borderRadius: 14, marginBottom: 12 }} />
           <Text style={styles.engineTitle}>SAL Engine v4.0</Text>
           <Text style={styles.engineSub}>53 Models · 88 Connectors · Full Spectrum Intelligence</Text>
           <Text style={styles.engineCopyright}>
@@ -207,11 +205,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', paddingVertical: Spacing.xxl, marginTop: Spacing.lg,
     borderTopWidth: 0.5, borderTopColor: Colors.border, marginHorizontal: Spacing.lg,
   },
-  engineLogo: {
-    width: 48, height: 48, borderRadius: 14, backgroundColor: Colors.bgTertiary,
-    borderWidth: 1.5, borderColor: Colors.gold, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md,
-  },
-  engineLogoText: { color: Colors.gold, fontSize: 14, fontWeight: '900', letterSpacing: 1 },
   engineTitle: { color: Colors.textPrimary, fontSize: FontSize.md, fontWeight: '600', marginBottom: 4 },
   engineSub: { color: Colors.textTertiary, fontSize: FontSize.sm, marginBottom: Spacing.sm },
   engineCopyright: { color: Colors.textMuted, fontSize: FontSize.xs, textAlign: 'center', lineHeight: 18 },
