@@ -7,6 +7,7 @@ import {
   ANTHROPIC_API_KEY,
   OPENAI_API_KEY,
   GEMINI_API_KEY,
+  GEMINI_API_KEY_FALLBACK,
   XAI_API_KEY,
   SAL_MODELS,
   SAL_SYSTEM_PROMPT,
@@ -242,55 +243,66 @@ export async function openaiWebSearch(query: string): Promise<{
 }
 
 // ─── Gemini Search (grounding with Google Search) ────────────
+// Tries primary key → fallback key → OpenAI
+
+async function tryGeminiSearch(apiKey: string, query: string): Promise<{
+  answer: string;
+  sources: { title: string; url: string; snippet: string }[];
+} | null> {
+  const res = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-goog-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: query }] }],
+        tools: [{ google_search: {} }],
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    return null; // Signal to try next key
+  }
+
+  const data = await res.json();
+  const candidate = data.candidates?.[0];
+  const text = candidate?.content?.parts?.[0]?.text || 'No results found.';
+
+  const groundingMeta = candidate?.groundingMetadata;
+  const chunks = groundingMeta?.groundingChunks || [];
+  const sources = chunks
+    .filter((c: any) => c.web)
+    .map((c: any) => ({
+      title: c.web.title || 'Source',
+      url: c.web.uri || '',
+      snippet: '',
+    }));
+
+  return { answer: text, sources };
+}
 
 export async function geminiSearch(query: string): Promise<{
   answer: string;
   sources: { title: string; url: string; snippet: string }[];
 }> {
   try {
-    const res = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-goog-api-key': GEMINI_API_KEY,
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: query }] }],
-          tools: [{ google_search: {} }],
-        }),
-      }
-    );
+    // Try primary Gemini key
+    const result1 = await tryGeminiSearch(GEMINI_API_KEY, query);
+    if (result1) return result1;
 
-    if (!res.ok) {
-      const errText = await res.text();
-      // If quota exceeded or rate limited, fall back to OpenAI
-      if (res.status === 429 || errText.includes('quota') || errText.includes('RATE_LIMIT')) {
-        console.log('Gemini quota exceeded, falling back to OpenAI search');
-        return openaiWebSearch(query);
-      }
-      throw new Error(`Gemini error: ${res.status} ${errText}`);
-    }
+    // Try fallback Gemini key
+    console.log('Primary Gemini key failed, trying fallback...');
+    const result2 = await tryGeminiSearch(GEMINI_API_KEY_FALLBACK, query);
+    if (result2) return result2;
 
-    const data = await res.json();
-    const candidate = data.candidates?.[0];
-    const text = candidate?.content?.parts?.[0]?.text || 'No results found.';
-
-    // Extract grounding sources
-    const groundingMeta = candidate?.groundingMetadata;
-    const chunks = groundingMeta?.groundingChunks || [];
-    const sources = chunks
-      .filter((c: any) => c.web)
-      .map((c: any) => ({
-        title: c.web.title || 'Source',
-        url: c.web.uri || '',
-        snippet: '',
-      }));
-
-    return { answer: text, sources };
+    // Both Gemini keys exhausted → OpenAI
+    console.log('Both Gemini keys exhausted, falling back to OpenAI search');
+    return openaiWebSearch(query);
   } catch (err: any) {
-    // Any Gemini failure → fallback to OpenAI
     console.log('Gemini failed, falling back to OpenAI:', err.message);
     return openaiWebSearch(query);
   }
