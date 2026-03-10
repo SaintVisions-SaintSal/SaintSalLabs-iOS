@@ -1,241 +1,123 @@
 # SaintSal™ Labs — iOS App
+## US Patent #10,290,222 · HACP Protocol · Saint Vision Technologies LLC
 
-**The AI Builder Platform by Saint Vision Technologies LLC**
-
-> Perplexity-style AI chat + v0-style code builder + multi-source search — all in one native iOS app.
-
----
-
-## Features
-
-### 🤖 SAL Chat Engine
-- Streaming AI responses with 4 model tiers (Mini / Pro / Max / Max Fast)
-- 6 vertical specializations: Finance, Sports, Real Estate, News, Medical, Tech
-- Source citations with inline links
-- Conversation history with full persistence
-
-### 🔨 Builder Studio
-- v0-style code generation from natural language
-- Framework picker (React, Next.js, React Native, Node.js, Python)
-- Pre-built templates (Landing page, Dashboard, API, Chat app)
-- Live code viewer with iteration loop
-- Export and deploy functionality
-
-### 🔍 Multi-Source Search
-- Exa + Tavily + Azure Cognitive Search
-- Deep Research toggle for comprehensive analysis
-- Academic, image, and video search verticals
-- Source cards with citations
-
-### 📊 Dashboard
-- Usage stats and model distribution
-- Chat history, builder projects, and saved items
-- Subscription management and tier display
-
-### ⚙️ Settings & Profile
-- Supabase auth (magic link + Google OAuth)
-- Stripe subscription management
-- Model tier preferences
-- Patent and legal info display (US Patent #10,290,222)
+Production React Native (Expo) iOS app for saintsallabs.com
 
 ---
 
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Framework | Expo SDK 52 + React Native 0.76.6 |
-| Language | TypeScript (strict) |
-| Navigation | Expo Router v4 (file-based) |
-| State | Zustand |
-| Auth | Supabase + Expo SecureStore |
-| Payments | Stripe |
-| Backend | SAL Engine v4 (FastAPI) at api.saintsallabs.com |
-| Icons | Expo Vector Icons (Ionicons) |
+## STACK
+- **React Native** via Expo SDK 51
+- **Expo Router** v3 (file-based navigation)
+- **API Gateway** — Express on Render (`SaintSalLabs-API`)
+- **Streaming** — XHR-based SSE (works in Hermes/React Native)
+- **Auth** — x-sal-key header (`sal-live-2026`)
 
 ---
 
-## Quick Start
+## SCREENS
+| Tab | Screen | Description |
+|-----|--------|-------------|
+| 💬 Chat | ChatScreen | 12 verticals · streaming · landing prompts |
+| ⚡ Builder | BuilderScreen | Code · Social · Images · Video · Deploy |
+| 🔍 Search | SearchScreen | Gemini + Google Search grounding |
+| 📊 Dashboard | DashboardScreen | Stats · pricing · API health · links |
+| ⚙️ Settings | SettingsScreen | Model selector · preferences · API config |
 
-### Prerequisites
-- Node.js 18+
-- Expo CLI: `npm install -g @expo/cli`
-- EAS CLI: `npm install -g eas-cli`
-- Apple Developer Account
-- Xcode 15+ (for local iOS builds)
+---
 
-### Setup
+## SETUP
 
 ```bash
-# 1. Clone and install
-cd SaintSalLabs
+# 1. Install deps
 npm install
 
-# 2. Configure environment
-cp .env.example .env
-# Edit .env with your actual API keys (see SaintSalTM-3.env)
-
-# 3. Start development server
+# 2. Start dev server
 npx expo start
 
-# 4. Run on iOS Simulator (press 'i')
-# Or scan QR code with Expo Go on your iPhone
-```
-
-### Environment Variables
-
-Create `.env` from `.env.example`:
-
-```env
-EXPO_PUBLIC_SUPABASE_URL=https://euxrlpuegeiggedqbkiv.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-EXPO_PUBLIC_API_BASE_URL=https://api.saintsallabs.com
-EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51RzHypL47U80vDLAs...
-EXPO_PUBLIC_ELEVENLABS_AGENT_ID=agent_5401k855rq5afqprn6vd3mh6sn7z
+# 3. Press 'i' for iOS Simulator
 ```
 
 ---
 
-## TestFlight Deployment
+## API GATEWAY (server.js)
 
-### Step 1: EAS Login
+Deploy to Render: https://render.com
+
 ```bash
+# Endpoints
+POST /api/chat/anthropic  → Claude SSE streaming
+POST /api/chat/xai        → Grok SSE streaming
+POST /api/chat/openai     → GPT JSON (social generation)
+POST /api/builder         → SAL Builder SSE (Claude + builder system)
+POST /api/search/gemini   → Gemini + Google grounding
+GET  /health              → Status check
+
+# All endpoints require:
+x-sal-key: sal-live-2026
+```
+
+### Render Environment Variables
+```
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+GEMINI_API_KEY=AIza...
+GEMINI_API_KEY_FALLBACK=AIza...
+XAI_API_KEY=xai-...
+API_SECRET=sal-live-2026
+```
+
+---
+
+## BUILD FOR APP STORE
+
+```bash
+# Install EAS CLI
+npm install -g eas-cli
+
+# Login
 eas login
-# Login with your Expo account (owner: saintvision)
+
+# Build production
+eas build --profile production --platform ios
+
+# Submit to App Store
+eas submit --platform ios
 ```
-
-### Step 2: Configure EAS Project
-```bash
-eas init
-# This will link to your Expo project and set the projectId
-```
-
-### Step 3: Configure Apple Credentials
-```bash
-eas credentials
-# Select iOS → Production
-# Choose "Log in to your Apple Developer account"
-# EAS will manage certificates and provisioning profiles automatically
-```
-
-### Step 4: Build for TestFlight
-```bash
-# Preview build (internal testing)
-eas build --platform ios --profile preview
-
-# Production build (App Store / TestFlight)
-eas build --platform ios --profile production
-```
-
-### Step 5: Submit to TestFlight
-```bash
-eas submit --platform ios --profile production
-# This uploads the build to App Store Connect
-# Then go to App Store Connect → TestFlight → manage testers
-```
-
-### Step 6: Update `eas.json` Submit Config
-Before submitting, update these values in `eas.json`:
-- `appleId`: Your Apple ID email
-- `ascAppId`: Your App Store Connect app ID (numeric)
-- `appleTeamId`: Your Apple Developer Team ID
 
 ---
 
-## Project Structure
-
+## FILE STRUCTURE
 ```
 SaintSalLabs/
-├── app/                          # Expo Router pages
-│   ├── _layout.tsx               # Root layout (auth listener)
-│   ├── index.tsx                 # Entry redirect
-│   ├── auth.tsx                  # Auth screen (magic link + Google)
-│   └── (tabs)/                   # Tab navigator
-│       ├── _layout.tsx           # 5-tab config
-│       ├── index.tsx             # → ChatScreen
-│       ├── builder.tsx           # → BuilderScreen
-│       ├── search.tsx            # → SearchScreen
-│       ├── dashboard.tsx         # → DashboardScreen
-│       └── settings.tsx          # → SettingsScreen
+├── app/
+│   ├── _layout.js          # Root layout
+│   └── (tabs)/
+│       ├── _layout.js      # Tab bar config
+│       ├── index.js        → ChatScreen
+│       ├── builder.js      → BuilderScreen
+│       ├── search.js       → SearchScreen
+│       ├── dashboard.js    → DashboardScreen
+│       └── settings.js     → SettingsScreen
 ├── src/
-│   ├── screens/                  # Full screen implementations
-│   │   ├── ChatScreen.tsx        # Perplexity-style chat
-│   │   ├── BuilderScreen.tsx     # v0-style builder
-│   │   ├── SearchScreen.tsx      # Multi-source search
-│   │   ├── DashboardScreen.tsx   # Stats & saved items
-│   │   └── SettingsScreen.tsx    # Profile & settings
-│   ├── components/               # Reusable UI components
-│   │   ├── SALHeader.tsx         # Branded header
-│   │   ├── ModelSelector.tsx     # Model tier picker
-│   │   ├── ChatBubble.tsx        # Chat message bubble
-│   │   ├── ChatInput.tsx         # Input bar
-│   │   └── VerticalCard.tsx      # Vertical selector card
-│   ├── config/
-│   │   ├── theme.ts              # Design system (dark + gold)
-│   │   └── api.ts                # API configuration
-│   ├── lib/
-│   │   ├── api.ts                # SAL Engine API client
-│   │   ├── supabase.ts           # Supabase client
-│   │   └── store.ts              # Zustand global state
-│   └── types/
-│       └── index.ts              # TypeScript definitions
-├── assets/                       # Icons and splash
-│   ├── icon.png                  # 1024x1024 app icon (golden AI eye)
-│   ├── splash-icon.png           # 512x512 splash icon
-│   ├── apple-touch-icon.png      # 180x180
-│   └── favicon.png               # 48x48
-├── app.json                      # Expo config
-├── eas.json                      # EAS Build config
-├── package.json                  # Dependencies
-├── tsconfig.json                 # TypeScript config
-├── babel.config.js               # Babel config
-├── metro.config.js               # Metro bundler config
-├── .env.example                  # Environment template
-└── .gitignore
+│   ├── screens/            # Full screen implementations
+│   ├── components/         # Shared UI components
+│   ├── lib/api.js          # XHR streaming API client
+│   └── config/theme.js     # Design system + verticals
+├── server.js               # API Gateway (deploy to Render)
+├── app.json                # Expo + iOS config
+└── eas.json                # App Store build config
 ```
 
 ---
 
-## Design System
-
+## DESIGN SYSTEM
 | Token | Value |
 |-------|-------|
-| Primary Background | `#0A0A0F` |
-| Secondary Background | `#13131A` |
-| Card Background | `#1A1A24` |
-| Gold Accent | `#D4A017` |
-| Gold Light | `#E8C547` |
-| Text Primary | `#FFFFFF` |
-| Text Secondary | `#9CA3AF` |
-| Success | `#10B981` |
-| Error | `#EF4444` |
-| Info | `#3B82F6` |
-| Font Family | System (SF Pro) |
+| Background | `#0C0C0F` |
+| Amber accent | `#F59E0B` |
+| Text | `#E8E6E1` |
+| Sidebar | `#090910` |
 
 ---
 
-## Model Tiers
-
-| Tier | Models | Monthly Price |
-|------|--------|--------------|
-| Mini (Free) | Claude Haiku, GPT-4o Mini, Gemini Flash | $0 |
-| Pro (Starter) | Claude Sonnet, GPT-4o, Gemini Pro | $27/mo |
-| Max (Pro) | Claude Opus, GPT-5, Gemini Ultra | $97/mo |
-| Max Fast (Teams) | All models + priority routing | $297/mo |
-
----
-
-## IP & Legal
-
-- **US Patent #10,290,222** — HACP (Human-AI Connection Protocol)
-- **Pending Patent #19/296,986**
-- **Trademarks:** SaintSal™, HACP™
-- **Company:** Saint Vision Technologies LLC, Huntington Beach, CA
-
----
-
-## Support
-
-- Email: ryan@hacpglobal.ai
-- Web: https://saintsallabs.com
-- CEO: Ryan "Cap" Capatosto
+© 2026 Saint Vision Technologies LLC · Patent #10,290,222

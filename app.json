@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "SaintSal Labs",
+    "name": "SaintSal™ Labs",
     "slug": "saintsallabs",
     "version": "1.0.2",
     "orientation": "portrait",
@@ -11,19 +11,17 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0A0A0F"
+      "backgroundColor": "#0C0C0F"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.saintvision.saintsallabs",
       "buildNumber": "4",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "SaintSal Labs needs microphone access for voice AI features.",
-        "NSCameraUsageDescription": "SaintSal Labs needs camera access for image-based AI features.",
-        "NSPhotoLibraryUsageDescription": "SaintSal Labs needs photo library access to share and upload images.",
-        "UIBackgroundModes": [
-          "audio"
-        ]
+        "NSMicrophoneUsageDescription": "SAL Voice AI needs microphone access for real-time voice conversations.",
+        "NSCameraUsageDescription": "SAL Builder can scan and analyze images for AI processing.",
+        "NSPhotoLibraryUsageDescription": "Upload images to SAL Builder for AI analysis and creation.",
+        "UIBackgroundModes": ["audio"]
       },
       "config": {
         "usesNonExemptEncryption": false
@@ -34,24 +32,18 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0A0A0F"
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0C0C0F"
       },
       "package": "com.saintvision.saintsallabs"
     },
     "plugins": [
       "expo-router",
-      "expo-font",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#0A0A0F"
-        }
-      ]
+      "expo-secure-store"
     ],
+    "experiments": {
+      "typedRoutes": true
+    },
     "extra": {
       "router": {
         "origin": false
