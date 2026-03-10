@@ -27,7 +27,7 @@ export const SAL_MODELS = {
     description: 'Fast & lightweight',
     icon: '⚡',
     provider: 'anthropic',
-    model: 'claude-3-5-haiku-20241022',
+    model: 'claude-3-haiku-20240307',
   },
   pro: {
     label: 'SAL Pro',

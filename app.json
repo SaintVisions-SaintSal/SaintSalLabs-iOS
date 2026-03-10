@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.saintvision.saintsallabs",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "SaintSal Labs needs microphone access for voice AI features.",
         "NSCameraUsageDescription": "SaintSal Labs needs camera access for image-based AI features.",
