@@ -7,6 +7,7 @@
  * US Patent #10,290,222 · HACP Protocol
  */
 
+const crypto  = require('crypto');
 const express = require('express');
 const cors    = require('cors');
 const helmet  = require('helmet');
@@ -305,7 +306,226 @@ app.post('/api/search/gemini', auth, async (req, res) => {
   }
 });
 
+// ── LinkedIn OAuth env ───────────────────────────────
+const LINKEDIN_CLIENT_ID     = process.env.LINKEDIN_CLIENT_ID     || '';
+const LINKEDIN_CLIENT_SECRET = process.env.LINKEDIN_CLIENT_SECRET || '';
+const LINKEDIN_REDIRECT_URI  = process.env.LINKEDIN_REDIRECT_URI  || 'saintsallabs://social/linkedin/callback';
+
+// ── LinkedIn OAuth — Authorization URL ───────────────
+app.get('/api/social/linkedin/auth', (req, res) => {
+  if (!LINKEDIN_CLIENT_ID) {
+    return res.status(503).json({ error: 'LinkedIn OAuth not configured' });
+  }
+
+  const state = Buffer.from(crypto.randomUUID()).toString('base64url');
+  const scopes = 'openid profile email w_member_social';
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id:     LINKEDIN_CLIENT_ID,
+    redirect_uri:  LINKEDIN_REDIRECT_URI,
+    state,
+    scope:         scopes,
+  });
+
+  res.json({
+    authorization_url: `https://www.linkedin.com/oauth/v2/authorization?${params}`,
+    state,
+  });
+});
+
+// ── LinkedIn OAuth — Token Exchange ──────────────────
+app.post('/api/social/linkedin/callback', async (req, res) => {
+  const { code, state } = req.body;
+
+  if (!code) return res.status(400).json({ error: 'code is required' });
+  if (!LINKEDIN_CLIENT_ID || !LINKEDIN_CLIENT_SECRET) {
+    return res.status(503).json({ error: 'LinkedIn OAuth not configured' });
+  }
+
+  try {
+    // Exchange code for access token
+    const tokenRes = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type:    'authorization_code',
+        code,
+        redirect_uri:  LINKEDIN_REDIRECT_URI,
+        client_id:     LINKEDIN_CLIENT_ID,
+        client_secret: LINKEDIN_CLIENT_SECRET,
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      const err = await tokenRes.text();
+      return res.status(tokenRes.status).json({ error: `LinkedIn token error: ${err}` });
+    }
+
+    const tokenData = await tokenRes.json();
+
+    // Fetch user profile with the access token
+    const profileRes = await fetch('https://api.linkedin.com/v2/userinfo', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+
+    let name = null, email = null, profile_id = null;
+    if (profileRes.ok) {
+      const profile = await profileRes.json();
+      name       = profile.name || null;
+      email      = profile.email || null;
+      profile_id = profile.sub || null;
+    }
+
+    res.json({
+      access_token: tokenData.access_token,
+      expires_in:   tokenData.expires_in,
+      name,
+      email,
+      profile_id,
+    });
+  } catch (err) {
+    console.error('LinkedIn callback error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── LinkedIn Post ────────────────────────────────────
+app.post('/api/social/linkedin/post', auth, async (req, res) => {
+  const { access_token, content, visibility } = req.body;
+
+  if (!access_token) return res.status(400).json({ error: 'access_token is required' });
+  if (!content)      return res.status(400).json({ error: 'content is required' });
+
+  try {
+    // Get the user's profile ID for the author URN
+    const meRes = await fetch('https://api.linkedin.com/v2/userinfo', {
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
+
+    if (!meRes.ok) {
+      return res.status(401).json({ error: 'Invalid or expired LinkedIn access token' });
+    }
+
+    const me = await meRes.json();
+    const authorUrn = `urn:li:person:${me.sub}`;
+
+    // Create post via Community Management API
+    const postRes = await fetch('https://api.linkedin.com/rest/posts', {
+      method:  'POST',
+      headers: {
+        'Content-Type':       'application/json',
+        Authorization:        `Bearer ${access_token}`,
+        'LinkedIn-Version':   '202401',
+        'X-Restli-Protocol-Version': '2.0.0',
+      },
+      body: JSON.stringify({
+        author:          authorUrn,
+        commentary:      content,
+        visibility:      (visibility || 'PUBLIC'),
+        distribution:    { feedDistribution: 'MAIN_FEED', targetEntities: [], thirdPartyDistributionChannels: [] },
+        lifecycleState:  'PUBLISHED',
+        isReshareDisabledByAuthor: false,
+      }),
+    });
+
+    if (!postRes.ok) {
+      const err = await postRes.text();
+      return res.status(postRes.status).json({ error: `LinkedIn post error: ${err}` });
+    }
+
+    // Post ID is in the x-restli-id header
+    const postId = postRes.headers.get('x-restli-id') || null;
+
+    res.json({ success: true, post_id: postId });
+  } catch (err) {
+    console.error('LinkedIn post error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Social Content Generation ────────────────────────
+app.post('/api/social/generate', auth, async (req, res) => {
+  const { prompt, platforms, tone, includeHashtags } = req.body;
+
+  if (!prompt) return res.status(400).json({ error: 'prompt is required' });
+
+  const targetPlatforms = platforms?.length ? platforms : ['twitter', 'linkedin', 'instagram', 'tiktok', 'facebook'];
+  const hashtagNote     = includeHashtags !== false ? 'Include 3-5 relevant hashtags per platform.' : 'Do NOT include hashtags.';
+
+  const systemPrompt = `You are a world-class social media content strategist for SaintSal™ Labs.
+Generate platform-native content for each requested platform. Each post should feel native to that platform's culture and format.
+
+Guidelines:
+- Twitter: 280 chars max, punchy, conversational
+- LinkedIn: Professional, thought-leadership style, 1-3 paragraphs
+- Instagram: Visual-first caption, emoji-friendly, story-driven
+- TikTok: Hook-first, trending style, script-like
+- Facebook: Community-focused, shareable, slightly longer form
+${tone ? `Tone: ${tone}` : 'Tone: professional yet approachable'}
+${hashtagNote}
+
+RESPOND WITH ONLY valid JSON — no markdown, no code fences:
+{"twitter":"...","linkedin":"...","instagram":"...","tiktok":"...","facebook":"..."}
+Only include the platforms requested: ${targetPlatforms.join(', ')}`;
+
+  try {
+    const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
+      method:  'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization:  `Bearer ${OPENAI_KEY}`,
+      },
+      body: JSON.stringify({
+        model:    'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: prompt },
+        ],
+        max_tokens:  2048,
+        temperature: 0.8,
+      }),
+    });
+
+    if (!upstream.ok) {
+      const err = await upstream.text();
+      return res.status(upstream.status).json({ error: `OpenAI error: ${err}` });
+    }
+
+    const data    = await upstream.json();
+    const rawText = data.choices?.[0]?.message?.content || '';
+
+    // Parse JSON — strip any accidental markdown wrapping
+    const cleaned = rawText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '').trim();
+
+    try {
+      const content = JSON.parse(cleaned);
+      res.json(content);
+    } catch {
+      // If JSON parse fails, return the raw text keyed to the first platform
+      res.json({ [targetPlatforms[0]]: rawText, _raw: true });
+    }
+  } catch (err) {
+    console.error('Social generate error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Social Account Status ────────────────────────────
+app.get('/api/social/status', auth, (req, res) => {
+  res.json({
+    linkedin: {
+      configured:    !!LINKEDIN_CLIENT_ID && !!LINKEDIN_CLIENT_SECRET,
+      client_id_set: !!LINKEDIN_CLIENT_ID,
+    },
+    twitter:   { configured: false },
+    instagram: { configured: false },
+    tiktok:    { configured: false },
+    facebook:  { configured: false },
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`SaintSal Labs API Gateway v2 on port ${PORT}`);
   console.log(`Providers: Anthropic=${!!ANTHROPIC_KEY} OpenAI=${!!OPENAI_KEY} Gemini=${!!GEMINI_KEY} xAI=${!!XAI_KEY}`);
+  console.log(`Social: LinkedIn=${!!LINKEDIN_CLIENT_ID}`);
 });

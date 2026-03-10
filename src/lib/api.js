@@ -119,6 +119,47 @@ export const searchGemini = async (query) => {
   return res.json(); // { answer, sources }
 };
 
+/* ─── LinkedIn OAuth ──────────────────────────────── */
+export const getLinkedInAuthUrl = async () => {
+  const res = await fetch(`${API_BASE}/api/social/linkedin/auth`, { headers: HEADERS });
+  return res.json(); // { url, state }
+};
+
+export const exchangeLinkedInCode = async (code, state) => {
+  const res = await fetch(`${API_BASE}/api/social/linkedin/callback`, {
+    method: 'POST',
+    headers: HEADERS,
+    body: JSON.stringify({ code, state }),
+  });
+  return res.json(); // { access_token, name, email, profile_id }
+};
+
+/* ─── Direct Social Posting ──────────────────────── */
+export const postToLinkedIn = async ({ access_token, content }) => {
+  const res = await fetch(`${API_BASE}/api/social/linkedin/post`, {
+    method: 'POST',
+    headers: HEADERS,
+    body: JSON.stringify({ access_token, content }),
+  });
+  return res.json();
+};
+
+/* ─── Server-side Social Generation ──────────────── */
+export const generateSocialServer = async ({ prompt, platforms, tone }) => {
+  const res = await fetch(`${API_BASE}/api/social/generate`, {
+    method: 'POST',
+    headers: HEADERS,
+    body: JSON.stringify({ prompt, platforms, tone }),
+  });
+  return res.json();
+};
+
+/* ─── Social Status ──────────────────────────────── */
+export const getSocialStatus = async () => {
+  const res = await fetch(`${API_BASE}/api/social/status`, { headers: HEADERS });
+  return res.json();
+};
+
 /* ─── Health check ────────────────────────────────── */
 export const checkHealth = async () => {
   try {
