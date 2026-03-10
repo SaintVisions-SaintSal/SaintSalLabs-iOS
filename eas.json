@@ -21,16 +21,18 @@
     "production": {
       "autoIncrement": true,
       "ios": {
-        "buildConfiguration": "Release"
+        "buildConfiguration": "Release",
+        "credentialsSource": "local",
+        "image": "latest"
       }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "appleId": "ryan@hacpglobal.ai",
-        "ascAppId": "saintsallabs",
-        "appleTeamId": "SAINTVISION"
+        "ascApiKeyIssuerId": "5cefc466-9ad9-4956-b761-683c25505aa1",
+        "ascApiKeyId": "L5THU6WGBB",
+        "ascApiKeyPath": "./AuthKey_L5THU6WGBB.p8"
       }
     }
   }

@@ -21,3 +21,7 @@ eas-credentials/
 
 # macOS
 .DS_Store
+AuthKey_*.p8
+credentials.json
+*.mobileprovision
+dist_cert.p12
