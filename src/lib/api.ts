@@ -1,21 +1,27 @@
 /**
- * SaintSal Labs — Real API Client
- * Direct connections to Anthropic, OpenAI, Gemini, xAI
- * NO fake backend — every call hits a real API
+ * SaintSal Labs — API Client (Secure Backend Gateway)
+ * All AI calls route through https://saintsallabs-api.onrender.com
+ * NO API keys stored in the mobile bundle.
  */
 import {
-  ANTHROPIC_API_KEY,
-  OPENAI_API_KEY,
-  GEMINI_API_KEY,
-  GEMINI_API_KEY_FALLBACK,
-  XAI_API_KEY,
+  API_GATEWAY_URL,
+  API_GATEWAY_KEY,
   SAL_MODELS,
   SAL_SYSTEM_PROMPT,
   BUILDER_SYSTEM_PROMPT,
 } from '@/config/api';
 import type { SALModelTier } from '@/types';
 
-// ─── Anthropic Claude Streaming ──────────────────────────────
+// ─── Gateway fetch helper ────────────────────────────────────
+
+function gatewayHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'x-sal-key': API_GATEWAY_KEY,
+  };
+}
+
+// ─── Anthropic Claude Streaming (via gateway) ────────────────
 
 export async function streamAnthropicChat(
   messages: { role: string; content: string }[],
@@ -27,23 +33,18 @@ export async function streamAnthropicChat(
 ): Promise<void> {
   try {
     const anthropicMessages = messages.map((m) => ({
-      role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+      role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
       content: m.content,
     }));
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(`${API_GATEWAY_URL}/api/chat/anthropic`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
+      headers: gatewayHeaders(),
       body: JSON.stringify({
         model,
-        max_tokens: 4096,
         system: systemPrompt,
         messages: anthropicMessages,
-        stream: true,
+        max_tokens: 4096,
       }),
     });
 
@@ -52,14 +53,24 @@ export async function streamAnthropicChat(
       // If model not found, try fallback model
       if (res.status === 404 && model.includes('haiku')) {
         console.log('Haiku model not found, falling back to claude-3-haiku-20240307');
-        return streamAnthropicChat(messages, systemPrompt, 'claude-3-haiku-20240307', onChunk, onDone, onError);
+        return streamAnthropicChat(
+          messages,
+          systemPrompt,
+          'claude-3-haiku-20240307',
+          onChunk,
+          onDone,
+          onError
+        );
       }
-      onError(`Anthropic API error ${res.status}: ${err}`);
+      onError(`API error ${res.status}: ${err}`);
       return;
     }
 
     const reader = res.body?.getReader();
-    if (!reader) { onError('No response body'); return; }
+    if (!reader) {
+      onError('No response body');
+      return;
+    }
 
     const decoder = new TextDecoder();
     let buffer = '';
@@ -97,7 +108,7 @@ export async function streamAnthropicChat(
   }
 }
 
-// ─── xAI / Grok Streaming ────────────────────────────────────
+// ─── xAI / Grok Streaming (via gateway) ──────────────────────
 
 export async function streamXAIChat(
   messages: { role: string; content: string }[],
@@ -116,27 +127,27 @@ export async function streamXAIChat(
       })),
     ];
 
-    const res = await fetch('https://api.x.ai/v1/chat/completions', {
+    const res = await fetch(`${API_GATEWAY_URL}/api/chat/xai`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${XAI_API_KEY}`,
-      },
+      headers: gatewayHeaders(),
       body: JSON.stringify({
         model,
         messages: xaiMessages,
-        stream: true,
+        max_tokens: 4096,
       }),
     });
 
     if (!res.ok) {
       const err = await res.text();
-      onError(`xAI API error ${res.status}: ${err}`);
+      onError(`API error ${res.status}: ${err}`);
       return;
     }
 
     const reader = res.body?.getReader();
-    if (!reader) { onError('No response body'); return; }
+    if (!reader) {
+      onError('No response body');
+      return;
+    }
 
     const decoder = new TextDecoder();
     let buffer = '';
@@ -174,137 +185,44 @@ export async function streamXAIChat(
   }
 }
 
-// ─── OpenAI Chat (non-streaming for search synthesis) ────────
+// ─── OpenAI Chat (non-streaming, via gateway) ────────────────
 
 export async function openaiChat(
   messages: { role: string; content: string }[],
   model: string = 'gpt-4o-mini'
 ): Promise<string> {
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const res = await fetch(`${API_GATEWAY_URL}/api/chat/openai`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      max_tokens: 2048,
-    }),
+    headers: gatewayHeaders(),
+    body: JSON.stringify({ model, messages, max_tokens: 2048 }),
   });
 
-  if (!res.ok) throw new Error(`OpenAI error: ${res.status}`);
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
   const data = await res.json();
   return data.choices[0].message.content;
 }
 
-// ─── OpenAI Web Search (fallback when Gemini quota exceeded) ─
-
-export async function openaiWebSearch(query: string): Promise<{
-  answer: string;
-  sources: { title: string; url: string; snippet: string }[];
-}> {
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful search assistant. Provide a comprehensive, well-structured answer with clear information. Format your response in clear paragraphs. At the end, provide 3-5 relevant source URLs formatted as:\n\nSOURCES:\n- [Title](URL)\n- [Title](URL)',
-        },
-        { role: 'user', content: query },
-      ],
-      max_tokens: 2048,
-    }),
-  });
-
-  if (!res.ok) throw new Error(`OpenAI error: ${res.status}`);
-  const data = await res.json();
-  const fullText = data.choices[0].message.content || '';
-
-  // Parse sources from response
-  const sources: { title: string; url: string; snippet: string }[] = [];
-  const sourceSection = fullText.split('SOURCES:')[1] || '';
-  const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g;
-  let match;
-  while ((match = linkRegex.exec(sourceSection)) !== null) {
-    sources.push({ title: match[1], url: match[2], snippet: '' });
-  }
-
-  // Clean answer (remove source section)
-  const answer = fullText.split('SOURCES:')[0].trim();
-
-  return { answer, sources };
-}
-
-// ─── Gemini Search (grounding with Google Search) ────────────
-// Tries primary key → fallback key → OpenAI
-
-async function tryGeminiSearch(apiKey: string, query: string): Promise<{
-  answer: string;
-  sources: { title: string; url: string; snippet: string }[];
-} | null> {
-  const res = await fetch(
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-goog-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: query }] }],
-        tools: [{ google_search: {} }],
-      }),
-    }
-  );
-
-  if (!res.ok) {
-    return null; // Signal to try next key
-  }
-
-  const data = await res.json();
-  const candidate = data.candidates?.[0];
-  const text = candidate?.content?.parts?.[0]?.text || 'No results found.';
-
-  const groundingMeta = candidate?.groundingMetadata;
-  const chunks = groundingMeta?.groundingChunks || [];
-  const sources = chunks
-    .filter((c: any) => c.web)
-    .map((c: any) => ({
-      title: c.web.title || 'Source',
-      url: c.web.uri || '',
-      snippet: '',
-    }));
-
-  return { answer: text, sources };
-}
+// ─── Gemini Search (via gateway — handles failover server-side) ─
 
 export async function geminiSearch(query: string): Promise<{
   answer: string;
   sources: { title: string; url: string; snippet: string }[];
 }> {
   try {
-    // Try primary Gemini key
-    const result1 = await tryGeminiSearch(GEMINI_API_KEY, query);
-    if (result1) return result1;
+    const res = await fetch(`${API_GATEWAY_URL}/api/search/gemini`, {
+      method: 'POST',
+      headers: gatewayHeaders(),
+      body: JSON.stringify({ query }),
+    });
 
-    // Try fallback Gemini key
-    console.log('Primary Gemini key failed, trying fallback...');
-    const result2 = await tryGeminiSearch(GEMINI_API_KEY_FALLBACK, query);
-    if (result2) return result2;
+    if (!res.ok) {
+      throw new Error(`Search API error: ${res.status}`);
+    }
 
-    // Both Gemini keys exhausted → OpenAI
-    console.log('Both Gemini keys exhausted, falling back to OpenAI search');
-    return openaiWebSearch(query);
+    return await res.json();
   } catch (err: any) {
-    console.log('Gemini failed, falling back to OpenAI:', err.message);
-    return openaiWebSearch(query);
+    console.error('Search failed:', err.message);
+    return { answer: 'Search is temporarily unavailable. Please try again.', sources: [] };
   }
 }
 

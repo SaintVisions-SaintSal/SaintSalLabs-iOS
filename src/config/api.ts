@@ -1,27 +1,25 @@
 /**
  * SaintSal Labs — API Configuration
- * Direct API keys for real AI providers
+ * All AI calls go through the secure backend gateway.
+ * NO API keys are stored in the mobile bundle.
  */
 
-// ─── AI Provider Keys ────────────────────────────────────────
-export const ANTHROPIC_API_KEY = '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';
-export const OPENAI_API_KEY = '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';
-export const GEMINI_API_KEY = 'AIzaSyCOOVSlv7M8HZ977xW7qMpZj1pNExDWUW8';
-export const GEMINI_API_KEY_FALLBACK = 'AIzaSyBRZBP_1veFgNmP7LYpawcHRG0RF2qsC2g';
-export const XAI_API_KEY = 'xai-nHg5nPUWiBt78IZxQzWTUp8xlUYtFU7Ygz2OtfbKEh2ROke1ckosfMKFRnzVNudHLp12aw6teomzVkbt';
+// ─── Backend Gateway ────────────────────────────────────────
+export const API_GATEWAY_URL = 'https://saintsallabs-api.onrender.com';
+export const API_GATEWAY_KEY = 'sal-live-2026'; // x-sal-key header
 
-// ─── Supabase ────────────────────────────────────────────────
+// ─── Supabase (public anon key — safe for client) ───────────
 export const SUPABASE_URL = 'https://euxrlpuegeiggedqbkiv.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1eHJscHVlZ2VpZ2dlZHFia2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5NTM1MTYsImV4cCI6MjA4MTUyOTUxNn0.KpvXVTIDXeGOBOQOhdPopVbYYfjB-RgPSyJJY3IY474';
 
-// ─── Stripe ──────────────────────────────────────────────────
+// ─── Stripe (publishable key — safe for client) ─────────────
 export const STRIPE_PUBLISHABLE_KEY = 'pk_live_51RzHypL47U80vDLAsLKUh4wwtGsldovBIdNmAh9oYA0poLgKhKnwqfjys7cKuORwoxo501i5OjLy8dsS2wGN1l6b00yqNAzP7w';
 
-// ─── ElevenLabs Voice Agent ──────────────────────────────────
+// ─── ElevenLabs Voice Agent ─────────────────────────────────
 export const ELEVENLABS_AGENT_ID = 'agent_5401k855rq5afqprn6vd3mh6sn7z';
 
-// ─── SAL Model Tiers ─────────────────────────────────────────
-// Maps our tier names to actual provider models
+// ─── SAL Model Tiers ────────────────────────────────────────
+// Maps our tier names to actual provider models (server-side resolution)
 export const SAL_MODELS = {
   mini: {
     label: 'SAL Mini',
@@ -53,7 +51,7 @@ export const SAL_MODELS = {
   },
 } as const;
 
-// ─── Pricing Tiers ───────────────────────────────────────────
+// ─── Pricing Tiers ──────────────────────────────────────────
 export const TIERS = {
   free: { name: 'Free', price: 0, compute: 100, color: '#6B6B7B' },
   starter: { name: 'Starter', price: 27, compute: 500, color: '#D4A017' },
@@ -62,7 +60,7 @@ export const TIERS = {
   enterprise: { name: 'Enterprise', price: 497, compute: -1, color: '#FF4757' },
 } as const;
 
-// ─── Verticals ───────────────────────────────────────────────
+// ─── Verticals ──────────────────────────────────────────────
 export const VERTICALS = [
   { id: 'finance', name: 'Finance', icon: '📊', color: '#00D68F', description: 'Markets, watchlists, SEC filings' },
   { id: 'sports', name: 'Sports', icon: '🏈', color: '#FF8C42', description: 'Scores, stats, favorites' },
@@ -72,7 +70,7 @@ export const VERTICALS = [
   { id: 'tech', name: 'Tech', icon: '💻', color: '#2DD4BF', description: 'Code, docs, debugging' },
 ] as const;
 
-// ─── SAL Builder System Prompt ───────────────────────────────
+// ─── SAL Builder System Prompt ──────────────────────────────
 export const BUILDER_SYSTEM_PROMPT = `You are SAL Builder — the world's best full-stack AI engineer embedded in SaintSal™ Labs. You operate like bolt.new or v0.dev.
 
 When asked to build something:
@@ -93,7 +91,7 @@ After code, provide:
 
 Always be specific, complete, and production-grade. Never use placeholder comments.`;
 
-// ─── SAL Chat System Prompt ──────────────────────────────────
+// ─── SAL Chat System Prompt ─────────────────────────────────
 export const SAL_SYSTEM_PROMPT = `You are SAL — SaintSal™ Labs' AI assistant. Built by SaintVision Technologies (US Patent #10,290,222, HACP Protocol).
 
 You are expert across: finance, real estate, sports analytics, medical coding, technology, and general intelligence.
