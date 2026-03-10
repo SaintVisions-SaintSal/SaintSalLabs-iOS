@@ -6,7 +6,7 @@
 // ─── AI Provider Keys ────────────────────────────────────────
 export const ANTHROPIC_API_KEY = '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';
 export const OPENAI_API_KEY = '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';
-export const GEMINI_API_KEY = 'AIzaSyDZOserUM2HQfXVDmlV_l_A2d8q9Gbb0RI';
+export const GEMINI_API_KEY = 'AIzaSyBRZBP_1veFgNmP7LYpawcHRG0RF2qsC2g';
 export const XAI_API_KEY = 'xai-nHg5nPUWiBt78IZxQzWTUp8xlUYtFU7Ygz2OtfbKEh2ROke1ckosfMKFRnzVNudHLp12aw6teomzVkbt';
 
 // ─── Supabase ────────────────────────────────────────────────
