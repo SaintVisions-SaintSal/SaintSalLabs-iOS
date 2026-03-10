@@ -1,10 +1,10 @@
 /**
- * SaintSal Labs — Vertical Card Component
- * Cards for Finance, Sports, Real Estate, News, Medical, Tech
+ * SaintSal Labs — Vertical Intelligence Card
+ * Premium compact card for vertical selection
  */
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors, FontSize, Spacing, BorderRadius, Shadow } from '@/config/theme';
+import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import { Colors, FontSize, Spacing, BorderRadius } from '@/config/theme';
 
 interface Props {
   icon: string;
@@ -18,45 +18,75 @@ interface Props {
 export default function VerticalCard({ icon, name, description, color, onPress, compact }: Props) {
   if (compact) {
     return (
-      <TouchableOpacity style={styles.compactCard} onPress={onPress} activeOpacity={0.7}>
-        <View style={[styles.compactIconBg, { backgroundColor: `${color}15` }]}>
+      <TouchableOpacity
+        style={[styles.compactCard, { borderColor: `${color}20` }]}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.compactIconBg, { backgroundColor: `${color}10` }]}>
           <Text style={styles.compactIcon}>{icon}</Text>
         </View>
-        <Text style={styles.compactName}>{name}</Text>
+        <Text style={[styles.compactName, { color }]}>{name}</Text>
       </TouchableOpacity>
     );
   }
 
   return (
     <TouchableOpacity
-      style={[styles.card, { borderColor: `${color}30` }]}
+      style={[styles.card, { borderColor: `${color}25` }]}
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <View style={[styles.iconContainer, { backgroundColor: `${color}15` }]}>
+      <View style={[styles.iconBg, { backgroundColor: `${color}12` }]}>
         <Text style={styles.icon}>{icon}</Text>
       </View>
       <View style={styles.textContainer}>
         <Text style={[styles.name, { color }]}>{name}</Text>
-        <Text style={styles.description}>{description}</Text>
+        <Text style={styles.description} numberOfLines={1}>{description}</Text>
       </View>
-      <Text style={[styles.arrow, { color: `${color}80` }]}>›</Text>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
+  // Compact variant (for chat screen grid)
+  compactCard: {
+    width: '30%',
+    alignItems: 'center',
+    backgroundColor: Colors.bgCard,
+    borderRadius: BorderRadius.md,
+    borderWidth: 0.5,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+  },
+  compactIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  compactIcon: {
+    fontSize: 18,
+  },
+  compactName: {
+    fontSize: FontSize.xs,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+
+  // Full variant
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.bgCard,
     borderRadius: BorderRadius.md,
-    borderWidth: 1,
+    borderWidth: 0.5,
     padding: Spacing.lg,
     gap: Spacing.md,
-    ...Shadow.sm,
   },
-  iconContainer: {
+  iconBg: {
     width: 44,
     height: 44,
     borderRadius: 12,
@@ -70,38 +100,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   name: {
-    fontSize: FontSize.lg,
+    fontSize: FontSize.md,
     fontWeight: '600',
+    marginBottom: 2,
   },
   description: {
-    color: Colors.textSecondary,
+    color: Colors.textTertiary,
     fontSize: FontSize.sm,
-    marginTop: 2,
-  },
-  arrow: {
-    fontSize: 24,
-    fontWeight: '300',
-  },
-  // Compact variant
-  compactCard: {
-    alignItems: 'center',
-    width: 72,
-    gap: 6,
-  },
-  compactIconBg: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  compactIcon: {
-    fontSize: 26,
-  },
-  compactName: {
-    color: Colors.textSecondary,
-    fontSize: FontSize.xs,
-    fontWeight: '500',
-    textAlign: 'center',
   },
 });

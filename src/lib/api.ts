@@ -1,63 +1,64 @@
 /**
- * SaintSal Labs — API Client
- * Connects to the SAL Engine v4 FastAPI backend
+ * SaintSal Labs — Real API Client
+ * Direct connections to Anthropic, OpenAI, Gemini, xAI
+ * NO fake backend — every call hits a real API
  */
-import { API_BASE, XAI_API_KEY, XAI_BASE_URL } from '@/config/api';
-import { useStore } from '@/lib/store';
-import type { ChatMessage, SearchResult, BuilderFile } from '@/types';
+import {
+  ANTHROPIC_API_KEY,
+  OPENAI_API_KEY,
+  GEMINI_API_KEY,
+  XAI_API_KEY,
+  SAL_MODELS,
+  SAL_SYSTEM_PROMPT,
+  BUILDER_SYSTEM_PROMPT,
+} from '@/config/api';
+import type { SALModelTier } from '@/types';
 
-class SALClient {
-  private baseUrl: string;
+// ─── Anthropic Claude Streaming ──────────────────────────────
 
-  constructor() {
-    this.baseUrl = API_BASE;
-  }
+export async function streamAnthropicChat(
+  messages: { role: string; content: string }[],
+  systemPrompt: string,
+  model: string,
+  onChunk: (text: string) => void,
+  onDone: (fullText: string, modelUsed: string) => void,
+  onError: (error: string) => void
+): Promise<void> {
+  try {
+    const anthropicMessages = messages.map((m) => ({
+      role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+      content: m.content,
+    }));
 
-  private get headers(): Record<string, string> {
-    const token = useStore.getState().authToken;
-    return {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-  }
-
-  // ─── CHAT ───────────────────────────────────────────────────
-
-  async chat(message: string, model: string = 'auto', system: string = ''): Promise<{
-    content: string;
-    model_used: string;
-    provider: string;
-    tokens_in: number;
-    tokens_out: number;
-    cost: number;
-    latency_ms: number;
-  }> {
-    const res = await fetch(`${this.baseUrl}/v1/chat`, {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: this.headers,
-      body: JSON.stringify({ message, model, system, stream: false }),
-    });
-    if (!res.ok) throw new Error(`Chat failed: ${res.status}`);
-    return res.json();
-  }
-
-  async *chatStream(
-    message: string,
-    model: string = 'auto',
-    system: string = ''
-  ): AsyncGenerator<{ type: string; content?: string; model?: string; provider?: string }> {
-    const res = await fetch(`${this.baseUrl}/v1/chat/stream`, {
-      method: 'POST',
-      headers: this.headers,
-      body: JSON.stringify({ message, model, system, stream: true }),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: anthropicMessages,
+        stream: true,
+      }),
     });
 
-    if (!res.ok) throw new Error(`Stream failed: ${res.status}`);
-    if (!res.body) throw new Error('No response body');
+    if (!res.ok) {
+      const err = await res.text();
+      onError(`Anthropic API error ${res.status}: ${err}`);
+      return;
+    }
 
-    const reader = res.body.getReader();
+    const reader = res.body?.getReader();
+    if (!reader) { onError('No response body'); return; }
+
     const decoder = new TextDecoder();
     let buffer = '';
+    let fullText = '';
 
     while (true) {
       const { done, value } = await reader.read();
@@ -71,104 +72,46 @@ class SALClient {
         if (line.startsWith('data: ')) {
           try {
             const data = JSON.parse(line.slice(6));
-            yield data;
+            if (data.type === 'content_block_delta' && data.delta?.text) {
+              fullText += data.delta.text;
+              onChunk(data.delta.text);
+            }
+            if (data.type === 'message_stop') {
+              onDone(fullText, model);
+              return;
+            }
           } catch {
             // skip malformed
           }
         }
       }
     }
+    onDone(fullText, model);
+  } catch (err: any) {
+    onError(err.message || 'Connection failed');
   }
+}
 
-  // ─── SEARCH ─────────────────────────────────────────────────
+// ─── xAI / Grok Streaming ────────────────────────────────────
 
-  async search(query: string, maxResults: number = 10, deep: boolean = false): Promise<{
-    results: SearchResult[];
-    answer: string;
-    sources_used: string[];
-  }> {
-    const res = await fetch(`${this.baseUrl}/v1/search`, {
-      method: 'POST',
-      headers: this.headers,
-      body: JSON.stringify({ query, max_results: maxResults, use_rag: true, deep }),
-    });
-    if (!res.ok) throw new Error(`Search failed: ${res.status}`);
-    return res.json();
-  }
+export async function streamXAIChat(
+  messages: { role: string; content: string }[],
+  systemPrompt: string,
+  model: string,
+  onChunk: (text: string) => void,
+  onDone: (fullText: string, modelUsed: string) => void,
+  onError: (error: string) => void
+): Promise<void> {
+  try {
+    const xaiMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages.map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      })),
+    ];
 
-  // ─── BUILDER ────────────────────────────────────────────────
-
-  async build(prompt: string, framework: string = 'nextjs', deployTo?: string): Promise<{
-    files: BuilderFile[];
-    build_type: string;
-    preview_html: string;
-    deploy_url: string;
-    repo_url: string;
-    metadata: Record<string, any>;
-  }> {
-    const res = await fetch(`${this.baseUrl}/v1/builder`, {
-      method: 'POST',
-      headers: this.headers,
-      body: JSON.stringify({ prompt, framework, deploy_to: deployTo }),
-    });
-    if (!res.ok) throw new Error(`Build failed: ${res.status}`);
-    return res.json();
-  }
-
-  async builderIterate(feedback: string, files: BuilderFile[]): Promise<{ files: BuilderFile[] }> {
-    const res = await fetch(`${this.baseUrl}/v1/builder/iterate`, {
-      method: 'POST',
-      headers: this.headers,
-      body: JSON.stringify({ feedback, files }),
-    });
-    if (!res.ok) throw new Error(`Iterate failed: ${res.status}`);
-    return res.json();
-  }
-
-  // ─── MEDIA GENERATION ──────────────────────────────────────
-
-  async generateImage(prompt: string, provider: string = 'dalle'): Promise<{ url: string }> {
-    const res = await fetch(`${this.baseUrl}/v1/generate/image`, {
-      method: 'POST',
-      headers: this.headers,
-      body: JSON.stringify({ prompt, provider }),
-    });
-    if (!res.ok) throw new Error(`Image gen failed: ${res.status}`);
-    return res.json();
-  }
-
-  async generateVideo(prompt: string, imageUrl?: string): Promise<{ url: string }> {
-    const res = await fetch(`${this.baseUrl}/v1/generate/video`, {
-      method: 'POST',
-      headers: this.headers,
-      body: JSON.stringify({ prompt, image_url: imageUrl }),
-    });
-    if (!res.ok) throw new Error(`Video gen failed: ${res.status}`);
-    return res.json();
-  }
-
-  // ─── MODELS & TIER ─────────────────────────────────────────
-
-  async getModels(): Promise<{ models: any[]; tier: string }> {
-    const res = await fetch(`${this.baseUrl}/v1/models`, { headers: this.headers });
-    if (!res.ok) throw new Error(`Models failed: ${res.status}`);
-    return res.json();
-  }
-
-  async getTierInfo(): Promise<{ tier: string; price: number; limits: any }> {
-    const res = await fetch(`${this.baseUrl}/v1/tier`, { headers: this.headers });
-    if (!res.ok) throw new Error(`Tier failed: ${res.status}`);
-    return res.json();
-  }
-
-  // ─── GROK / xAI DIRECT ──────────────────────────────────────
-
-  async grokChat(message: string, model: string = 'grok-3'): Promise<{
-    content: string;
-    model: string;
-    usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
-  }> {
-    const res = await fetch(`${XAI_BASE_URL}/chat/completions`, {
+    const res = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -176,42 +119,23 @@ class SALClient {
       },
       body: JSON.stringify({
         model,
-        messages: [{ role: 'user', content: message }],
-        stream: false,
-      }),
-    });
-    if (!res.ok) throw new Error(`Grok chat failed: ${res.status}`);
-    const data = await res.json();
-    return {
-      content: data.choices[0].message.content,
-      model: data.model,
-      usage: data.usage,
-    };
-  }
-
-  async *grokStream(
-    message: string,
-    model: string = 'grok-3'
-  ): AsyncGenerator<{ content: string; done: boolean }> {
-    const res = await fetch(`${XAI_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${XAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: message }],
+        messages: xaiMessages,
         stream: true,
       }),
     });
 
-    if (!res.ok) throw new Error(`Grok stream failed: ${res.status}`);
-    if (!res.body) throw new Error('No response body');
+    if (!res.ok) {
+      const err = await res.text();
+      onError(`xAI API error ${res.status}: ${err}`);
+      return;
+    }
 
-    const reader = res.body.getReader();
+    const reader = res.body?.getReader();
+    if (!reader) { onError('No response body'); return; }
+
     const decoder = new TextDecoder();
     let buffer = '';
+    let fullText = '';
 
     while (true) {
       const { done, value } = await reader.read();
@@ -226,23 +150,123 @@ class SALClient {
           try {
             const data = JSON.parse(line.slice(6));
             const delta = data.choices?.[0]?.delta?.content;
-            if (delta) yield { content: delta, done: false };
+            if (delta) {
+              fullText += delta;
+              onChunk(delta);
+            }
           } catch {
             // skip malformed
           }
         } else if (line === 'data: [DONE]') {
-          yield { content: '', done: true };
+          onDone(fullText, model);
+          return;
         }
       }
     }
-  }
-
-  // ─── HEALTH ─────────────────────────────────────────────────
-
-  async health(): Promise<{ status: string; engine: string }> {
-    const res = await fetch(`${this.baseUrl}/health`);
-    return res.json();
+    onDone(fullText, model);
+  } catch (err: any) {
+    onError(err.message || 'Connection failed');
   }
 }
 
-export const salClient = new SALClient();
+// ─── OpenAI Chat (non-streaming for search synthesis) ────────
+
+export async function openaiChat(
+  messages: { role: string; content: string }[],
+  model: string = 'gpt-4o-mini'
+): Promise<string> {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      max_tokens: 2048,
+    }),
+  });
+
+  if (!res.ok) throw new Error(`OpenAI error: ${res.status}`);
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
+
+// ─── Gemini Search (grounding with Google Search) ────────────
+
+export async function geminiSearch(query: string): Promise<{
+  answer: string;
+  sources: { title: string; url: string; snippet: string }[];
+}> {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: query }] }],
+        tools: [{ google_search: {} }],
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Gemini error: ${res.status} ${err}`);
+  }
+
+  const data = await res.json();
+  const candidate = data.candidates?.[0];
+  const text = candidate?.content?.parts?.[0]?.text || 'No results found.';
+
+  // Extract grounding sources
+  const groundingMeta = candidate?.groundingMetadata;
+  const chunks = groundingMeta?.groundingChunks || [];
+  const sources = chunks
+    .filter((c: any) => c.web)
+    .map((c: any) => ({
+      title: c.web.title || 'Source',
+      url: c.web.uri || '',
+      snippet: '',
+    }));
+
+  return { answer: text, sources };
+}
+
+// ─── Unified Chat Dispatcher ─────────────────────────────────
+
+export function streamChat(
+  messages: { role: string; content: string }[],
+  tier: SALModelTier,
+  systemPrompt: string,
+  onChunk: (text: string) => void,
+  onDone: (fullText: string, modelUsed: string) => void,
+  onError: (error: string) => void
+): void {
+  const modelConfig = SAL_MODELS[tier];
+
+  if (modelConfig.provider === 'xai') {
+    streamXAIChat(messages, systemPrompt, modelConfig.model, onChunk, onDone, onError);
+  } else {
+    streamAnthropicChat(messages, systemPrompt, modelConfig.model, onChunk, onDone, onError);
+  }
+}
+
+// ─── Builder Chat (always Claude Sonnet for code gen) ────────
+
+export function streamBuilderChat(
+  messages: { role: string; content: string }[],
+  onChunk: (text: string) => void,
+  onDone: (fullText: string, modelUsed: string) => void,
+  onError: (error: string) => void
+): void {
+  streamAnthropicChat(
+    messages,
+    BUILDER_SYSTEM_PROMPT,
+    'claude-sonnet-4-20250514',
+    onChunk,
+    onDone,
+    onError
+  );
+}

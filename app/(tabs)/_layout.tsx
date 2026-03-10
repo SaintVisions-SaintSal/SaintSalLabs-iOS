@@ -1,6 +1,6 @@
 /**
  * SaintSal Labs — Tab Navigator
- * 5 tabs: Chat, Builder, Search, Dashboard, Settings
+ * Premium charcoal + gold tab bar with SF Symbol-style icons
  */
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
@@ -16,9 +16,10 @@ type TabIconProps = {
 function TabIcon({ focused, icon, label }: TabIconProps) {
   return (
     <View style={styles.tabIconContainer}>
-      <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>{icon}</Text>
+      <View style={[styles.iconWrap, focused && styles.iconWrapFocused]}>
+        <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>{icon}</Text>
+      </View>
       <Text style={[styles.tabLabel, focused && styles.tabLabelFocused]}>{label}</Text>
-      {focused && <View style={styles.activeIndicator} />}
     </View>
   );
 }
@@ -29,11 +30,11 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.bg,
+          backgroundColor: '#08080C',
           borderTopWidth: 0.5,
-          borderTopColor: Colors.border,
-          height: 82,
-          paddingBottom: 24,
+          borderTopColor: 'rgba(42, 42, 58, 0.6)',
+          height: 84,
+          paddingBottom: 26,
           paddingTop: 8,
         },
         tabBarShowLabel: false,
@@ -50,7 +51,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="builder"
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="🏗️" label="Builder" />,
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="⚡" label="Builder" />,
         }}
       />
       <Tabs.Screen
@@ -81,27 +82,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 60,
   },
-  tabIcon: {
-    fontSize: 22,
+  iconWrap: {
+    width: 36,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
     marginBottom: 2,
   },
+  iconWrapFocused: {
+    backgroundColor: 'rgba(212, 160, 23, 0.1)',
+  },
+  tabIcon: {
+    fontSize: 20,
+    opacity: 0.5,
+  },
   tabIconFocused: {
-    fontSize: 24,
+    fontSize: 22,
+    opacity: 1,
   },
   tabLabel: {
     fontSize: 10,
     color: Colors.textMuted,
     fontWeight: '500',
+    letterSpacing: 0.2,
   },
   tabLabelFocused: {
     color: Colors.gold,
     fontWeight: '600',
-  },
-  activeIndicator: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.gold,
-    marginTop: 2,
   },
 });

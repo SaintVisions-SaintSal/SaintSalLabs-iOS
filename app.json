@@ -2,7 +2,7 @@
   "expo": {
     "name": "SaintSal Labs",
     "slug": "saintsallabs",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.saintvision.saintsallabs",
-      "buildNumber": "1",
+      "buildNumber": "3",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "SaintSal Labs needs microphone access for voice AI features.",
         "NSCameraUsageDescription": "SaintSal Labs needs camera access for image-based AI features.",

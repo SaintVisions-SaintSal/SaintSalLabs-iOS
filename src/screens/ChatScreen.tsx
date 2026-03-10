@@ -1,27 +1,35 @@
 /**
  * SaintSal Labs — Chat Screen
- * Perplexity-style AI chat with streaming, model selection, source citations
+ * Premium AI chat with real-time streaming, model selection, vertical intelligence
  */
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, FlatList, StyleSheet, KeyboardAvoidingView, Platform,
-  ActivityIndicator, TouchableOpacity, Alert, Image,
+  TouchableOpacity, Image, Animated, Easing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontSize, Spacing, BorderRadius, TierColors } from '@/config/theme';
-import { SAL_MODELS, VERTICALS } from '@/config/api';
+import { SAL_MODELS, VERTICALS, SAL_SYSTEM_PROMPT } from '@/config/api';
 import { useStore } from '@/lib/store';
-import { salClient } from '@/lib/api';
+import { streamChat } from '@/lib/api';
 import SALHeader from '@/components/SALHeader';
 import ChatBubble from '@/components/ChatBubble';
 import ChatInput from '@/components/ChatInput';
 import VerticalCard from '@/components/VerticalCard';
-import type { ChatMessage, VerticalId } from '@/types';
+import type { ChatMessage, VerticalId, SALModelTier } from '@/types';
+
+const QUICK_PROMPTS = [
+  'What can you build me?',
+  'Analyze the market today',
+  'Deep research on AI agents',
+];
 
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const [isStreaming, setIsStreaming] = useState(false);
+  const cursorAnim = useRef(new Animated.Value(0)).current;
+
   const {
     conversations, activeConversationId, selectedModel, activeVertical,
     createConversation, addMessage, updateMessage, setActiveConversation, setActiveVertical,
@@ -30,7 +38,24 @@ export default function ChatScreen() {
   const activeConvo = conversations.find((c) => c.id === activeConversationId);
   const messages = activeConvo?.messages || [];
 
-  const handleSend = useCallback(async (text: string) => {
+  // Blinking cursor animation
+  useEffect(() => {
+    const blink = Animated.loop(
+      Animated.sequence([
+        Animated.timing(cursorAnim, { toValue: 1, duration: 400, easing: Easing.ease, useNativeDriver: true }),
+        Animated.timing(cursorAnim, { toValue: 0, duration: 400, easing: Easing.ease, useNativeDriver: true }),
+      ])
+    );
+    if (isStreaming) {
+      blink.start();
+    } else {
+      blink.stop();
+      cursorAnim.setValue(0);
+    }
+    return () => blink.stop();
+  }, [isStreaming]);
+
+  const handleSend = useCallback((text: string) => {
     let convoId = activeConversationId;
     if (!convoId) {
       convoId = createConversation(activeVertical || undefined);
@@ -57,59 +82,54 @@ export default function ChatScreen() {
     addMessage(convoId, assistantMsg);
     setIsStreaming(true);
 
-    try {
-      // Build system prompt based on vertical
-      let system = '';
-      if (activeVertical) {
-        const v = VERTICALS.find((v) => v.id === activeVertical);
-        system = `You are SAL ${v?.name} — the SaintSal ${v?.name.toLowerCase()} intelligence engine. ` +
+    // Build system prompt
+    let systemPrompt = SAL_SYSTEM_PROMPT;
+    if (activeVertical) {
+      const v = VERTICALS.find((vert) => vert.id === activeVertical);
+      if (v) {
+        systemPrompt = `You are SAL ${v.name} — the SaintSal ${v.name.toLowerCase()} intelligence engine. ` +
           `Provide expert, detailed analysis in this domain. ` +
-          `Built by SaintVision Technologies (US Patent #10,290,222).`;
+          `Built by SaintVision Technologies (US Patent #10,290,222).\n\n${SAL_SYSTEM_PROMPT}`;
       }
-
-      // Use streaming
-      let fullContent = '';
-      let modelUsed = '';
-      for await (const chunk of salClient.chatStream(text, selectedModel, system)) {
-        if (chunk.type === 'model') {
-          modelUsed = chunk.model || '';
-        } else if (chunk.type === 'text' && chunk.content) {
-          fullContent += chunk.content;
-          updateMessage(convoId, assistantId, {
-            content: fullContent,
-            model_used: modelUsed,
-          });
-        } else if (chunk.type === 'done') {
-          updateMessage(convoId, assistantId, {
-            content: fullContent,
-            model_used: modelUsed,
-            isStreaming: false,
-          });
-        }
-      }
-    } catch (error: any) {
-      // Fallback to non-streaming
-      try {
-        const result = await salClient.chat(text, selectedModel);
-        updateMessage(convoId, assistantId, {
-          content: result.content,
-          model_used: result.model_used,
-          provider: result.provider,
-          tokens_in: result.tokens_in,
-          tokens_out: result.tokens_out,
-          cost: result.cost,
-          latency_ms: result.latency_ms,
-          isStreaming: false,
-        });
-      } catch (fallbackErr: any) {
-        updateMessage(convoId, assistantId, {
-          content: `Connection error: ${fallbackErr.message}. Make sure the SAL Engine is running.`,
-          isStreaming: false,
-        });
-      }
-    } finally {
-      setIsStreaming(false);
     }
+
+    // Build message history for context
+    const currentConvo = useStore.getState().conversations.find((c) => c.id === convoId);
+    const history = (currentConvo?.messages || [])
+      .filter((m) => m.role === 'user' || (m.role === 'assistant' && m.content && !m.isStreaming))
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    let fullContent = '';
+
+    streamChat(
+      history,
+      selectedModel,
+      systemPrompt,
+      // onChunk
+      (chunk: string) => {
+        fullContent += chunk;
+        updateMessage(convoId!, assistantId, {
+          content: fullContent,
+        });
+      },
+      // onDone
+      (fullText: string, modelUsed: string) => {
+        updateMessage(convoId!, assistantId, {
+          content: fullText,
+          model_used: modelUsed,
+          isStreaming: false,
+        });
+        setIsStreaming(false);
+      },
+      // onError
+      (error: string) => {
+        updateMessage(convoId!, assistantId, {
+          content: `Connection error: ${error}. Make sure the API is reachable.`,
+          isStreaming: false,
+        });
+        setIsStreaming(false);
+      }
+    );
   }, [activeConversationId, selectedModel, activeVertical]);
 
   const handleNewChat = () => {
@@ -119,20 +139,27 @@ export default function ChatScreen() {
 
   const handleVerticalSelect = (id: VerticalId) => {
     setActiveVertical(id);
-    const convoId = createConversation(id);
+    createConversation(id);
   };
 
-  // Scroll to bottom when messages change
+  // Auto-scroll on new content
   useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     }
   }, [messages.length, messages[messages.length - 1]?.content]);
 
-  // Empty state — show welcome + verticals
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Image source={require('../../assets/logo-120.png')} style={{ width: 80, height: 80, borderRadius: 22, marginBottom: Spacing.lg }} />
+      {/* Logo */}
+      <View style={styles.logoWrapper}>
+        <Image
+          source={require('../../assets/logo-120.png')}
+          style={styles.heroLogo}
+        />
+        <View style={styles.logoGlowRing} />
+      </View>
+
       <Text style={styles.welcomeTitle}>SaintSal™ Labs</Text>
       <Text style={styles.welcomeSubtitle}>Full Spectrum Intelligence</Text>
       <Text style={styles.welcomeDesc}>
@@ -140,15 +167,17 @@ export default function ChatScreen() {
         Search. Build. Analyze. Deploy.
       </Text>
 
-      {/* Quick actions */}
+      {/* Quick action pills */}
       <View style={styles.quickActions}>
-        {['What can you build me?', 'Analyze the market today', 'Deep research on AI agents'].map((prompt, i) => (
+        {QUICK_PROMPTS.map((prompt, i) => (
           <TouchableOpacity
             key={i}
             style={styles.quickAction}
             onPress={() => handleSend(prompt)}
+            activeOpacity={0.7}
           >
             <Text style={styles.quickActionText}>{prompt}</Text>
+            <Text style={styles.quickActionArrow}>→</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -173,7 +202,7 @@ export default function ChatScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.screen}
+      style={[styles.screen, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={0}
     >
@@ -182,24 +211,24 @@ export default function ChatScreen() {
         title={activeConvo?.title}
         subtitle={activeVertical ? VERTICALS.find(v => v.id === activeVertical)?.name : undefined}
         rightAction={
-          <TouchableOpacity onPress={handleNewChat} style={styles.newChatBtn}>
+          <TouchableOpacity onPress={handleNewChat} style={styles.newChatBtn} activeOpacity={0.7}>
             <Text style={styles.newChatIcon}>+</Text>
           </TouchableOpacity>
         }
       />
 
-      {/* Vertical indicator */}
+      {/* Active vertical indicator bar */}
       {activeVertical && (
         <View style={styles.verticalBar}>
           <Text style={styles.verticalBarIcon}>
             {VERTICALS.find(v => v.id === activeVertical)?.icon}
           </Text>
           <Text style={[styles.verticalBarText, {
-            color: VERTICALS.find(v => v.id === activeVertical)?.color
+            color: VERTICALS.find(v => v.id === activeVertical)?.color,
           }]}>
             {VERTICALS.find(v => v.id === activeVertical)?.name} Mode
           </Text>
-          <TouchableOpacity onPress={() => setActiveVertical(null)}>
+          <TouchableOpacity onPress={() => setActiveVertical(null)} activeOpacity={0.6}>
             <Text style={styles.verticalBarClose}>✕</Text>
           </TouchableOpacity>
         </View>
@@ -241,6 +270,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.lg,
   },
+  // New chat button
   newChatBtn: {
     width: 36,
     height: 36,
@@ -278,6 +308,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxl,
     paddingBottom: Spacing.huge,
   },
+  logoWrapper: {
+    position: 'relative',
+    marginBottom: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroLogo: {
+    width: 80,
+    height: 80,
+    borderRadius: 22,
+  },
+  logoGlowRing: {
+    position: 'absolute',
+    width: 96,
+    height: 96,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 160, 23, 0.2)',
+  },
   welcomeTitle: {
     color: Colors.textPrimary,
     fontSize: FontSize.xxl,
@@ -297,12 +346,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: Spacing.xxl,
   },
+  // Quick actions
   quickActions: {
     width: '100%',
     gap: Spacing.sm,
     marginBottom: Spacing.xxl,
   },
   quickAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: Colors.bgCard,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
@@ -313,7 +366,15 @@ const styles = StyleSheet.create({
   quickActionText: {
     color: Colors.textSecondary,
     fontSize: FontSize.sm,
+    flex: 1,
   },
+  quickActionArrow: {
+    color: Colors.gold,
+    fontSize: FontSize.md,
+    fontWeight: '500',
+    marginLeft: Spacing.sm,
+  },
+  // Verticals
   sectionLabel: {
     color: Colors.textMuted,
     fontSize: FontSize.xs,
