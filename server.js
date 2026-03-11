@@ -306,6 +306,13 @@ app.post('/api/search/gemini', auth, async (req, res) => {
   }
 });
 
+// ── Twitter env ──────────────────────────────────────
+const TWITTER_CONSUMER_KEY    = process.env.TWITTER_CONSUMER_KEY    || '';
+const TWITTER_CONSUMER_SECRET = process.env.TWITTER_CONSUMER_SECRET || '';
+const TWITTER_ACCESS_TOKEN    = process.env.TWITTER_ACCESS_TOKEN    || '';
+const TWITTER_SECRET_TOKEN    = process.env.TWITTER_SECRET_TOKEN    || '';
+const TWITTER_BEARER_TOKEN    = process.env.TWITTER_API_TOKEN       || '';
+
 // ── LinkedIn OAuth env ───────────────────────────────
 const LINKEDIN_CLIENT_ID     = process.env.LINKEDIN_CLIENT_ID     || '';
 const LINKEDIN_CLIENT_SECRET = process.env.LINKEDIN_CLIENT_SECRET || '';
@@ -511,13 +518,109 @@ Only include the platforms requested: ${targetPlatforms.join(', ')}`;
 });
 
 // ── Social Account Status ────────────────────────────
+// ── Twitter Post ─────────────────────────────────────
+function generateOAuth1Header(method, url, params, consumerKey, consumerSecret, accessToken, tokenSecret) {
+  const oauthParams = {
+    oauth_consumer_key: consumerKey,
+    oauth_nonce: crypto.randomUUID().replace(/-/g, ''),
+    oauth_signature_method: 'HMAC-SHA1',
+    oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
+    oauth_token: accessToken,
+    oauth_version: '1.0',
+  };
+  const allParams = { ...oauthParams, ...params };
+  const sortedKeys = Object.keys(allParams).sort();
+  const paramString = sortedKeys.map(k =>
+    `${encodeURIComponent(k)}=${encodeURIComponent(allParams[k])}`
+  ).join('&');
+  const baseString = `${method.toUpperCase()}&${encodeURIComponent(url)}&${encodeURIComponent(paramString)}`;
+  const signingKey = `${encodeURIComponent(consumerSecret)}&${encodeURIComponent(tokenSecret)}`;
+  const signature = crypto.createHmac('sha1', signingKey).update(baseString).digest('base64');
+  oauthParams.oauth_signature = signature;
+  const header = 'OAuth ' + Object.keys(oauthParams).sort().map(k =>
+    `${encodeURIComponent(k)}="${encodeURIComponent(oauthParams[k])}"`
+  ).join(', ');
+  return header;
+}
+
+app.post('/api/social/twitter/post', auth, async (req, res) => {
+  const { content, access_token, access_secret } = req.body;
+  if (!content) return res.status(400).json({ error: 'content is required' });
+
+  // Use per-user tokens if provided, else fall back to env vars
+  const userAccessToken  = access_token  || TWITTER_ACCESS_TOKEN;
+  const userAccessSecret = access_secret || TWITTER_SECRET_TOKEN;
+
+  if (!TWITTER_CONSUMER_KEY || !TWITTER_CONSUMER_SECRET) {
+    return res.status(503).json({ error: 'Twitter consumer keys not configured. Add TWITTER_CONSUMER_KEY and TWITTER_CONSUMER_SECRET.' });
+  }
+  if (!userAccessToken || !userAccessSecret) {
+    return res.status(401).json({ error: 'Twitter access tokens not provided.' });
+  }
+
+  try {
+    const tweetUrl = 'https://api.twitter.com/2/tweets';
+    const authHeader = generateOAuth1Header(
+      'POST', tweetUrl, {},
+      TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET,
+      userAccessToken, userAccessSecret
+    );
+    const tweetRes = await fetch(tweetUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({ text: content.slice(0, 280) }),
+    });
+    const tweetData = await tweetRes.json();
+    if (!tweetRes.ok) {
+      return res.status(tweetRes.status).json({ error: `Twitter error: ${JSON.stringify(tweetData)}` });
+    }
+    res.json({ success: true, tweet_id: tweetData.data?.id, url: `https://x.com/i/status/${tweetData.data?.id}` });
+  } catch (err) {
+    console.error('Twitter post error:', err.message);
+    res.status(500).json({ error: 'Twitter post failed' });
+  }
+});
+
+// ── Twitter Verify ───────────────────────────────────
+app.get('/api/social/twitter/verify', auth, async (req, res) => {
+  if (!TWITTER_CONSUMER_KEY || !TWITTER_CONSUMER_SECRET || !TWITTER_ACCESS_TOKEN || !TWITTER_SECRET_TOKEN) {
+    return res.json({ connected: false, reason: 'Missing consumer keys or access tokens' });
+  }
+  try {
+    const verifyUrl = 'https://api.twitter.com/2/users/me';
+    const authHeader = generateOAuth1Header(
+      'GET', verifyUrl, {},
+      TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET,
+      TWITTER_ACCESS_TOKEN, TWITTER_SECRET_TOKEN
+    );
+    const verifyRes = await fetch(verifyUrl, {
+      headers: { 'Authorization': authHeader },
+    });
+    const data = await verifyRes.json();
+    if (verifyRes.ok && data.data) {
+      res.json({ connected: true, username: data.data.username, name: data.data.name, id: data.data.id });
+    } else {
+      res.json({ connected: false, reason: data.detail || 'Verification failed' });
+    }
+  } catch (err) {
+    res.json({ connected: false, reason: err.message });
+  }
+});
+
 app.get('/api/social/status', auth, (req, res) => {
   res.json({
     linkedin: {
       configured:    !!LINKEDIN_CLIENT_ID && !!LINKEDIN_CLIENT_SECRET,
       client_id_set: !!LINKEDIN_CLIENT_ID,
     },
-    twitter:   { configured: false },
+    twitter: {
+      configured: !!TWITTER_CONSUMER_KEY && !!TWITTER_ACCESS_TOKEN,
+      has_consumer_keys: !!TWITTER_CONSUMER_KEY && !!TWITTER_CONSUMER_SECRET,
+      has_access_tokens: !!TWITTER_ACCESS_TOKEN && !!TWITTER_SECRET_TOKEN,
+    },
     instagram: { configured: false },
     tiktok:    { configured: false },
     facebook:  { configured: false },
@@ -527,5 +630,5 @@ app.get('/api/social/status', auth, (req, res) => {
 app.listen(PORT, () => {
   console.log(`SaintSal Labs API Gateway v2 on port ${PORT}`);
   console.log(`Providers: Anthropic=${!!ANTHROPIC_KEY} OpenAI=${!!OPENAI_KEY} Gemini=${!!GEMINI_KEY} xAI=${!!XAI_KEY}`);
-  console.log(`Social: LinkedIn=${!!LINKEDIN_CLIENT_ID}`);
+  console.log(`Social: LinkedIn=${!!LINKEDIN_CLIENT_ID} Twitter=${!!TWITTER_CONSUMER_KEY}`);
 });
