@@ -2,26 +2,26 @@
    SAINTSALLABS — BUILDER SCREEN
    Code · Social Studio · Image Prompts · Video · Deploy
    Full feature parity with saintsallabs_builder.jsx
-   Social Studio v2 — Direct LinkedIn posting
+   Social Studio v2 — Direct LinkedIn + Twitter posting
 ═══════════════════════════════════════════════════ */
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform,
-  Clipboard, ActivityIndicator, Linking, Animated,
+  Clipboard, ActivityIndicator, Linking, Animated, Alert,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { C, SYS } from '../config/theme';
 import {
   streamBuilder, generateSocial,
   getLinkedInAuthUrl, exchangeLinkedInCode,
-  postToLinkedIn,
+  postToLinkedIn, postToTwitter, verifyTwitter,
 } from '../lib/api';
 import { ChatBubble, InputBar, CodeBlock, ModeBar } from '../components';
 
 /* ── Platforms ────────────────────────────────────── */
 const PLATFORMS = [
-  { id: 'twitter',   label: 'X / Twitter', icon: '𝕏', color: '#A0A0A0', chars: 280,  connected: false },
+  { id: 'twitter',   label: 'X / Twitter', icon: '𝕏', color: '#1DA1F2', chars: 280,  connected: false },
   { id: 'linkedin',  label: 'LinkedIn',    icon: 'in', color: '#F59E0B', chars: 1300, connected: true  },
   { id: 'instagram', label: 'Instagram',   icon: '◎', color: '#E1306C', chars: null,  connected: false },
   { id: 'tiktok',    label: 'TikTok',      icon: '♪', color: '#69C9D0', chars: null,  connected: false },
@@ -66,6 +66,11 @@ export default function BuilderScreen() {
   const [linkedInConnected, setLinkedInConnected] = useState(false);
   const [linkedInName, setLinkedInName] = useState('');
   const [linkedInToken, setLinkedInToken] = useState('');
+
+  // Twitter
+  const [twitterConnected, setTwitterConnected] = useState(false);
+  const [twitterUsername, setTwitterUsername] = useState('');
+  const [twitterChecking, setTwitterChecking] = useState(false);
 
   // Posting state per platform
   const [postingState, setPostingState] = useState({}); // { linkedin: 'idle'|'posting'|'posted'|'failed' }
@@ -112,6 +117,14 @@ export default function BuilderScreen() {
           setLinkedInConnected(true);
           setLinkedInToken(token);
           setLinkedInName(name || 'Connected');
+        }
+      } catch {}
+      // Check Twitter server-side connection
+      try {
+        const tw = await verifyTwitter();
+        if (tw.connected) {
+          setTwitterConnected(true);
+          setTwitterUsername(tw.username || tw.name || '');
         }
       } catch {}
     })();
@@ -222,6 +235,41 @@ export default function BuilderScreen() {
   };
 
   /* ── CONNECT LINKEDIN ─────────────────────────── */
+  /* ── POST TO TWITTER ───────────────────────── */
+  const handlePostToTwitter = async (content) => {
+    if (!content) return;
+    setPostingState(prev => ({ ...prev, twitter: 'posting' }));
+    try {
+      const result = await postToTwitter({ content: content.slice(0, 280) });
+      if (result.error) throw new Error(result.error);
+      setPostingState(prev => ({ ...prev, twitter: 'posted' }));
+      setPostHistory(prev => [
+        { platform: 'X / Twitter', timestamp: Date.now(), content: content.slice(0, 80) + '...' },
+        ...prev,
+      ]);
+    } catch (err) {
+      setPostingState(prev => ({ ...prev, twitter: 'failed' }));
+      Alert.alert('Twitter Post Failed', err.message || 'Could not post to Twitter.');
+    }
+  };
+
+  /* ── VERIFY TWITTER ──────────────────────────── */
+  const handleVerifyTwitter = async () => {
+    setTwitterChecking(true);
+    try {
+      const tw = await verifyTwitter();
+      if (tw.connected) {
+        setTwitterConnected(true);
+        setTwitterUsername(tw.username || tw.name || '');
+      } else {
+        Alert.alert('Twitter Not Connected', tw.reason || 'Consumer keys not configured on server.');
+      }
+    } catch {
+      Alert.alert('Twitter Error', 'Could not verify Twitter connection.');
+    }
+    setTwitterChecking(false);
+  };
+
   const handleConnectLinkedIn = async () => {
     try {
       const result = await getLinkedInAuthUrl();
@@ -410,38 +458,34 @@ export default function BuilderScreen() {
                   )}
                 </View>
 
-                {/* Twitter — coming soon */}
-                <View style={s.accountCard}>
+                {/* Twitter — Server-side Connection */}
+                <View style={[s.accountCard, twitterConnected && s.accountCardConnected]}>
                   <View style={s.accountLeft}>
-                    <View style={[s.accountIcon, { backgroundColor: '#1A1A22' }]}>
-                      <Text style={[s.accountIconText, { color: '#444' }]}>𝕏</Text>
+                    <View style={[s.accountIcon, { backgroundColor: twitterConnected ? '#1DA1F220' : '#1A1A22' }]}>
+                      <Text style={[s.accountIconText, { color: twitterConnected ? '#1DA1F2' : '#555' }]}>𝕏</Text>
                     </View>
                     <View style={s.accountInfo}>
-                      <Text style={s.accountName}>X / Twitter</Text>
-                      <Text style={s.accountStatus}>Not connected</Text>
+                      <View style={s.accountNameRow}>
+                        <Text style={[s.accountName, twitterConnected && { color: '#1DA1F2' }]}>X / Twitter</Text>
+                        {twitterConnected && <View style={s.greenDot} />}
+                      </View>
+                      <Text style={s.accountStatus}>
+                        {twitterConnected ? `@${twitterUsername}` : 'Server-side tokens'}
+                      </Text>
                     </View>
                   </View>
-                  <View style={s.comingSoonBadge}>
-                    <Text style={s.comingSoonText}>Soon</Text>
-                  </View>
+                  {twitterChecking ? (
+                    <ActivityIndicator size="small" color="#1DA1F2" />
+                  ) : twitterConnected ? (
+                    <View style={[s.connectedBadge, { backgroundColor: '#1DA1F220', borderColor: '#1DA1F240' }]}>
+                      <Text style={[s.connectedBadgeText, { color: '#1DA1F2' }]}>Live</Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity onPress={handleVerifyTwitter} style={s.connectBtn}>
+                      <Text style={s.connectBtnText}>Verify</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
-
-                {/* Instagram — coming soon */}
-                <View style={s.accountCard}>
-                  <View style={s.accountLeft}>
-                    <View style={[s.accountIcon, { backgroundColor: '#1A1A22' }]}>
-                      <Text style={[s.accountIconText, { color: '#444' }]}>◎</Text>
-                    </View>
-                    <View style={s.accountInfo}>
-                      <Text style={s.accountName}>Instagram</Text>
-                      <Text style={s.accountStatus}>Not connected</Text>
-                    </View>
-                  </View>
-                  <View style={s.comingSoonBadge}>
-                    <Text style={s.comingSoonText}>Soon</Text>
-                  </View>
-                </View>
-              </View>
 
               {/* ─── B) Content Generation ─── */}
               <Text style={s.socialSectionLabel}>PLATFORMS</Text>
@@ -554,10 +598,11 @@ export default function BuilderScreen() {
                 const content = socialResults[p.id];
                 const charCount = content?.length || 0;
                 const isLinkedIn = p.id === 'linkedin';
-                const canPost = isLinkedIn && linkedInConnected;
+                const isTwitter = p.id === 'twitter';
+                const canPost = (isLinkedIn && linkedInConnected) || (isTwitter && twitterConnected);
                 const pState = postingState[p.id] || 'idle';
                 const isEditing = editingPlatform === p.id;
-                const accentColor = isLinkedIn ? '#F59E0B' : p.color;
+                const accentColor = isLinkedIn ? '#F59E0B' : isTwitter ? '#1DA1F2' : p.color;
 
                 return (
                   <View key={p.id} style={[s.resultCard, { borderColor: accentColor + '25' }]}>
@@ -613,10 +658,10 @@ export default function BuilderScreen() {
                         {/* Post to Platform — only for connected platforms */}
                         {canPost && pState === 'idle' && (
                           <TouchableOpacity
-                            onPress={() => handlePostToLinkedIn(content)}
-                            style={s.postBtn}
+                            onPress={() => isTwitter ? handlePostToTwitter(content) : handlePostToLinkedIn(content)}
+                            style={[s.postBtn, isTwitter && { backgroundColor: '#1DA1F2' }]}
                           >
-                            <Text style={s.postBtnText}>Post to LinkedIn →</Text>
+                            <Text style={[s.postBtnText, isTwitter && { color: '#FFF' }]}>Post to {isLinkedIn ? 'LinkedIn' : isTwitter ? 'Twitter' : p.label} →</Text>
                           </TouchableOpacity>
                         )}
 
@@ -634,7 +679,7 @@ export default function BuilderScreen() {
                         )}
 
                         {canPost && pState === 'failed' && (
-                          <TouchableOpacity onPress={() => handlePostToLinkedIn(content)} style={s.failedBtn}>
+                          <TouchableOpacity onPress={() => isTwitter ? handlePostToTwitter(content) : handlePostToLinkedIn(content)} style={s.failedBtn}>
                             <Text style={s.failedBtnText}>✗ Retry</Text>
                           </TouchableOpacity>
                         )}
@@ -914,6 +959,11 @@ const s = StyleSheet.create({
     backgroundColor: '#1A1A22',
   },
   comingSoonText: { fontSize: 10, fontWeight: '700', color: '#333', letterSpacing: 0.5 },
+  connectedBadge: {
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6,
+    borderWidth: 1,
+  },
+  connectedBadgeText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
 
   // Platform pills
   platformRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },

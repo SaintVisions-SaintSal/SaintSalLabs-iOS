@@ -144,6 +144,20 @@ export const postToLinkedIn = async ({ access_token, content }) => {
   return res.json();
 };
 
+export const postToTwitter = async ({ content }) => {
+  const res = await fetch(`${API_BASE}/api/social/twitter/post`, {
+    method: 'POST',
+    headers: HEADERS,
+    body: JSON.stringify({ content }),
+  });
+  return res.json();
+};
+
+export const verifyTwitter = async () => {
+  const res = await fetch(`${API_BASE}/api/social/twitter/verify`, { headers: HEADERS });
+  return res.json();
+};
+
 /* ─── Server-side Social Generation ──────────────── */
 export const generateSocialServer = async ({ prompt, platforms, tone }) => {
   const res = await fetch(`${API_BASE}/api/social/generate`, {
