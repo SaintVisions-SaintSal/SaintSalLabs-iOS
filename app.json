@@ -21,7 +21,9 @@
         "NSMicrophoneUsageDescription": "SAL Voice AI needs microphone access for real-time voice conversations.",
         "NSCameraUsageDescription": "SAL Builder can scan and analyze images for AI processing.",
         "NSPhotoLibraryUsageDescription": "Upload images to SAL Builder for AI analysis and creation.",
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio"
+        ]
       },
       "config": {
         "usesNonExemptEncryption": false
@@ -39,7 +41,9 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-asset",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

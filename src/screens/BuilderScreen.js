@@ -487,6 +487,23 @@ export default function BuilderScreen() {
                   )}
                 </View>
 
+                {/* Instagram — coming soon */}
+                <View style={s.accountCard}>
+                  <View style={s.accountLeft}>
+                    <View style={[s.accountIcon, { backgroundColor: '#1A1A22' }]}>
+                      <Text style={[s.accountIconText, { color: '#444' }]}>◎</Text>
+                    </View>
+                    <View style={s.accountInfo}>
+                      <Text style={s.accountName}>Instagram</Text>
+                      <Text style={s.accountStatus}>Not connected</Text>
+                    </View>
+                  </View>
+                  <View style={s.comingSoonBadge}>
+                    <Text style={s.comingSoonText}>Soon</Text>
+                  </View>
+                </View>
+              </View>
+
               {/* ─── B) Content Generation ─── */}
               <Text style={s.socialSectionLabel}>PLATFORMS</Text>
               <View style={s.platformRow}>
