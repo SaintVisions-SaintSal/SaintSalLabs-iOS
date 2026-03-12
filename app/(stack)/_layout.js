@@ -39,6 +39,10 @@ export default function StackLayout() {
       {/* Deploy */}
       <Stack.Screen name="github-console" />
       <Stack.Screen name="domain-hub" />
+      <Stack.Screen name="elite-deploy" />
+
+      {/* Navigation */}
+      <Stack.Screen name="navigation-hub" />
     </Stack>
   );
 }
