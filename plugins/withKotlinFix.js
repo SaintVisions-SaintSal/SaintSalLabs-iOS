@@ -1,23 +1,36 @@
-const { withGradleProperties } = require('expo/config-plugins');
+const { withProjectBuildGradle } = require('expo/config-plugins');
 
-module.exports = function withKotlinFix(config) {
-  return withGradleProperties(config, (config) => {
-    const props = config.modResults;
+/**
+ * Forces the Compose Compiler to accept Kotlin 1.9.24 by adding
+ * suppressKotlinVersionCompatibilityCheck as a free compiler arg
+ * to ALL Kotlin compile tasks project-wide.
+ */
+function withKotlinFix(config) {
+  return withProjectBuildGradle(config, (config) => {
+    const contents = config.modResults.contents;
     
-    // Suppress Compose Kotlin version compatibility check
-    // This tells Compose Compiler to accept Kotlin 1.9.24 even though it expects 1.9.25
-    const suppressKey = 'kotlin.suppressKotlinVersionCompatibilityCheck';
-    const existingSuppress = props.findIndex(p => p.type === 'property' && p.key === suppressKey);
-    if (existingSuppress >= 0) {
-      props[existingSuppress].value = 'true';
-    } else {
-      props.push({
-        type: 'property',
-        key: suppressKey,
-        value: 'true',
-      });
+    if (!contents.includes('suppressKotlinVersionCompatibilityCheck')) {
+      // Append to root build.gradle — applies to ALL subprojects including expo-modules-core
+      const fix = `
+// Fix: Suppress Compose Compiler Kotlin version check (1.9.24 vs 1.9.25)
+subprojects {
+    afterEvaluate {
+        tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+            kotlinOptions {
+                freeCompilerArgs += [
+                    "-P",
+                    "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=1.9.24"
+                ]
+            }
+        }
+    }
+}
+`;
+      config.modResults.contents = contents + fix;
     }
     
     return config;
   });
-};
+}
+
+module.exports = withKotlinFix;
