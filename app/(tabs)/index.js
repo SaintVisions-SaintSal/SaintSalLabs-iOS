@@ -1,1 +1,1 @@
-export { default } from '../../src/screens/ChatScreen';
+export { default } from '../../src/screens/chat/ChatSuiteScreen';

@@ -1,1 +1,1 @@
-export { default } from '../../src/screens/BuilderScreen';
+export { default } from '../../src/screens/builder/BuilderIDEScreen';

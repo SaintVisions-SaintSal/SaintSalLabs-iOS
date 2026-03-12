@@ -1,1 +1,1 @@
-export { default } from '../../src/screens/SearchScreen';
+export { default } from '../../src/screens/search/IntelligenceSearchScreen';
