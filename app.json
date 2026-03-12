@@ -44,6 +44,7 @@
       "expo-secure-store",
       "expo-asset",
       "expo-font",
+      "./plugins/withKotlinFix",
       [
         "expo-build-properties",
         {
@@ -51,7 +52,9 @@
             "kotlinVersion": "1.9.25",
             "compileSdkVersion": 35,
             "targetSdkVersion": 34,
-            "minSdkVersion": 24
+            "minSdkVersion": 24,
+            "extraMavenRepos": [],
+            "enableShrinkResourcesInReleaseBuilds": false
           }
         }
       ]

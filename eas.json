@@ -27,7 +27,10 @@
       },
       "android": {
         "buildType": "app-bundle",
-        "image": "latest"
+        "image": "latest",
+        "env": {
+          "EX_KOTLIN_VERSION": "1.9.25"
+        }
       }
     }
   },
