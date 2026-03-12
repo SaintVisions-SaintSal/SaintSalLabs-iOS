@@ -5,9 +5,11 @@ import {
   Platform, Alert,
 } from 'react-native';
 import { C } from '../../config/theme';
+import { signInWithMagicLink, signInWithGoogle } from '../../lib/supabase';
 
 export default function AuthScreen() {
   const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
   const pulseBar = useRef(new Animated.Value(0)).current;
   const glowA = useRef(new Animated.Value(0.08)).current;
   const glowB = useRef(new Animated.Value(0.05)).current;
@@ -40,15 +42,36 @@ export default function AuthScreen() {
     ).start();
   }, []);
 
-  const handleMagicLink = () => {
+  const handleMagicLink = async () => {
     if (!email.trim() || !email.includes('@')) {
       return Alert.alert('Invalid Email', 'Please enter a valid corporate email address.');
     }
-    Alert.alert(
-      'Magic Link Sent',
-      `A secure login link has been sent to ${email}. Check your inbox.`,
-      [{ text: 'OK' }]
-    );
+    setLoading(true);
+    try {
+      await signInWithMagicLink(email);
+      Alert.alert(
+        'Magic Link Sent',
+        `A secure login link has been sent to ${email}. Check your inbox.`,
+        [{ text: 'OK' }]
+      );
+    } catch (err) {
+      Alert.alert('Auth Error', err.message || 'Failed to send magic link. Try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    try {
+      const data = await signInWithGoogle();
+      if (data?.url) {
+        // Opens Google OAuth in system browser
+        const { Linking } = require('react-native');
+        Linking.openURL(data.url);
+      }
+    } catch (err) {
+      Alert.alert('Auth Error', err.message || 'Google sign-in failed.');
+    }
   };
 
   return (

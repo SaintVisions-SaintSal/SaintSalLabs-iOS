@@ -24,6 +24,10 @@
         "buildConfiguration": "Release",
         "credentialsSource": "local",
         "image": "latest"
+      },
+      "android": {
+        "buildType": "app-bundle",
+        "image": "latest"
       }
     }
   },
