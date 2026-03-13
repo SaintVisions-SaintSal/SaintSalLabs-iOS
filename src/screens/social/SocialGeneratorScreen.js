@@ -4,6 +4,7 @@ import {
   StyleSheet, SafeAreaView, ActivityIndicator, Clipboard, Animated,
 } from 'react-native';
 import { C } from '../../config/theme';
+import { useRouter } from 'expo-router';
 import { generateSocial } from '../../lib/api';
 import { SALMark } from '../../components';
 
@@ -17,6 +18,7 @@ const PLATFORMS = [
 ];
 
 export default function SocialGeneratorScreen() {
+  const router = useRouter();
   const [prompt, setPrompt] = useState('');
   const [selected, setSelected] = useState(['twitter', 'linkedin', 'instagram']);
   const [results, setResults] = useState(null);

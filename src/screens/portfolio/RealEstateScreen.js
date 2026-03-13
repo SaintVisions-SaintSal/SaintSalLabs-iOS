@@ -4,6 +4,7 @@ import {
   StyleSheet, SafeAreaView, Alert,
 } from 'react-native';
 import { C } from '../../config/theme';
+import { useRouter } from 'expo-router';
 
 const STRATEGIES = ['All', 'BRRRR', 'STR', 'Multifamily', 'Foreclosure'];
 
@@ -23,6 +24,7 @@ const TARGETS = [
 ];
 
 export default function RealEstateScreen() {
+  const router = useRouter();
   const [activeStrategy, setActiveStrategy] = useState('All');
   const [savedProperties, setSavedProperties] = useState(
     PROPERTIES.reduce((acc, p, i) => ({ ...acc, [i]: p.saved }), {})

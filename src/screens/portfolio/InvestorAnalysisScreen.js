@@ -4,6 +4,7 @@ import {
   StyleSheet, SafeAreaView,
 } from 'react-native';
 import { C } from '../../config/theme';
+import { useRouter } from 'expo-router';
 
 const SECTORS = ['All', 'Technology', 'Healthcare', 'Financials', 'Energy', 'Consumer'];
 
@@ -39,6 +40,7 @@ function ratingColor(rating) {
 }
 
 export default function InvestorAnalysisScreen() {
+  const router = useRouter();
   const [sector, setSector] = useState('All');
   const [search, setSearch] = useState('');
 

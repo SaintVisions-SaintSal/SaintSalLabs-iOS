@@ -9,6 +9,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, SafeAreaView, Animated,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { C } from '../../config/theme';
 import { SALMark } from '../../components';
 
@@ -45,7 +46,8 @@ const BUILD_LOG = [
   { time: '12:41:19', msg: '✓ Deployment live at app.saintsal.build', type: 'success' },
 ];
 
-export default function BuilderDeployScreen({ navigation }) {
+export default function BuilderDeployScreen() {
+  const router = useRouter();
   const [activeTarget, setActiveTarget] = useState('vercel');
   const [showLogs, setShowLogs] = useState(false);
   const [deploying, setDeploying] = useState(false);
@@ -73,7 +75,7 @@ export default function BuilderDeployScreen({ navigation }) {
         <View style={s.headerLeft}>
           <TouchableOpacity
             style={s.backBtn}
-            onPress={() => navigation?.goBack?.()}
+            onPress={() => router.back()}
           >
             <Text style={{ color: C.amber, fontSize: 18 }}>←</Text>
           </TouchableOpacity>

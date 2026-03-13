@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, SafeAreaView, Alert, Clipboard,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { C } from '../../config/theme';
 
 const PROJECT = { name: 'SaintSal Builder', id: 'proj_saintsal_9x2kf' };
@@ -24,6 +25,7 @@ const SERVICES = [
 const ENVS = ['Development', 'Staging', 'Production'];
 
 export default function APISettingsScreen() {
+  const router = useRouter();
   const [keys, setKeys] = useState(
     API_KEYS.reduce((acc, k) => ({ ...acc, [k.provider]: k.key }), {})
   );
@@ -62,7 +64,7 @@ export default function APISettingsScreen() {
     <SafeAreaView style={s.safe}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity style={s.headerBtn}><Text style={s.headerIcon}>←</Text></TouchableOpacity>
+        <TouchableOpacity style={s.headerBtn} onPress={() => router.back()}><Text style={s.headerIcon}>←</Text></TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={s.headerTitle}>SaintSal Builder</Text>
           <Text style={s.headerSub}>DEPLOYMENT & API SETTINGS</Text>

@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, Linking, Dimensions,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { C, PRICING_TIERS, STRIPE_LINKS } from '../../config/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -31,6 +32,7 @@ const FAQ = [
 ];
 
 export default function StripePricingScreen() {
+  const router = useRouter();
   const [isAnnual, setIsAnnual] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState(null);
   const scrollRef = useRef(null);
@@ -50,7 +52,7 @@ export default function StripePricingScreen() {
     <SafeAreaView style={s.safe}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity style={s.headerBtn}>
+        <TouchableOpacity style={s.headerBtn} onPress={() => router.back()}>
           <Text style={s.headerIcon}>←</Text>
         </TouchableOpacity>
         <View style={s.headerCenter}>

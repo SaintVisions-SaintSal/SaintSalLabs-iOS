@@ -1,8 +1,9 @@
 import React, { useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, Animated, Dimensions, Alert,
+  StyleSheet, SafeAreaView, Animated, Dimensions,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { C } from '../../config/theme';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -55,7 +56,15 @@ const VERTICALS = [
   },
 ];
 
+const VERTICAL_ROUTES = {
+  search: '/(tabs)/search',
+  builder: '/(tabs)/builder',
+  social: '/(stack)/social-studio',
+  realestate: '/(stack)/real-estate',
+};
+
 export default function NavigationHubScreen() {
+  const router = useRouter();
   const pulseAnims = useRef(VERTICALS.map(() => new Animated.Value(0.7))).current;
 
   useEffect(() => {
@@ -70,7 +79,8 @@ export default function NavigationHubScreen() {
   }, []);
 
   const handlePress = (v) => {
-    Alert.alert(v.label, `Routing session to ${v.title}...`);
+    const route = VERTICAL_ROUTES[v.id];
+    if (route) router.push(route);
   };
 
   return (
@@ -154,7 +164,7 @@ export default function NavigationHubScreen() {
               <TouchableOpacity
                 key={q.label}
                 style={s.quickChip}
-                onPress={() => Alert.alert(q.label, `Opening ${q.label} vertical...`)}
+                onPress={() => router.push('/(tabs)/search')}
               >
                 <Text style={{ fontSize: 16 }}>{q.icon}</Text>
                 <Text style={s.quickChipText}>{q.label}</Text>

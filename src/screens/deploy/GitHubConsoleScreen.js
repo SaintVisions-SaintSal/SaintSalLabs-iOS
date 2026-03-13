@@ -4,6 +4,7 @@ import {
   StyleSheet, SafeAreaView, Animated, Alert,
 } from 'react-native';
 import { C } from '../../config/theme';
+import { useRouter } from 'expo-router';
 
 const REPOS = [
   { id: 'r1', name: 'saintsal-org/builder-core', branch: 'main', lastCommit: '2h ago', status: 'passing', stars: 42, language: 'TypeScript' },
@@ -30,6 +31,7 @@ const COMMITS = [
 const BRANCHES = ['main', 'development', 'staging', 'feature/auth-v2'];
 
 export default function GitHubConsoleScreen() {
+  const router = useRouter();
   const [selectedRepo, setSelectedRepo] = useState('r1');
   const [selectedBranch, setSelectedBranch] = useState('main');
   const [searchQuery, setSearchQuery] = useState('');

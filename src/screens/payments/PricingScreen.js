@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, Animated, Linking,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { C, PRICING_TIERS, STRIPE_LINKS } from '../../config/theme';
 
 const FEATURES_BY_TIER = {
@@ -20,6 +21,7 @@ const OVERAGE_RATES = [
 ];
 
 export default function PricingScreen() {
+  const router = useRouter();
   const [isAnnual, setIsAnnual] = useState(false);
   const [selectedTier, setSelectedTier] = useState('pro');
   const pulseAnim = useRef(new Animated.Value(0.85)).current;
@@ -48,7 +50,7 @@ export default function PricingScreen() {
     <SafeAreaView style={s.safe}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity style={s.headerBtn}>
+        <TouchableOpacity style={s.headerBtn} onPress={() => router.back()}>
           <Text style={s.headerIcon}>←</Text>
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 12 }}>

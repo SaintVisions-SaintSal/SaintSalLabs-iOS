@@ -4,6 +4,7 @@ import {
   StyleSheet, SafeAreaView, Animated, Alert, Clipboard,
 } from 'react-native';
 import { C } from '../../config/theme';
+import { useRouter } from 'expo-router';
 
 const DOMAINS = [
   { id: 'd1', name: 'saintsallabs.com', status: 'active', ssl: 'valid', expires: '2027-03-15', provider: 'Cloudflare', records: 4 },
@@ -44,6 +45,7 @@ const DNS_RECORDS = {
 };
 
 export default function DomainHubScreen() {
+  const router = useRouter();
   const [selectedDomain, setSelectedDomain] = useState('d1');
   const [showAddDomain, setShowAddDomain] = useState(false);
   const [newDomain, setNewDomain] = useState('');

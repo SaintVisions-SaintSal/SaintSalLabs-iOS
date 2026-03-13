@@ -4,6 +4,7 @@ import {
   StyleSheet, SafeAreaView, Animated, Alert,
 } from 'react-native';
 import { C } from '../../config/theme';
+import { useRouter } from 'expo-router';
 import { SALMark } from '../../components';
 
 const INFRA_CARDS = [
@@ -24,6 +25,7 @@ const SOCIAL_PLATFORMS = [
 ];
 
 export default function SocialConnectionsScreen() {
+  const router = useRouter();
   const [platforms, setPlatforms] = useState(SOCIAL_PLATFORMS);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 

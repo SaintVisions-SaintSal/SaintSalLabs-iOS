@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { C } from '../../config/theme';
 
 const BALANCE = { total: 2000, used: 1247, remaining: 753 };
@@ -22,6 +23,7 @@ const COMPUTE_RATES = [
 ];
 
 export default function CreditTopUpScreen() {
+  const router = useRouter();
   const [selectedPkg, setSelectedPkg] = useState('p1000');
   const creditPct = BALANCE.used / BALANCE.total;
 
@@ -43,7 +45,7 @@ export default function CreditTopUpScreen() {
     <SafeAreaView style={s.safe}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity style={s.headerBtn}>
+        <TouchableOpacity style={s.headerBtn} onPress={() => router.back()}>
           <Text style={s.headerIcon}>←</Text>
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 12 }}>

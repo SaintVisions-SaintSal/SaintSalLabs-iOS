@@ -4,6 +4,7 @@ import {
   StyleSheet, SafeAreaView, Alert, KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { C } from '../../config/theme';
 
 const ORDER = {
@@ -14,6 +15,7 @@ const ORDER = {
 };
 
 export default function CheckoutScreen() {
+  const router = useRouter();
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvc, setCvc] = useState('');
@@ -51,7 +53,7 @@ export default function CheckoutScreen() {
     <SafeAreaView style={s.safe}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity style={s.headerBtn}>
+        <TouchableOpacity style={s.headerBtn} onPress={() => router.back()}>
           <Text style={s.headerIcon}>←</Text>
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 12 }}>

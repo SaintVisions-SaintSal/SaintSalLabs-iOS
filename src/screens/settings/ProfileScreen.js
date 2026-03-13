@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, Alert, Switch,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { C } from '../../config/theme';
 
 const PLAN = { name: 'Pro', price: '$97/mo', credits: 2000, used: 1247, color: C.amber };
@@ -27,6 +28,7 @@ const SETTINGS = [
 ];
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const [toggles, setToggles] = useState({ notif: true, theme: true });
   const creditPct = PLAN.used / PLAN.credits;
 
@@ -39,7 +41,7 @@ export default function ProfileScreen() {
     <SafeAreaView style={s.safe}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity style={s.headerBtn}><Text style={s.headerIcon}>←</Text></TouchableOpacity>
+        <TouchableOpacity style={s.headerBtn} onPress={() => router.back()}><Text style={s.headerIcon}>←</Text></TouchableOpacity>
         <Text style={s.headerTitle}>PROFILE</Text>
         <TouchableOpacity style={s.headerBtn}><Text style={s.headerIcon}>⚙️</Text></TouchableOpacity>
       </View>
@@ -81,7 +83,7 @@ export default function ProfileScreen() {
             <View style={s.progressBg}>
               <View style={[s.progressFill, { width: `${Math.min(creditPct * 100, 100)}%` }]} />
             </View>
-            <TouchableOpacity style={s.buyBtn}>
+            <TouchableOpacity style={s.buyBtn} onPress={() => router.push('/(stack)/credit-topup')}>
               <Text style={s.buyBtnText}>Buy More Credits</Text>
             </TouchableOpacity>
           </View>
@@ -157,15 +159,18 @@ export default function ProfileScreen() {
         {/* Linked Services */}
         <View style={s.section}>
           <Text style={s.sectionTitle}>LINKED SERVICES</Text>
-          <View style={s.settingRow}>
+          <TouchableOpacity style={s.settingRow} onPress={() => router.push('/(stack)/github-console')} activeOpacity={0.7}>
             <View style={s.settingLeft}>
               <Text style={{ fontSize: 18 }}>🔗</Text>
               <Text style={s.settingLabel}>Connected GitHub</Text>
             </View>
-            <View style={s.statusBadge}>
-              <Text style={s.statusText}>ACTIVE</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={s.statusBadge}>
+                <Text style={s.statusText}>ACTIVE</Text>
+              </View>
+              <Text style={s.chevron}>›</Text>
             </View>
-          </View>
+          </TouchableOpacity>
           <View style={s.settingRow}>
             <View style={s.settingLeft}>
               <Text style={{ fontSize: 18 }}>🛡️</Text>
@@ -173,6 +178,32 @@ export default function ProfileScreen() {
             </View>
             <Text style={s.chevron}>›</Text>
           </View>
+        </View>
+
+        {/* Quick Links */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>QUICK LINKS</Text>
+          {[
+            { icon: '🔑', label: 'API Keys', route: '/(stack)/api-settings' },
+            { icon: '💎', label: 'Pricing', route: '/(stack)/stripe-pricing' },
+            { icon: '🌐', label: 'Domain Hub', route: '/(stack)/domain-hub' },
+            { icon: '🚀', label: 'Deploy Console', route: '/(stack)/elite-deploy' },
+            { icon: '📊', label: 'Portfolio', route: '/(stack)/portfolio' },
+            { icon: '🏠', label: 'Real Estate Intel', route: '/(stack)/real-estate' },
+          ].map((link) => (
+            <TouchableOpacity
+              key={link.label}
+              style={s.settingRow}
+              onPress={() => router.push(link.route)}
+              activeOpacity={0.7}
+            >
+              <View style={s.settingLeft}>
+                <Text style={{ fontSize: 18 }}>{link.icon}</Text>
+                <Text style={s.settingLabel}>{link.label}</Text>
+              </View>
+              <Text style={s.chevron}>›</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Sign Out */}

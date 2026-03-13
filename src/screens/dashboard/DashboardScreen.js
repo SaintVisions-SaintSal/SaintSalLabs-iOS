@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, Animated,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { C } from '../../config/theme';
 import { SALMark } from '../../components';
 
@@ -37,7 +38,8 @@ const QUICK_STATS = [
 
 const CREDITS = 999993;
 
-export default function DashboardScreen({ navigation }) {
+export default function DashboardScreen() {
+  const router = useRouter();
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -49,9 +51,24 @@ export default function DashboardScreen({ navigation }) {
     ).start();
   }, []);
 
+  const SUITE_ROUTES = {
+    search: '/(tabs)/search',
+    builder: '/(tabs)/builder',
+    finance: '/(tabs)/search',
+    tech: '/(tabs)/search',
+    medical: '/(tabs)/search',
+    sports: '/(tabs)/search',
+    news: '/(tabs)/search',
+    career: '/(tabs)/search',
+    bizplan: '/(tabs)/search',
+    bizcenter: '/(tabs)/search',
+    realestate: '/(stack)/real-estate',
+    domains: '/(stack)/domain-hub',
+  };
+
   const handleSuitePress = (suite) => {
-    // Navigation will be wired up when routes are finalized
-    // navigation?.navigate(suite.id);
+    const route = SUITE_ROUTES[suite.id];
+    if (route) router.push(route);
   };
 
   return (
@@ -152,7 +169,7 @@ export default function DashboardScreen({ navigation }) {
       </ScrollView>
 
       {/* FAB */}
-      <TouchableOpacity style={s.fab} activeOpacity={0.8}>
+      <TouchableOpacity style={s.fab} activeOpacity={0.8} onPress={() => router.push('/(tabs)/')}>
         <Text style={s.fabIcon}>💬</Text>
       </TouchableOpacity>
     </SafeAreaView>

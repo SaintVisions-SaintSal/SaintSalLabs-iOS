@@ -4,6 +4,7 @@ import {
   StyleSheet, SafeAreaView, Animated, Alert, Linking,
 } from 'react-native';
 import { C } from '../../config/theme';
+import { useRouter } from 'expo-router';
 
 const STATUS_CARDS = [
   { id: 'health', icon: '💚', label: 'System Health', value: '99.98%', sub: 'uptime', color: C.green },
@@ -24,6 +25,7 @@ const DEPLOY_TARGETS = [
 ];
 
 export default function EliteDeployScreen() {
+  const router = useRouter();
   const [githubConnected, setGithubConnected] = useState(true);
   const [deploying, setDeploying] = useState(false);
   const spinAnim = useRef(new Animated.Value(0)).current;

@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, SafeAreaView, ActivityIndicator, Clipboard,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { C } from '../../config/theme';
 import { generateSocial } from '../../lib/api';
 import { SALMark } from '../../components';
@@ -22,6 +23,7 @@ const PLATFORM_CHIPS = [
 ];
 
 export default function SocialStudioScreen() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('social');
   const [prompt, setPrompt] = useState('');
   const [selected, setSelected] = useState(['twitter']);
@@ -63,7 +65,7 @@ export default function SocialStudioScreen() {
     <SafeAreaView style={s.safe}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity style={s.headerBtn}>
+        <TouchableOpacity style={s.headerBtn} onPress={() => router.back()}>
           <Text style={s.headerBtnIcon}>←</Text>
         </TouchableOpacity>
         <Text style={s.headerTitle}>Social Studio</Text>

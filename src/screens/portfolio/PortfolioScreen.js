@@ -4,6 +4,7 @@ import {
   StyleSheet, SafeAreaView,
 } from 'react-native';
 import { C } from '../../config/theme';
+import { useRouter } from 'expo-router';
 
 const STRATEGIES = ['All', 'Growth', 'Value', 'Dividend', 'Momentum'];
 
@@ -32,6 +33,7 @@ function calcPL(h) { return (h.price - h.cost) * h.shares; }
 function calcPLPct(h) { return ((h.price - h.cost) / h.cost) * 100; }
 
 export default function PortfolioScreen() {
+  const router = useRouter();
   const [activeStrategy, setActiveStrategy] = useState('All');
 
   const filtered = activeStrategy === 'All'
