@@ -3,11 +3,15 @@
    Expo Router · Supabase Auth · Stack navigation
    Patent #10,290,222
 ═══════════════════════════════════════════════════ */
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider } from '../src/lib/AuthContext';
+import { logAppOpen } from '../src/lib/analytics';
 
 export default function RootLayout() {
+  useEffect(() => { logAppOpen(); }, []);
+
   return (
     <AuthProvider>
       <StatusBar style="light" backgroundColor="#0C0C0F" />
