@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, Animated, ActivityIndicator,
+  StyleSheet, SafeAreaView, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C } from '../../config/theme';
 import { SALMark } from '../../components';
 import { searchGemini } from '../../lib/api';
@@ -46,6 +47,7 @@ const SOURCE_FILTERS = [
 ];
 
 export default function IntelligenceSearchScreen() {
+  const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -84,6 +86,11 @@ export default function IntelligenceSearchScreen() {
 
   return (
     <SafeAreaView style={s.safe}>
+      <KeyboardAvoidingView
+        style={s.safe}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+      >
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
@@ -106,7 +113,10 @@ export default function IntelligenceSearchScreen() {
         ref={scrollRef}
         style={s.scroll}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={s.scrollContent}
+        contentContainerStyle={[
+          s.scrollContent,
+          { paddingBottom: 180 + insets.bottom },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         {/* Hero */}
@@ -242,7 +252,7 @@ export default function IntelligenceSearchScreen() {
       </ScrollView>
 
       {/* Bottom Search Bar */}
-      <View style={s.searchBarWrap}>
+      <View style={[s.searchBarWrap, { paddingBottom: Math.max(insets.bottom, 10) }]}>
         <View style={s.searchBar}>
           {/* Filter chips */}
           <View style={s.filterRow}>
@@ -299,6 +309,7 @@ export default function IntelligenceSearchScreen() {
           </View>
         </View>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -342,7 +353,7 @@ const s = StyleSheet.create({
 
   /* Scroll */
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 200 },
+  scrollContent: { flexGrow: 1 },
 
   /* Hero */
   hero: { paddingHorizontal: 20, paddingTop: 40, paddingBottom: 24, alignItems: 'center' },
