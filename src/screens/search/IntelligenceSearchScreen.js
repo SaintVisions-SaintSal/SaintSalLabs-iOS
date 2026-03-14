@@ -122,9 +122,10 @@ export default function IntelligenceSearchScreen() {
         {/* Hero */}
         {!result && (
           <View style={s.hero}>
-            <Text style={s.heroTitle}>How can we assist your intelligence today?</Text>
+            <Text style={s.heroEyebrow}>SEARCH · SAL PRO</Text>
+            <Text style={s.heroTitle}>Research anything. Know what matters.</Text>
             <Text style={s.heroSubtitle}>
-              Synthesizing global markets, technology, and policy.
+              Synthesizing global markets, technology, and policy into one sharp response.
             </Text>
           </View>
         )}
@@ -305,7 +306,9 @@ export default function IntelligenceSearchScreen() {
 
           {/* Footer row */}
           <View style={s.barFooter}>
-            <Text style={s.barVersion}>SaintSal Pro v4.2</Text>
+            <Text style={s.barVersion}>SAL Pro</Text>
+            <Text style={s.barDivider}>•</Text>
+            <Text style={s.barVersion}>Search intelligence</Text>
           </View>
         </View>
       </View>
@@ -356,16 +359,30 @@ const s = StyleSheet.create({
   scrollContent: { flexGrow: 1 },
 
   /* Hero */
-  hero: { paddingHorizontal: 20, paddingTop: 40, paddingBottom: 24, alignItems: 'center' },
+  hero: { paddingHorizontal: 20, paddingTop: 36, paddingBottom: 28, alignItems: 'center' },
+  heroEyebrow: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: C.gold,
+    letterSpacing: 1.4,
+    marginBottom: 12,
+  },
   heroTitle: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '800',
     color: C.text,
     textAlign: 'center',
-    marginBottom: 8,
-    letterSpacing: -0.5,
+    marginBottom: 10,
+    letterSpacing: -0.8,
+    maxWidth: 320,
   },
-  heroSubtitle: { fontSize: 15, color: C.textMuted, textAlign: 'center' },
+  heroSubtitle: {
+    fontSize: 15,
+    color: C.textMuted,
+    textAlign: 'center',
+    lineHeight: 22,
+    maxWidth: 330,
+  },
 
   /* Sections */
   section: { marginBottom: 28, paddingHorizontal: 20 },
@@ -498,10 +515,15 @@ const s = StyleSheet.create({
   },
   searchBar: {
     backgroundColor: C.bgElevated,
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: C.border,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.24,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: -6 },
+    elevation: 16,
   },
   filterRow: {
     flexDirection: 'row',
@@ -545,6 +567,8 @@ const s = StyleSheet.create({
   barFooter: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 14,
     paddingBottom: 8,
     borderTopWidth: 1,
@@ -552,4 +576,5 @@ const s = StyleSheet.create({
     paddingTop: 6,
   },
   barVersion: { fontSize: 10, color: C.textGhost, fontWeight: '500' },
+  barDivider: { fontSize: 10, color: C.textGhost },
 });

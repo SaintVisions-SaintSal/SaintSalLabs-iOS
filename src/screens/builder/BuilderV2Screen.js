@@ -116,6 +116,7 @@ export default function BuilderV2Screen() {
       <View style={s.headerLeft}>
         <SALMark size={28} />
         <View>
+          <Text style={s.headerKicker}>BUILDER · CREATE</Text>
           <Text style={s.headerTitle}>SAL Builder</Text>
           <View style={s.statusRow}>
             <Animated.View style={[s.statusDot, { opacity: pulseAnim }]} />
@@ -557,7 +558,14 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  headerTitle: { fontSize: 15, fontWeight: '700', color: C.text, letterSpacing: -0.3 },
+  headerKicker: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: C.gold,
+    letterSpacing: 1.2,
+    marginBottom: 2,
+  },
+  headerTitle: { fontSize: 17, fontWeight: '800', color: C.text, letterSpacing: -0.4 },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
   statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.amber },
   statusText: { fontSize: 9, fontWeight: '700', letterSpacing: 1, color: C.textDim, textTransform: 'uppercase' },
@@ -576,14 +584,30 @@ const s = StyleSheet.create({
 
   /* ── Mode Tabs ──────────────────────────────────── */
   modeBar: {
-    flexDirection: 'row', backgroundColor: C.bgCard,
-    borderBottomWidth: 1, borderBottomColor: C.border,
+    flexDirection: 'row',
+    backgroundColor: C.bgCard,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 8,
   },
   modeTab: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 5, paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: 'transparent',
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
   },
-  modeTabActive: { borderBottomColor: C.amber },
+  modeTabActive: {
+    borderColor: C.amber + '33',
+    backgroundColor: C.amberGhost,
+  },
   modeIcon: { fontSize: 13 },
   modeLabel: { fontSize: 12, fontWeight: '700', color: C.textDim },
   modeLabelActive: { color: C.text },
@@ -597,7 +621,7 @@ const s = StyleSheet.create({
   chatContent: { padding: 16 },
 
   /* Welcome */
-  welcomeWrap: { alignItems: 'center', paddingTop: 40 },
+  welcomeWrap: { alignItems: 'center', paddingTop: 34 },
   welcomeIcon: {
     width: 64, height: 64, borderRadius: 20,
     backgroundColor: C.amberGhost, borderWidth: 1, borderColor: C.amber + '33',
