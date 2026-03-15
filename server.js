@@ -627,8 +627,128 @@ app.get('/api/social/status', auth, (req, res) => {
   });
 });
 
+// ── SAL Supreme — Make.com Orchestration Brain ───────
+const GHL_LOCATION_ID    = process.env.GHL_LOCATION_ID          || 'oRA8vL3OSiCPjpwmEC0V';
+const GHL_PRIVATE_TOKEN  = process.env.GHL_PRIVATE_ACCESS_TOKEN || '';
+const GHL_LOCATION_KEY   = process.env.GHL_LOCATION_KEY         || '';
+
+const SAL_SUPREME_SYSTEM = `You are SAL "SaintSal™" — the unified AI orchestration brain for SaintSal™ Labs,
+a Synthetic AGI Orchestration Platform backed by US Patent #10,290,222 (HACP Protocol).
+
+You operate in 4 MODES — auto-selected based on context:
+  1. PLATFORM_AI    — SaintSal Labs user questions, feature help, product guidance
+  2. SALES_BOT      — GHL lead qualification, appointment booking, pricing objections
+  3. BUILDER_ENGINE — Technical builds, code, integrations, deployment help
+  4. OPS_MONITOR    — Daily ops digest, metrics, churn alerts, team reporting
+
+CONTEXT INJECTION (Make.com will provide):
+  - Contact: name, email, phone, tags, pipeline stage, tier, channel
+  - Message: the inbound text/voice/chat content
+  - History: prior conversation turns
+
+YOUR JOB:
+  1. Detect the correct mode
+  2. Craft the perfect response for that contact
+  3. Decide the next Make.com action
+
+OUTPUT FORMAT — ALWAYS return EXACTLY this JSON (no markdown, no explanation):
+{
+  "response_text": "The message to send back to the contact",
+  "next_action": "one of: respond | book_call | qualify_lead | escalate | send_welcome | trigger_onboarding | payment_failed_retry | no_action",
+  "tag_add": "tag_to_add or null",
+  "tag_remove": "tag_to_remove or null",
+  "pipeline_stage": "stage_name or null",
+  "internal_alert": "message to AJK/team or null",
+  "mode_used": "platform_ai | sales_bot | builder_engine | ops_monitor",
+  "confidence": 0.95
+}
+
+TONE: Warm, direct, faith-forward. Never robotic. Never corporate filler.
+BRAND: SaintSal™ Labs — Responsible Intelligence™ | 175+ countries | 53 AI models
+
+BEHAVIORAL RULES:
+- Truth over comfort. Wrong answers delivered confidently cause damage.
+- Lead with the answer. Never restate the question.
+- Make every response immediately actionable.
+- If a lead mentions budget/urgency → SALES_BOT mode, push to book call.
+- If a user has payment issues → escalate + alert AJK.
+- If onboarding question → PLATFORM_AI mode, be their expert guide.`;
+
+app.post('/api/sal/respond', auth, async (req, res) => {
+  const { contact = {}, scenario = {}, message, history = [] } = req.body;
+
+  if (!message) return res.status(400).json({ error: 'message is required' });
+
+  const contextBlock = [
+    contact.name        && `Contact: ${contact.name}`,
+    contact.email       && `Email: ${contact.email}`,
+    contact.phone       && `Phone: ${contact.phone}`,
+    contact.tier        && `Tier: ${contact.tier}`,
+    contact.tags?.length && `Tags: ${contact.tags.join(', ')}`,
+    contact.pipeline_stage && `Pipeline Stage: ${contact.pipeline_stage}`,
+    scenario.channel    && `Channel: ${scenario.channel}`,
+    scenario.type       && `Scenario: ${scenario.type}`,
+  ].filter(Boolean).join('\n');
+
+  const userContent = contextBlock
+    ? `[CONTACT CONTEXT]\n${contextBlock}\n\n[MESSAGE]\n${message}`
+    : message;
+
+  const messages = [
+    ...history.map(h => ({ role: h.role === 'assistant' ? 'assistant' : 'user', content: h.content })),
+    { role: 'user', content: userContent },
+  ];
+
+  try {
+    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
+      method:  'POST',
+      headers: {
+        'Content-Type':      'application/json',
+        'x-api-key':         ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model:      'claude-sonnet-4-6',
+        max_tokens: 2048,
+        system:     SAL_SUPREME_SYSTEM,
+        messages,
+      }),
+    });
+
+    if (!upstream.ok) {
+      const err = await upstream.text();
+      return res.status(upstream.status).json({ error: err });
+    }
+
+    const data    = await upstream.json();
+    const rawText = data.content?.[0]?.text || '';
+
+    // Parse the JSON block SAL returns
+    let parsed = {};
+    const jsonMatch = rawText.match(/```json\s*([\s\S]*?)\s*```/) || rawText.match(/(\{[\s\S]*\})/);
+    if (jsonMatch) {
+      try { parsed = JSON.parse(jsonMatch[1]); } catch (_) { /* use defaults */ }
+    }
+
+    res.json({
+      response_text:  parsed.response_text  || rawText,
+      next_action:    parsed.next_action    || 'respond',
+      tag_add:        parsed.tag_add        || null,
+      tag_remove:     parsed.tag_remove     || null,
+      pipeline_stage: parsed.pipeline_stage || null,
+      internal_alert: parsed.internal_alert || null,
+      mode_used:      parsed.mode_used      || 'platform_ai',
+      confidence:     parsed.confidence     || 0.9,
+    });
+  } catch (err) {
+    console.error('SAL respond error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`SaintSal Labs API Gateway v2 on port ${PORT}`);
   console.log(`Providers: Anthropic=${!!ANTHROPIC_KEY} OpenAI=${!!OPENAI_KEY} Gemini=${!!GEMINI_KEY} xAI=${!!XAI_KEY}`);
   console.log(`Social: LinkedIn=${!!LINKEDIN_CLIENT_ID} Twitter=${!!TWITTER_CONSUMER_KEY}`);
+  console.log(`SAL Supreme: /api/sal/respond active`);
 });
