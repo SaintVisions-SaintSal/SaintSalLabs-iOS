@@ -1,10 +1,14 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useContext } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, Linking, Dimensions,
+  StyleSheet, SafeAreaView, Linking, Dimensions, Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { C, PRICING_TIERS, STRIPE_LINKS } from '../../config/theme';
+import { C, PRICING_TIERS } from '../../config/theme';
+import AuthContext from '../../lib/AuthContext';
+
+const LABS_API = 'https://saintsallabs.com/api/mcp/stripe';
+const SAL_KEY  = 'sal-live-2026';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.72;
@@ -31,15 +35,51 @@ const FAQ = [
   { q: 'What is the HACP Protocol?', a: 'US Patent #10,290,222 — our proprietary intelligence stitching protocol that powers multi-model AI orchestration.' },
 ];
 
+const PRICE_KEY_MAP = {
+  Free:       { mo: 'free_mo',       yr: 'free_yr' },
+  Starter:    { mo: 'starter_mo',    yr: 'starter_yr' },
+  Pro:        { mo: 'pro_mo',        yr: 'pro_yr' },
+  Teams:      { mo: 'teams_mo',      yr: 'teams_yr' },
+  Enterprise: { mo: 'enterprise_mo', yr: 'enterprise_yr' },
+};
+
 export default function StripePricingScreen() {
   const router = useRouter();
+  const { user, profile } = useContext(AuthContext);
   const [isAnnual, setIsAnnual] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState(null);
+  const [loadingTier, setLoadingTier] = useState(null);
   const scrollRef = useRef(null);
 
-  const handleSubscribe = (tierName) => {
-    const link = STRIPE_LINKS[tierName];
-    if (link) Linking.openURL(link);
+  const handleSubscribe = async (tierName) => {
+    setLoadingTier(tierName);
+    try {
+      const priceKey = PRICE_KEY_MAP[tierName]?.[isAnnual ? 'yr' : 'mo'];
+      const res = await fetch(LABS_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-sal-key': SAL_KEY },
+        body: JSON.stringify({
+          action: 'create_checkout',
+          payload: {
+            priceKey,
+            email:      user?.email || profile?.email || '',
+            successUrl: 'https://saintsallabs.com/success?upgraded=1',
+            cancelUrl:  'https://saintsallabs.com/pricing',
+            metadata:   { userId: user?.id || '', plan: tierName.toLowerCase(), source: 'ios' },
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data?.url) {
+        await Linking.openURL(data.url);
+      } else {
+        Alert.alert('Error', data?.error || 'Could not start checkout. Try again.');
+      }
+    } catch {
+      Alert.alert('Error', 'Network error. Please try again.');
+    } finally {
+      setLoadingTier(null);
+    }
   };
 
   const getPrice = (price) => {
@@ -124,12 +164,13 @@ export default function StripePricingScreen() {
                   {tier.credits === -1 ? 'Unlimited credits' : `${tier.credits.toLocaleString()} credits/mo`}
                 </Text>
                 <TouchableOpacity
-                  style={[s.cardBtn, isPro ? { backgroundColor: C.amber } : { borderWidth: 1, borderColor: tier.color }]}
+                  style={[s.cardBtn, isPro ? { backgroundColor: C.amber } : { borderWidth: 1, borderColor: tier.color }, loadingTier === tier.name && { opacity: 0.6 }]}
                   onPress={() => handleSubscribe(tier.name)}
                   activeOpacity={0.85}
+                  disabled={loadingTier !== null}
                 >
                   <Text style={[s.cardBtnText, isPro ? { color: C.bg } : { color: tier.color }]}>
-                    {tier.price === 0 ? 'Start Free' : 'Subscribe'}
+                    {loadingTier === tier.name ? 'Opening...' : tier.price === 0 ? 'Start Free' : 'Subscribe'}
                   </Text>
                 </TouchableOpacity>
               </View>

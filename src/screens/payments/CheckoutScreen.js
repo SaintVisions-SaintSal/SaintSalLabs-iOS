@@ -1,52 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, Alert, KeyboardAvoidingView,
-  Platform,
+  View, Text, ScrollView, TouchableOpacity,
+  StyleSheet, SafeAreaView, Alert, Linking,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { C } from '../../config/theme';
+import AuthContext from '../../lib/AuthContext';
 
-const ORDER = {
-  plan: 'Pro',
-  credits: 2000,
-  price: 97,
-  period: 'Monthly',
+const LABS_API = 'https://saintsallabs.com/api/mcp/stripe';
+const SAL_KEY  = 'sal-live-2026';
+
+const PLAN_META = {
+  free:       { name: 'Free',       price: 0,    credits: 100,    priceKey: 'free_mo',       model: 'SAL Mini' },
+  starter:    { name: 'Starter',    price: 27,   credits: 500,    priceKey: 'starter_mo',    model: 'SAL Pro' },
+  pro:        { name: 'Pro',        price: 97,   credits: 2000,   priceKey: 'pro_mo',        model: 'SAL Max' },
+  teams:      { name: 'Teams',      price: 297,  credits: 10000,  priceKey: 'teams_mo',      model: 'SAL Max Fast' },
+  enterprise: { name: 'Enterprise', price: 497,  credits: -1,     priceKey: 'enterprise_mo', model: 'Unlimited' },
 };
 
 export default function CheckoutScreen() {
   const router = useRouter();
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvc, setCvc] = useState('');
-  const [name, setName] = useState('');
-  const [zip, setZip] = useState('');
+  const params = useLocalSearchParams();
+  const { user, profile } = useContext(AuthContext);
   const [processing, setProcessing] = useState(false);
 
-  const formatCard = (val) => {
-    const digits = val.replace(/\D/g, '').slice(0, 16);
-    return digits.replace(/(.{4})/g, '$1 ').trim();
-  };
+  const planId = params.plan || 'pro';
+  const plan = PLAN_META[planId] || PLAN_META.pro;
 
-  const formatExpiry = (val) => {
-    const digits = val.replace(/\D/g, '').slice(0, 4);
-    if (digits.length > 2) return digits.slice(0, 2) + '/' + digits.slice(2);
-    return digits;
-  };
-
-  const handlePay = () => {
-    if (!cardNumber || !expiry || !cvc || !name) {
-      return Alert.alert('Missing Fields', 'Please fill in all payment details.');
-    }
+  const handleCheckout = async () => {
     setProcessing(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch(LABS_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-sal-key': SAL_KEY },
+        body: JSON.stringify({
+          action: 'create_checkout',
+          payload: {
+            priceKey:   plan.priceKey,
+            email:      user?.email || profile?.email || '',
+            successUrl: 'https://saintsallabs.com/success?upgraded=1',
+            cancelUrl:  'https://saintsallabs.com/pricing',
+            metadata:   { userId: user?.id || '', plan: planId, source: 'ios' },
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data?.url) {
+        await Linking.openURL(data.url);
+      } else {
+        Alert.alert('Error', data?.error || 'Could not create checkout session. Try again.');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Network error. Please try again.');
+    } finally {
       setProcessing(false);
-      Alert.alert(
-        'Payment Successful',
-        `Your ${ORDER.plan} plan is now active with ${ORDER.credits.toLocaleString()} credits.`,
-        [{ text: 'Continue', style: 'default' }]
-      );
-    }, 1800);
+    }
   };
 
   return (
@@ -66,181 +74,94 @@ export default function CheckoutScreen() {
         </View>
       </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          style={s.scroll}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Order Summary */}
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>ORDER SUMMARY</Text>
-            <View style={s.orderCard}>
-              <View style={s.orderTop}>
-                <View style={s.planBadge}>
-                  <Text style={s.planBadgeText}>⭐ {ORDER.plan.toUpperCase()}</Text>
-                </View>
-                <Text style={s.orderPrice}>${ORDER.price}</Text>
+      <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
+        {/* Order Summary */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>ORDER SUMMARY</Text>
+          <View style={s.orderCard}>
+            <View style={s.orderTop}>
+              <View style={s.planBadge}>
+                <Text style={s.planBadgeText}>⭐ {plan.name.toUpperCase()}</Text>
               </View>
-              <View style={s.orderDetails}>
+              <Text style={s.orderPrice}>{plan.price === 0 ? 'FREE' : `$${plan.price}`}</Text>
+            </View>
+            <View style={s.orderDetails}>
+              <View style={s.orderRow}>
+                <Text style={s.orderLabel}>Plan</Text>
+                <Text style={s.orderValue}>{plan.name} — Monthly</Text>
+              </View>
+              <View style={s.orderRow}>
+                <Text style={s.orderLabel}>Credits</Text>
+                <Text style={s.orderValue}>{plan.credits === -1 ? 'Unlimited' : `${plan.credits.toLocaleString()}/mo`}</Text>
+              </View>
+              <View style={s.orderRow}>
+                <Text style={s.orderLabel}>Model</Text>
+                <Text style={s.orderValue}>{plan.model}</Text>
+              </View>
+              {user?.email ? (
                 <View style={s.orderRow}>
-                  <Text style={s.orderLabel}>Plan</Text>
-                  <Text style={s.orderValue}>{ORDER.plan} — {ORDER.period}</Text>
+                  <Text style={s.orderLabel}>Account</Text>
+                  <Text style={s.orderValue} numberOfLines={1}>{user.email}</Text>
                 </View>
-                <View style={s.orderRow}>
-                  <Text style={s.orderLabel}>Credits</Text>
-                  <Text style={s.orderValue}>{ORDER.credits.toLocaleString()}/mo</Text>
-                </View>
-                <View style={s.orderRow}>
-                  <Text style={s.orderLabel}>Model</Text>
-                  <Text style={s.orderValue}>SAL Max</Text>
-                </View>
-                <View style={[s.orderRow, s.orderTotal]}>
-                  <Text style={s.totalLabel}>Total Due Today</Text>
-                  <Text style={s.totalValue}>${ORDER.price}.00</Text>
-                </View>
+              ) : null}
+              <View style={[s.orderRow, s.orderTotal]}>
+                <Text style={s.totalLabel}>Total Due Today</Text>
+                <Text style={s.totalValue}>{plan.price === 0 ? '$0.00' : `$${plan.price}.00`}</Text>
               </View>
             </View>
           </View>
+        </View>
 
-          {/* Card Information */}
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>CARD INFORMATION</Text>
-
-            {/* Card Number */}
-            <View style={s.fieldGroup}>
-              <Text style={s.fieldLabel}>Card Number</Text>
-              <View style={s.inputRow}>
-                <View style={s.cardBrand}>
-                  <Text style={{ fontSize: 18 }}>💳</Text>
-                </View>
-                <TextInput
-                  style={s.input}
-                  value={formatCard(cardNumber)}
-                  onChangeText={(v) => setCardNumber(v.replace(/\s/g, ''))}
-                  placeholder="4242 4242 4242 4242"
-                  placeholderTextColor={C.textGhost}
-                  keyboardType="number-pad"
-                  maxLength={19}
-                />
-              </View>
-            </View>
-
-            {/* Expiry + CVC */}
-            <View style={s.splitRow}>
-              <View style={[s.fieldGroup, { flex: 1 }]}>
-                <Text style={s.fieldLabel}>Expiry</Text>
-                <View style={s.inputWrap}>
-                  <TextInput
-                    style={s.inputSmall}
-                    value={formatExpiry(expiry)}
-                    onChangeText={(v) => setExpiry(v.replace(/\D/g, ''))}
-                    placeholder="MM/YY"
-                    placeholderTextColor={C.textGhost}
-                    keyboardType="number-pad"
-                    maxLength={5}
-                  />
-                </View>
-              </View>
-              <View style={[s.fieldGroup, { flex: 1 }]}>
-                <Text style={s.fieldLabel}>CVC</Text>
-                <View style={s.inputWrap}>
-                  <TextInput
-                    style={s.inputSmall}
-                    value={cvc}
-                    onChangeText={(v) => setCvc(v.replace(/\D/g, '').slice(0, 4))}
-                    placeholder="123"
-                    placeholderTextColor={C.textGhost}
-                    keyboardType="number-pad"
-                    maxLength={4}
-                    secureTextEntry
-                  />
-                </View>
-              </View>
-            </View>
-
-            {/* Cardholder Name */}
-            <View style={s.fieldGroup}>
-              <Text style={s.fieldLabel}>Cardholder Name</Text>
-              <View style={s.inputWrap}>
-                <TextInput
-                  style={s.inputSmall}
-                  value={name}
-                  onChangeText={setName}
-                  placeholder="Full name on card"
-                  placeholderTextColor={C.textGhost}
-                  autoCapitalize="words"
-                />
-              </View>
-            </View>
-
-            {/* ZIP */}
-            <View style={s.fieldGroup}>
-              <Text style={s.fieldLabel}>ZIP / Postal Code</Text>
-              <View style={s.inputWrap}>
-                <TextInput
-                  style={s.inputSmall}
-                  value={zip}
-                  onChangeText={setZip}
-                  placeholder="90210"
-                  placeholderTextColor={C.textGhost}
-                  keyboardType="number-pad"
-                  maxLength={10}
-                />
-              </View>
-            </View>
-          </View>
-
-          {/* Pay Button */}
-          <View style={s.section}>
-            <TouchableOpacity
-              style={[s.payBtn, processing && s.payBtnProcessing]}
-              onPress={handlePay}
-              activeOpacity={0.85}
-              disabled={processing}
-            >
-              <Text style={s.payBtnText}>
-                {processing ? 'Processing...' : `Pay $${ORDER.price}.00`}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Security Indicators */}
-          <View style={s.securitySection}>
-            <View style={s.securityRow}>
-              <View style={s.securityItem}>
-                <Text style={s.secIcon}>🔒</Text>
-                <Text style={s.secLabel}>Encrypted</Text>
-              </View>
-              <View style={s.securityItem}>
-                <Text style={s.secIcon}>🛡️</Text>
-                <Text style={s.secLabel}>PCI Compliant</Text>
-              </View>
-              <View style={s.securityItem}>
-                <Text style={s.secIcon}>✓</Text>
-                <Text style={s.secLabel}>3D Secure</Text>
-              </View>
-            </View>
-            <Text style={s.securityNote}>
-              Your payment info is encrypted end-to-end. We never store your full card number.
+        {/* Stripe Checkout CTA */}
+        <View style={s.section}>
+          <View style={s.stripeInfoBox}>
+            <Text style={s.stripeInfoTitle}>🔒 Powered by Stripe</Text>
+            <Text style={s.stripeInfoText}>
+              You'll be taken to Stripe's secure checkout page to complete your payment. Your card details never touch our servers.
             </Text>
           </View>
 
-          {/* Stripe Badge */}
-          <View style={s.footer}>
-            <View style={s.stripeBadge}>
-              <Text style={s.stripeIcon}>⚡</Text>
-              <Text style={s.stripeBadgeText}>POWERED BY STRIPE</Text>
-            </View>
-            <Text style={s.footerText}>
-              Secure & Encrypted · 256-bit SSL
+          <TouchableOpacity
+            style={[s.payBtn, processing && s.payBtnProcessing]}
+            onPress={handleCheckout}
+            activeOpacity={0.85}
+            disabled={processing}
+          >
+            <Text style={s.payBtnText}>
+              {processing ? 'Opening Checkout...' : `Continue to Checkout →`}
             </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Security Indicators */}
+        <View style={s.securitySection}>
+          <View style={s.securityRow}>
+            <View style={s.securityItem}>
+              <Text style={s.secIcon}>🔒</Text>
+              <Text style={s.secLabel}>Encrypted</Text>
+            </View>
+            <View style={s.securityItem}>
+              <Text style={s.secIcon}>🛡️</Text>
+              <Text style={s.secLabel}>PCI Compliant</Text>
+            </View>
+            <View style={s.securityItem}>
+              <Text style={s.secIcon}>✓</Text>
+              <Text style={s.secLabel}>3D Secure</Text>
+            </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          <Text style={s.securityNote}>
+            Payment processed by Stripe. We never store card details.
+          </Text>
+        </View>
+
+        <View style={s.footer}>
+          <View style={s.stripeBadge}>
+            <Text style={s.stripeIcon}>⚡</Text>
+            <Text style={s.stripeBadgeText}>POWERED BY STRIPE</Text>
+          </View>
+          <Text style={s.footerText}>Secure & Encrypted · 256-bit SSL</Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -266,18 +187,13 @@ const s = StyleSheet.create({
   orderDetails: {},
   orderRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 14, borderBottomWidth: 1, borderBottomColor: C.border },
   orderLabel: { fontSize: 12, fontWeight: '600', color: C.textMuted },
-  orderValue: { fontSize: 13, fontWeight: '700', color: C.text },
+  orderValue: { fontSize: 13, fontWeight: '700', color: C.text, flex: 1, textAlign: 'right', marginLeft: 8 },
   orderTotal: { backgroundColor: C.bgElevated, borderBottomWidth: 0 },
   totalLabel: { fontSize: 14, fontWeight: '800', color: C.text },
   totalValue: { fontSize: 18, fontWeight: '800', color: C.amber },
-  fieldGroup: { marginBottom: 16 },
-  fieldLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 1.5, color: C.textDim, marginBottom: 8, textTransform: 'uppercase' },
-  inputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.bgCard, borderRadius: 12, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
-  cardBrand: { width: 48, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: C.border, height: 52 },
-  input: { flex: 1, height: 52, paddingHorizontal: 14, fontSize: 16, color: C.text, fontFamily: 'monospace', letterSpacing: 2 },
-  splitRow: { flexDirection: 'row', gap: 12 },
-  inputWrap: { backgroundColor: C.bgCard, borderRadius: 12, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
-  inputSmall: { height: 52, paddingHorizontal: 14, fontSize: 15, color: C.text },
+  stripeInfoBox: { backgroundColor: C.bgCard, borderRadius: 12, borderWidth: 1, borderColor: C.borderGlow, padding: 16, marginBottom: 16 },
+  stripeInfoTitle: { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 6 },
+  stripeInfoText: { fontSize: 12, color: C.textDim, lineHeight: 18 },
   payBtn: { height: 56, borderRadius: 14, backgroundColor: C.amber, alignItems: 'center', justifyContent: 'center' },
   payBtnProcessing: { opacity: 0.7 },
   payBtnText: { fontSize: 16, fontWeight: '800', color: C.bg, letterSpacing: 0.5 },
