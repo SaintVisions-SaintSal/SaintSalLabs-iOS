@@ -59,6 +59,80 @@ export const streamChat = ({ provider = 'anthropic', model, system, messages, on
   return xhr; // return for cancellation
 };
 
+/* ─── SAL Chat (routed to saintsal-backend) ──────── */
+export const SAL_BACKEND = 'https://saintsal-backend-0mv8.onrender.com';
+
+export const streamSalChat = ({ mode = 'creative', messages, system, onChunk, onDone, onError }) => {
+  // Model routing by mode
+  const modelMap = {
+    creative:   'claude-sonnet-4-6',
+    finance:    'claude-sonnet-4-6',
+    realestate: 'claude-sonnet-4-6',
+    global:     'grok-3',
+  };
+
+  const xhr = new XMLHttpRequest();
+  let processed = 0;
+
+  xhr.open('POST', `${SAL_BACKEND}/api/sal/chat`, true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+
+  xhr.onprogress = () => {
+    const newText = xhr.responseText.slice(processed);
+    processed = xhr.responseText.length;
+    const lines = newText.split('\n');
+    for (const line of lines) {
+      // Handle non-streaming JSON response: {"success":true,"content":"..."}
+      if (!line.startsWith('data: ')) {
+        try {
+          const d = JSON.parse(line.trim());
+          if (d.success && d.content) { onChunk(d.content); onDone?.(); return; }
+        } catch {}
+        continue;
+      }
+      const raw = line.slice(6).trim();
+      if (raw === '[DONE]') { onDone?.(); return; }
+      try {
+        const d = JSON.parse(raw);
+        if (d.type === 'content_block_delta' && d.delta?.text) {
+          onChunk(d.delta.text);
+        } else if (d.choices?.[0]?.delta?.content) {
+          onChunk(d.choices[0].delta.content);
+        } else if (d.content) {
+          onChunk(d.content);
+        }
+      } catch {}
+    }
+  };
+
+  xhr.onload = () => {
+    // If stream mode didn't fire, try to parse full response
+    try {
+      const d = JSON.parse(xhr.responseText);
+      if (d.success && d.content && processed === 0) onChunk(d.content);
+    } catch {}
+    onDone?.();
+  };
+  xhr.onerror   = () => onError?.('Connection failed. Check your network.');
+  xhr.ontimeout = () => onError?.('Request timed out.');
+  xhr.timeout   = 120000;
+
+  // Build message string from messages array for SAL backend
+  const lastUserMsg = messages?.filter(m => m.role === 'user').pop()?.content || '';
+  const conversationHistory = messages?.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n') || '';
+
+  xhr.send(JSON.stringify({
+    mode,
+    model: modelMap[mode] || 'claude-sonnet-4-6',
+    system,
+    message: lastUserMsg,
+    context: conversationHistory,
+    messages,  // keep for backends that accept array
+    stream: true,
+  }));
+  return xhr;
+};
+
 /* ─── Builder streaming (through anthropic endpoint) ─ */
 export const streamBuilder = ({ prompt, files, system, onChunk, onDone, onError }) => {
   const fileContext = files?.length
@@ -67,7 +141,7 @@ export const streamBuilder = ({ prompt, files, system, onChunk, onDone, onError 
 
   return streamChat({
     provider: 'anthropic',
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     system,
     messages: [{ role: 'user', content: prompt + fileContext }],
     onChunk,

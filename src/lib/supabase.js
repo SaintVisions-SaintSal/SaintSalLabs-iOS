@@ -43,6 +43,27 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
 /* ── Auth helpers ──────────────────────────────────── */
 
+/** Sign in with email + password */
+export const signInWithPassword = async (email, password) => {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data;
+};
+
+/** Sign up with email + password */
+export const signUpWithPassword = async (email, password, metadata = {}) => {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: metadata,
+      emailRedirectTo: 'saintsallabs://auth/callback',
+    },
+  });
+  if (error) throw error;
+  return data;
+};
+
 /** Sign in with magic link (email OTP) */
 export const signInWithMagicLink = async (email) => {
   const { data, error } = await supabase.auth.signInWithOtp({
@@ -91,12 +112,91 @@ export const getUser = async () => {
   return user;
 };
 
-/** Get user profile from profiles table */
+/** Get user profile from profiles table (legacy compat) */
 export const getProfile = async (userId) => {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', userId)
+    .single();
+  // Return null gracefully if no profile yet (new user)
+  if (error && error.code !== 'PGRST116') throw error;
+  return data ?? null;
+};
+
+/** Get user_profiles row (shared with saintsal.ai webapp)
+ *  Fields: role, tier, compute_minutes_used, stripe_customer_id, etc.
+ */
+export const getUserProfile = async (userId) => {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+  if (error && error.code !== 'PGRST116') throw error;
+  return data ?? null;
+};
+
+/** Tier compute limits (matches saintsal.ai webapp) */
+export const TIER_LIMITS = {
+  free:       100,
+  starter:    500,
+  pro:        2000,
+  teams:      10000,
+  enterprise: Infinity,
+};
+
+/** Stripe Price IDs (live) — shared across both platforms */
+export const STRIPE_PRICE_IDS = {
+  free:       'price_1T7p1tL47U80vDLAe9aWVKA0',
+  starter:    'price_1T7p1sL47U80vDLAgU2shcQO',
+  pro:        'price_1T7p1tL47U80vDLAVC0N4N4J',
+  teams:      'price_1T7p1uL47U80vDLA9QF62BKS',
+  enterprise: 'price_1T7p1uL47U80vDLAR4Wk6uW0',
+};
+
+/** Deduct compute seconds after an AI call
+ *  Hits the shared backend endpoint — same as saintsal.ai
+ */
+export const deductCompute = async (seconds) => {
+  try {
+    const session = await supabase.auth.getSession();
+    const token = session?.data?.session?.access_token;
+    const res = await fetch(
+      'https://saintsal-backend-0mv8.onrender.com/api/website-builder/compute-deduct',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ seconds }),
+      }
+    );
+    if (!res.ok) throw new Error(`Compute deduct failed: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    // Non-fatal — log but don't block UI
+    console.warn('[compute] deduct error:', err.message);
+    return null;
+  }
+};
+
+/** Check if user has compute remaining */
+export const hasComputeLeft = (userProfile) => {
+  if (!userProfile) return false;
+  const tier  = userProfile.tier || userProfile.role || 'free';
+  const limit = TIER_LIMITS[tier] ?? TIER_LIMITS.free;
+  const used  = userProfile.compute_minutes_used ?? 0;
+  return used < limit;
+};
+
+/** Upsert user profile (for Business DNA onboarding) */
+export const upsertProfile = async (userId, profileData) => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .upsert({ id: userId, ...profileData, updated_at: new Date().toISOString() })
+    .select()
     .single();
   if (error) throw error;
   return data;

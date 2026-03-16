@@ -1,1 +1,1 @@
-export { default } from '../../src/screens/dashboard/NavigationHubScreen';
+export { default } from '../../src/screens/dashboard/EliteNavigationHubScreen';

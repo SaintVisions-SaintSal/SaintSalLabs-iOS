@@ -1,1 +1,1 @@
-export { default } from '../../src/screens/dashboard/DashboardScreen';
+export { default } from '../../src/screens/dashboard/HomeBaseCommandScreen';

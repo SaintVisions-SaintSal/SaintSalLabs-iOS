@@ -43,6 +43,37 @@ export default function StackLayout() {
 
       {/* Navigation */}
       <Stack.Screen name="navigation-hub" />
+
+      {/* SAL Chat Modes (Phase 3) */}
+      <Stack.Screen name="sal-chat" />
+
+      {/* Intelligence (Phase 4) */}
+      <Stack.Screen name="elite-intelligence" />
+      <Stack.Screen name="full-spectrum-intel" />
+      <Stack.Screen name="image-hub" />
+      <Stack.Screen name="geo-master" />
+
+      {/* Builder (Phase 5) */}
+      <Stack.Screen name="builder-planning" />
+      <Stack.Screen name="builder-viewport" />
+      <Stack.Screen name="build-connections" />
+
+      {/* Social (Phase 6) */}
+      <Stack.Screen name="social-content-gen" />
+
+      {/* Real Estate (Phase 7) */}
+      <Stack.Screen name="elite-real-estate" />
+      <Stack.Screen name="re-manifest" />
+
+      {/* GHL (Phase 8) */}
+      <Stack.Screen name="ghl-smart-bridge" />
+
+      {/* Platform (Phase 9) */}
+      <Stack.Screen name="elite-connectors" />
+      <Stack.Screen name="hook-workflow" />
+      <Stack.Screen name="business-formation" />
+      <Stack.Screen name="legal-vault" />
+      <Stack.Screen name="help-ceo-desk" />
     </Stack>
   );
 }

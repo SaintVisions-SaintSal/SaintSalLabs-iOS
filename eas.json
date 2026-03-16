@@ -37,6 +37,8 @@
   "submit": {
     "production": {
       "ios": {
+        "appleId": "ryan@saintvisiongroup.com",
+        "appleTeamId": "2DG74QA62B",
         "ascAppId": "6760323011",
         "ascApiKeyIssuerId": "5cefc466-9ad9-4956-b761-683c25505aa1",
         "ascApiKeyId": "L5THU6WGBB",
