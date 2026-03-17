@@ -22,7 +22,7 @@
       "autoIncrement": true,
       "ios": {
         "buildConfiguration": "Release",
-        "credentialsSource": "remote",
+        "credentialsSource": "local",
         "image": "latest"
       },
       "android": {
