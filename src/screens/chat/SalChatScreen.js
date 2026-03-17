@@ -16,6 +16,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../lib/AuthContext';
 import { streamSalChat } from '../../lib/api';
 import { deductCompute } from '../../lib/supabase';
+import MarkdownText from '../../components/MarkdownText';
 
 /* ── Mode Configuration ── */
 const MODES = {
@@ -353,10 +354,11 @@ function MessageBubble({ msg, accent }) {
         {!isUser && (
           <Text style={[b.label, { color: accent }]}>SAL Assistant</Text>
         )}
-        <Text style={[b.text, { color: isUser ? '#0F0F0F' : '#E8E6E1' }]} selectable>
-          {msg.content}
-          {msg.streaming && <Text style={{ color: accent }}>▊</Text>}
-        </Text>
+        {isUser ? (
+          <Text style={[b.text, { color: '#0F0F0F' }]} selectable>{msg.content}</Text>
+        ) : (
+          <MarkdownText content={msg.content} color="#E8E6E1" accent={accent} streaming={msg.streaming} />
+        )}
       </View>
     </View>
   );

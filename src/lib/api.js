@@ -84,6 +84,7 @@ export const streamSalChat = ({ mode = 'creative', messages, system, onChunk, on
 
   xhr.open('POST', endpointMap[provider] || endpointMap.anthropic, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('x-sal-key', API_KEY);
 
   xhr.onprogress = () => {
     const newText = xhr.responseText.slice(processed);
