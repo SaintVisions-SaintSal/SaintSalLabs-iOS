@@ -3,6 +3,8 @@
     "name": "SaintSal™ Labs",
     "slug": "saintsallabs",
     "version": "2.0.2",
+    "description": "Elite AI intelligence platform. Research, build, and analyze across every vertical — powered by Claude, GPT, Gemini, and Grok. Patent #10,290,222.",
+    "keywords": ["AI", "intelligence", "builder", "real estate", "finance", "research", "assistant"],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -11,12 +13,13 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0C0C0F"
+      "backgroundColor": "#0F0F0F"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.saintvision.saintsallabs",
-      "buildNumber": "5",
+      "buildNumber": "48",
+      "requireFullScreen": false,
       "infoPlist": {
         "NSMicrophoneUsageDescription": "SAL Voice AI needs microphone access for real-time voice conversations.",
         "NSCameraUsageDescription": "SAL Builder can scan and analyze images for AI processing.",
@@ -30,12 +33,17 @@
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "SaintSal™ Labs — Elite AI Intelligence Platform",
+      "shortName": "SaintSal Labs",
+      "description": "Research, build, and analyze across every vertical — powered by Claude, GPT, Gemini, and Grok. Patent #10,290,222.",
+      "themeColor": "#D4AF37",
+      "backgroundColor": "#0F0F0F"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#0C0C0F"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F0F0F"
       },
       "package": "com.saintvision.saintsallabs"
     },
