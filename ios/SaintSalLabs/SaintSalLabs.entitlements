@@ -5,7 +5,6 @@
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:saintsallabs.com</string>
-		<string>appclip:saintsallabs.com</string>
 	</array>
 </dict>
 </plist>
