@@ -746,9 +746,367 @@ app.post('/api/sal/respond', auth, async (req, res) => {
   }
 });
 
+// ── Builder env ───────────────────────────────────────
+const SUPABASE_URL      = process.env.SUPABASE_URL      || 'https://euxrlpuegeiggedqbkiv.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+const ELEVENLABS_KEY    = process.env.ELEVENLABS_API_KEY || '';
+const REPLICATE_KEY     = process.env.REPLICATE_API_TOKEN || '';
+
+// Tier → model routing
+const TIER_MODEL = {
+  free:       { provider: 'gemini',    model: 'gemini-2.0-flash' },
+  starter:    { provider: 'gemini',    model: 'gemini-2.0-flash' },
+  pro:        { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+  teams:      { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+  enterprise: { provider: 'anthropic', model: 'claude-opus-4-6' },
+};
+
+const BUILDER_SYSTEM_V3 = `You are SAL Builder — elite AI engineer for SaintSal™ Labs (US Patent #10,290,222 HACP Protocol).
+Generate complete, production-ready code. No placeholders. No truncation.
+Label every file: \`\`\`tsx path/to/file.tsx
+Include: package.json, README, .env.example, deployment config.
+Stack defaults: Next.js 14 App Router, Tailwind CSS, Supabase, Stripe, Vercel.
+Design system: #0C0C0F bg · #D4AF37 gold · Public Sans font.`;
+
+// ── POST /api/builder/generate — Tier-routed SSE ─────
+app.post('/api/builder/generate', auth, async (req, res) => {
+  const { prompt, tier = 'free', type = 'code', system: customSystem, files } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'prompt is required' });
+
+  const { provider, model } = TIER_MODEL[tier] || TIER_MODEL.free;
+  const system = customSystem || BUILDER_SYSTEM_V3;
+
+  const fileContext = files?.length
+    ? '\n\nEXISTING FILES:\n' + files.map(f => `\`\`\`${f.lang || 'tsx'} ${f.name}\n${f.content}\n\`\`\``).join('\n\n')
+    : '';
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('X-SAL-Model', model);
+  res.setHeader('X-SAL-Tier', tier);
+
+  try {
+    if (provider === 'gemini') {
+      // Gemini for free/starter — not streamed, wrap as SSE
+      const gemRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-goog-api-key': GEMINI_KEY },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: system }] },
+            contents: [{ parts: [{ text: prompt + fileContext }] }],
+            generationConfig: { maxOutputTokens: 8192, temperature: 0.7 },
+          }),
+        }
+      );
+      if (!gemRes.ok) {
+        const err = await gemRes.text();
+        res.write(`data: ${JSON.stringify({ error: err })}\n\n`);
+        return res.end();
+      }
+      const gemData = await gemRes.json();
+      const text = gemData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      // Emit as Anthropic-style SSE chunks
+      const chunkSize = 100;
+      for (let i = 0; i < text.length; i += chunkSize) {
+        res.write(`data: ${JSON.stringify({ type: 'content_block_delta', delta: { text: text.slice(i, i + chunkSize) } })}\n\n`);
+      }
+      res.write('data: [DONE]\n\n');
+      return res.end();
+    }
+
+    // Anthropic for pro/teams/enterprise
+    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
+      method:  'POST',
+      headers: {
+        'Content-Type':      'application/json',
+        'x-api-key':         ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: tier === 'enterprise' ? 16000 : 8192,
+        system,
+        messages: [{ role: 'user', content: prompt + fileContext }],
+        stream: true,
+      }),
+    });
+
+    if (!upstream.ok) {
+      const err = await upstream.text();
+      res.write(`data: ${JSON.stringify({ error: err })}\n\n`);
+      return res.end();
+    }
+
+    const reader  = upstream.body.getReader();
+    const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      res.write(decoder.decode(value, { stream: true }));
+    }
+    res.end();
+  } catch (err) {
+    console.error('Builder generate error:', err.message);
+    res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+    res.end();
+  }
+});
+
+// ── POST /api/metering/deduct ─────────────────────────
+app.post('/api/metering/deduct', async (req, res) => {
+  const { seconds, user_id } = req.body;
+  if (!seconds || !user_id) return res.status(400).json({ error: 'seconds and user_id required' });
+
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Bearer token required' });
+
+  try {
+    // Fetch current usage
+    const profileRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/user_profiles?user_id=eq.${user_id}&select=compute_minutes_used,tier`,
+      {
+        headers: {
+          apikey:        SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    if (!profileRes.ok) return res.status(500).json({ error: 'Profile fetch failed' });
+
+    const profiles = await profileRes.json();
+    const profile  = profiles[0];
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
+
+    const addedMinutes = seconds / 60;
+    const newUsed = (profile.compute_minutes_used || 0) + addedMinutes;
+
+    // Update
+    const updateRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/user_profiles?user_id=eq.${user_id}`,
+      {
+        method:  'PATCH',
+        headers: {
+          apikey:          SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY,
+          Authorization:   `Bearer ${token}`,
+          'Content-Type':  'application/json',
+          Prefer:          'return=representation',
+        },
+        body: JSON.stringify({ compute_minutes_used: newUsed }),
+      }
+    );
+
+    const updated = await updateRes.json();
+    res.json({ success: true, compute_minutes_used: newUsed, deducted_seconds: seconds });
+  } catch (err) {
+    console.error('Metering deduct error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET /api/builder/compute-quota ───────────────────
+app.get('/api/builder/compute-quota', async (req, res) => {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.replace('Bearer ', '');
+  if (!token) return res.json({ minutesLeft: 30, tier: 'guest' }); // Guest allowance
+
+  const TIER_LIMITS = { free: 100, starter: 500, pro: 2000, teams: 10000, enterprise: Infinity };
+
+  try {
+    // Get user from token
+    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+    });
+    if (!userRes.ok) return res.json({ minutesLeft: 30, tier: 'guest' });
+    const user = await userRes.json();
+
+    const profileRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/user_profiles?user_id=eq.${user.id}&select=compute_minutes_used,tier`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` } }
+    );
+    const profiles = await profileRes.json();
+    const profile  = profiles?.[0] || { tier: 'free', compute_minutes_used: 0 };
+
+    const tier   = profile.tier || 'free';
+    const limit  = TIER_LIMITS[tier] ?? 100;
+    const used   = profile.compute_minutes_used || 0;
+    const left   = Math.max(0, limit - used);
+
+    res.json({ minutesLeft: left, minutesUsed: used, limit, tier });
+  } catch (err) {
+    res.json({ minutesLeft: 30, tier: 'guest', error: err.message });
+  }
+});
+
+// ── POST /api/builder/save ────────────────────────────
+app.post('/api/builder/save', async (req, res) => {
+  const { user_id, name, content, type = 'code', vertical = 'general' } = req.body;
+  if (!user_id || !content) return res.status(400).json({ error: 'user_id and content required' });
+
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.replace('Bearer ', '');
+
+  try {
+    const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/website_builder_versions`, {
+      method:  'POST',
+      headers: {
+        apikey:         SUPABASE_ANON_KEY,
+        Authorization:  token ? `Bearer ${token}` : `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer:         'return=representation',
+      },
+      body: JSON.stringify({
+        user_id,
+        name:       name || `Build ${new Date().toLocaleDateString()}`,
+        content,
+        type,
+        vertical,
+        created_at: new Date().toISOString(),
+      }),
+    });
+
+    if (!insertRes.ok) {
+      const err = await insertRes.text();
+      return res.status(500).json({ error: `Save failed: ${err}` });
+    }
+
+    const saved = await insertRes.json();
+    res.json({ success: true, build: saved?.[0] || { id: crypto.randomUUID() } });
+  } catch (err) {
+    console.error('Builder save error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET /api/builder/builds/:userId ──────────────────
+app.get('/api/builder/builds/:userId', auth, async (req, res) => {
+  const { userId } = req.params;
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.replace('Bearer ', '');
+
+  try {
+    const buildsRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/website_builder_versions?user_id=eq.${userId}&order=created_at.desc&limit=20`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token || SUPABASE_ANON_KEY}` } }
+    );
+    const builds = await buildsRes.json();
+    res.json({ builds: Array.isArray(builds) ? builds : [] });
+  } catch (err) {
+    res.json({ builds: [] });
+  }
+});
+
+// ── POST /api/builder/image — DALL-E 3 ───────────────
+app.post('/api/builder/image', auth, async (req, res) => {
+  const { prompt, size = '1024x1024', quality = 'standard' } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'prompt required' });
+
+  try {
+    const upstream = await fetch('https://api.openai.com/v1/images/generations', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
+      body: JSON.stringify({ model: 'dall-e-3', prompt, n: 1, size, quality }),
+    });
+    if (!upstream.ok) {
+      const err = await upstream.text();
+      return res.status(upstream.status).json({ error: err });
+    }
+    const data = await upstream.json();
+    res.json({ url: data.data?.[0]?.url, revised_prompt: data.data?.[0]?.revised_prompt });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /api/builder/voice — ElevenLabs TTS ─────────
+app.post('/api/builder/voice', auth, async (req, res) => {
+  const { text, voice_id = '21m00Tcm4TlvDq8ikWAM', model_id = 'eleven_turbo_v2' } = req.body;
+  if (!text) return res.status(400).json({ error: 'text required' });
+  if (!ELEVENLABS_KEY) return res.status(503).json({ error: 'ElevenLabs not configured' });
+
+  try {
+    const upstream = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice_id}`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'xi-api-key':    ELEVENLABS_KEY,
+        Accept:          'audio/mpeg',
+      },
+      body: JSON.stringify({ text, model_id, voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
+    });
+
+    if (!upstream.ok) {
+      const err = await upstream.text();
+      return res.status(upstream.status).json({ error: err });
+    }
+
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    const buffer = await upstream.arrayBuffer();
+    res.send(Buffer.from(buffer));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /api/builder/video — Runway Gen-3 ───────────
+app.post('/api/builder/video', auth, async (req, res) => {
+  const { prompt, image_url, duration = 5 } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'prompt required' });
+
+  const RUNWAY_KEY = process.env.RUNWAY_API_KEY || '';
+  if (!RUNWAY_KEY) return res.status(503).json({ error: 'Runway not configured' });
+
+  try {
+    const body = { promptText: prompt, model: 'gen3a_turbo', duration };
+    if (image_url) body.promptImage = image_url;
+
+    const upstream = await fetch('https://api.dev.runwayml.com/v1/image_to_video', {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        Authorization:   `Bearer ${RUNWAY_KEY}`,
+        'X-Runway-Version': '2024-11-06',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!upstream.ok) {
+      const err = await upstream.text();
+      return res.status(upstream.status).json({ error: err });
+    }
+
+    const data = await upstream.json();
+    res.json({ task_id: data.id, status: 'pending' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET /api/builder/video/:taskId — Poll status ─────
+app.get('/api/builder/video/:taskId', auth, async (req, res) => {
+  const RUNWAY_KEY = process.env.RUNWAY_API_KEY || '';
+  try {
+    const upstream = await fetch(`https://api.dev.runwayml.com/v1/tasks/${req.params.taskId}`, {
+      headers: { Authorization: `Bearer ${RUNWAY_KEY}`, 'X-Runway-Version': '2024-11-06' },
+    });
+    const data = await upstream.json();
+    res.json({ status: data.status, output: data.output, progress: data.progress });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
-  console.log(`SaintSal Labs API Gateway v2 on port ${PORT}`);
+  console.log(`SaintSal Labs API Gateway v3 on port ${PORT}`);
   console.log(`Providers: Anthropic=${!!ANTHROPIC_KEY} OpenAI=${!!OPENAI_KEY} Gemini=${!!GEMINI_KEY} xAI=${!!XAI_KEY}`);
+  console.log(`Builder: /api/builder/generate (tier-routed) /api/metering/deduct /api/builder/save`);
   console.log(`Social: LinkedIn=${!!LINKEDIN_CLIENT_ID} Twitter=${!!TWITTER_CONSUMER_KEY}`);
-  console.log(`SAL Supreme: /api/sal/respond active`);
+  console.log(`ElevenLabs=${!!ELEVENLABS_KEY} Runway=${!!process.env.RUNWAY_API_KEY}`);
 });

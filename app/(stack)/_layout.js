@@ -99,6 +99,31 @@ export default function StackLayout() {
       <Stack.Screen name="file-system-apis" />
       <Stack.Screen name="github-console-v2" />
       <Stack.Screen name="elite-nav-hub" />
+
+      {/* Smart Entry — universal launch screen */}
+      <Stack.Screen name="smart-entry" options={{ animation: 'fade' }} />
+
+      {/* Auth Flow (Phase 12) */}
+      <Stack.Screen name="splash" options={{ animation: 'fade' }} />
+      <Stack.Screen name="sign-in" />
+      <Stack.Screen name="sign-up" />
+      <Stack.Screen name="email-verify" />
+      <Stack.Screen name="business-dna-setup" />
+      <Stack.Screen name="elite-auth" />
+
+      {/* New Stitch Screens (Phase 12) */}
+      <Stack.Screen name="geo-master-hub" />
+      <Stack.Screen name="ghl-bridge-v2" />
+      <Stack.Screen name="real-estate-suite" />
+      <Stack.Screen name="domain-ssl" />
+      <Stack.Screen name="business-formation-v2" />
+      <Stack.Screen name="legal-vault-v2" />
+      <Stack.Screen name="github-console-v3" />
+      <Stack.Screen name="hook-workflow-v2" />
+      <Stack.Screen name="build-connections-v2" />
+      <Stack.Screen name="builder-viewport-v2" />
+      <Stack.Screen name="co-ceo-desk" />
+      <Stack.Screen name="navigation-hub-v2" />
     </Stack>
   );
 }

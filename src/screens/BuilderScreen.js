@@ -1,1123 +1,737 @@
 /* ═══════════════════════════════════════════════════
-   SAINTSALLABS — BUILDER SCREEN
-   Code · Social Studio · Image Prompts · Video · Deploy
-   Full feature parity with saintsallabs_builder.jsx
-   Social Studio v2 — Direct LinkedIn + Twitter posting
+   SAINTSALLABS — BUILDER SCREEN  v3
+   Revenue engine: code · image · video · voice · social
+   SSE streaming · tier metering · auto-save · quota gate
 ═══════════════════════════════════════════════════ */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform,
-  Clipboard, ActivityIndicator, Linking, Animated, Alert,
+  Animated, Alert, Image, Linking, ActivityIndicator, Clipboard,
 } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
-import { C, SYS } from '../config/theme';
-import {
-  streamBuilder, generateSocial,
-  getLinkedInAuthUrl, exchangeLinkedInCode,
-  postToLinkedIn, postToTwitter, verifyTwitter,
-} from '../lib/api';
-import { ChatBubble, InputBar, CodeBlock, ModeBar } from '../components';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import { supabase } from '../lib/supabase';
 
-/* ── Platforms ────────────────────────────────────── */
-const PLATFORMS = [
-  { id: 'twitter',   label: 'X / Twitter', icon: '𝕏', color: '#1DA1F2', chars: 280,  connected: false },
-  { id: 'linkedin',  label: 'LinkedIn',    icon: 'in', color: '#F59E0B', chars: 1300, connected: true  },
-  { id: 'instagram', label: 'Instagram',   icon: '◎', color: '#E1306C', chars: null,  connected: false },
-  { id: 'tiktok',    label: 'TikTok',      icon: '♪', color: '#69C9D0', chars: null,  connected: false },
-  { id: 'facebook',  label: 'Facebook',    icon: 'f',  color: '#8B8B8B', chars: null,  connected: false },
-];
+/* ── Design Tokens ───────────────────────────────── */
+const GOLD        = '#D4AF37';
+const BLACK       = '#0F0F0F';
+const SURFACE     = 'rgba(255,255,255,0.04)';
+const BORDER      = 'rgba(255,255,255,0.08)';
+const GOLD_BORDER = 'rgba(212,175,55,0.22)';
+const GOLD_DIM    = 'rgba(212,175,55,0.1)';
+const MUTED       = 'rgba(255,255,255,0.5)';
+const DIM         = 'rgba(255,255,255,0.2)';
 
+const LABS_API = 'https://saintsallabs-api.onrender.com';
+
+/* ── Mode config ─────────────────────────────────── */
 const MODES = [
-  { id: 'code',   label: 'Code',   color: '#818CF8' },
-  { id: 'social', label: 'Social', color: '#F59E0B' },
-  { id: 'images', label: 'Images', color: '#F59E0B' },
-  { id: 'video',  label: 'Video',  color: '#22C55E' },
-  { id: 'deploy', label: 'Deploy', color: '#818CF8' },
+  { id: 'code',   label: 'CODE',   icon: '⌨️' },
+  { id: 'image',  label: 'IMAGE',  icon: '🖼' },
+  { id: 'video',  label: 'VIDEO',  icon: '🎬' },
+  { id: 'voice',  label: 'VOICE',  icon: '🎙' },
+  { id: 'social', label: 'SOCIAL', icon: '📣' },
 ];
 
-const IMG_STYLES = ['photorealistic', 'cinematic', '3D render', 'illustration', 'dark dramatic', 'minimalist'];
+/* ── Compute bar ─────────────────────────────────── */
+function QuotaBar({ minutesLeft, limit, pulsing }) {
+  const pct   = limit > 0 ? Math.max(0, Math.min(1, minutesLeft / limit)) : 0;
+  const pulse = useRef(new Animated.Value(1)).current;
 
-const TONE_OPTIONS = [
-  { id: 'professional', label: 'Professional', icon: '💼' },
-  { id: 'bold',         label: 'Bold & Punchy', icon: '🔥' },
-  { id: 'storytelling', label: 'Storytelling',  icon: '📖' },
-  { id: 'casual',       label: 'Casual',        icon: '✌️' },
-];
+  useEffect(() => {
+    if (pulsing) {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulse, { toValue: 1.06, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulse, { toValue: 1.0,  duration: 600, useNativeDriver: true }),
+        ])
+      );
+      loop.start();
+      return () => loop.stop();
+    } else {
+      pulse.setValue(1);
+    }
+  }, [pulsing]);
 
+  return (
+    <Animated.View style={[styles.quotaWrap, { transform: [{ scale: pulse }] }]}>
+      <Text style={styles.quotaTxt}>⚡ {Math.round(minutesLeft)} min left</Text>
+      <View style={styles.quotaTrack}>
+        <View style={[styles.quotaFill, { width: `${pct * 100}%` }]} />
+      </View>
+    </Animated.View>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   MAIN SCREEN
+══════════════════════════════════════════════════ */
 export default function BuilderScreen() {
-  const [mode, setMode] = useState('code');
+  const router = useRouter();
 
-  // Code mode
-  const [codeHistory, setCodeHistory] = useState([]);
-  const [codeInput, setCodeInput] = useState('');
-  const [codeLoading, setCodeLoading] = useState(false);
+  const [mode, setMode]                     = useState('code');
+  const [prompt, setPrompt]                 = useState('');
+  const [output, setOutput]                 = useState('');
+  const [loading, setLoading]               = useState(false);
+  const [elapsed, setElapsed]               = useState(0);
+  const [quota, setQuota]                   = useState({ minutesLeft: 100, limit: 100, tier: 'free' });
+  const [savedBuilds, setSavedBuilds]       = useState([]);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState(null);
+  const [videoTaskId, setVideoTaskId]       = useState(null);
+  const [videoStatus, setVideoStatus]       = useState(null);
+  const [voiceReady, setVoiceReady]         = useState(false);
+  const [sessionData, setSessionData]       = useState(null);
 
-  // Social mode
-  const [selPlatforms, setSelPlatforms] = useState(['linkedin']);
-  const [socialPrompt, setSocialPrompt] = useState('');
-  const [socialResults, setSocialResults] = useState({});
-  const [socialLoading, setSocialLoading] = useState(false);
-  const [socialTone, setSocialTone] = useState('professional');
-  const [editingPlatform, setEditingPlatform] = useState(null);
-  const [editText, setEditText] = useState('');
+  const timerRef   = useRef(null);
+  const pollRef    = useRef(null);
+  const outputRef  = useRef('');
 
-  // LinkedIn OAuth
-  const [linkedInConnected, setLinkedInConnected] = useState(false);
-  const [linkedInName, setLinkedInName] = useState('');
-  const [linkedInToken, setLinkedInToken] = useState('');
-
-  // Twitter
-  const [twitterConnected, setTwitterConnected] = useState(false);
-  const [twitterUsername, setTwitterUsername] = useState('');
-  const [twitterChecking, setTwitterChecking] = useState(false);
-
-  // Posting state per platform
-  const [postingState, setPostingState] = useState({}); // { linkedin: 'idle'|'posting'|'posted'|'failed' }
-
-  // Post history
-  const [postHistory, setPostHistory] = useState([]);
-
-  // Image mode
-  const [imgPrompt, setImgPrompt] = useState('');
-  const [imgStyle, setImgStyle] = useState('photorealistic');
-  const [imgResult, setImgResult] = useState('');
-  const [imgLoading, setImgLoading] = useState(false);
-
-  // Video mode
-  const [videoPrompt, setVideoPrompt] = useState('');
-  const [videoResult, setVideoResult] = useState('');
-  const [videoLoading, setVideoLoading] = useState(false);
-
-  const scrollRef = useRef(null);
-  const xhrRef = useRef(null);
-  const glowAnim = useRef(new Animated.Value(0.3)).current;
-
-  // Glow animation for neon text
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, { toValue: 1, duration: 1800, useNativeDriver: true }),
-        Animated.timing(glowAnim, { toValue: 0.3, duration: 1800, useNativeDriver: true }),
-      ])
-    ).start();
-  }, [glowAnim]);
-
-  useEffect(() => {
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
-  }, [codeHistory, imgResult, videoResult, socialResults]);
-
-  // Load LinkedIn credentials on mount
+  /* ── Mount: load session + quota + builds ──────── */
   useEffect(() => {
     (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      setSessionData(session);
+
       try {
-        const token = await SecureStore.getItemAsync('linkedin_token');
-        const name = await SecureStore.getItemAsync('linkedin_name');
-        if (token) {
-          setLinkedInConnected(true);
-          setLinkedInToken(token);
-          setLinkedInName(name || 'Connected');
+        const qRes = await fetch(`${LABS_API}/api/builder/compute-quota`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (qRes.ok) {
+          const q = await qRes.json();
+          setQuota({
+            minutesLeft: q.minutesLeft ?? 100,
+            limit:       q.limit       ?? 100,
+            tier:        q.tier        || 'free',
+          });
         }
       } catch {}
-      // Check Twitter server-side connection
+
       try {
-        const tw = await verifyTwitter();
-        if (tw.connected) {
-          setTwitterConnected(true);
-          setTwitterUsername(tw.username || tw.name || '');
+        const bRes = await fetch(
+          `${LABS_API}/api/builder/builds/${session.user.id}`,
+          { headers: { 'x-sal-key': 'sal-live-2026' } }
+        );
+        if (bRes.ok) {
+          const { builds } = await bRes.json();
+          setSavedBuilds(builds || []);
         }
       } catch {}
     })();
+
+    return () => {
+      clearInterval(timerRef.current);
+      clearInterval(pollRef.current);
+    };
   }, []);
 
-  // LinkedIn OAuth deep link callback
-  useEffect(() => {
-    const handleUrl = async ({ url }) => {
-      if (url?.includes('social/linkedin/callback')) {
-        try {
-          const params = new URL(url);
-          const code = params.searchParams.get('code');
-          const state = params.searchParams.get('state');
-          if (code) {
-            const result = await exchangeLinkedInCode(code, state);
-            if (result.access_token) {
-              await SecureStore.setItemAsync('linkedin_token', result.access_token);
-              await SecureStore.setItemAsync('linkedin_name', result.name || '');
-              setLinkedInConnected(true);
-              setLinkedInToken(result.access_token);
-              setLinkedInName(result.name || 'Connected');
-            }
-          }
-        } catch (e) {
-          console.error('LinkedIn OAuth error:', e);
+  /* ── Tier gate ─────────────────────────────────── */
+  const checkQuota = useCallback(() => {
+    if (quota.minutesLeft <= 0) {
+      Alert.alert(
+        'Compute Limit Reached',
+        `You've used all your ${quota.tier} compute minutes.`,
+        [
+          { text: 'Upgrade Plan', onPress: () => router.push('/(stack)/pricing') },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+      return false;
+    }
+    return true;
+  }, [quota]);
+
+  /* ── Reset output state ────────────────────────── */
+  const resetState = () => {
+    setOutput('');
+    outputRef.current = '';
+    setGeneratedImageUrl(null);
+    setVideoTaskId(null);
+    setVideoStatus(null);
+    setVoiceReady(false);
+    setElapsed(0);
+    clearInterval(timerRef.current);
+    clearInterval(pollRef.current);
+  };
+
+  /* ── Post-generate: deduct + save ──────────────── */
+  const finalizeGeneration = useCallback(async (seconds, content, sess) => {
+    clearInterval(timerRef.current);
+    setLoading(false);
+
+    if (!sess) return;
+
+    // Deduct compute
+    try {
+      await fetch(`${LABS_API}/api/metering/deduct`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sess.access_token}`,
+        },
+        body: JSON.stringify({ seconds, user_id: sess.user.id }),
+      });
+      setQuota(prev => ({
+        ...prev,
+        minutesLeft: Math.max(0, prev.minutesLeft - seconds / 60),
+      }));
+    } catch {}
+
+    // Auto-save
+    if (content) {
+      try {
+        await fetch(`${LABS_API}/api/builder/save`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${sess.access_token}`,
+          },
+          body: JSON.stringify({
+            user_id:  sess.user.id,
+            name:     prompt.slice(0, 50),
+            content,
+            type:     mode,
+            vertical: 'general',
+          }),
+        });
+        await AsyncStorage.setItem('sal_last_build', prompt.slice(0, 50));
+        // Reload builds list
+        const bRes = await fetch(
+          `${LABS_API}/api/builder/builds/${sess.user.id}`,
+          { headers: { 'x-sal-key': 'sal-live-2026' } }
+        );
+        if (bRes.ok) {
+          const { builds } = await bRes.json();
+          setSavedBuilds(builds || []);
         }
+      } catch {}
+    }
+  }, [prompt, mode]);
+
+  /* ── CODE / TEXT: SSE streaming ────────────────── */
+  const generateCode = useCallback(() => {
+    if (!checkQuota()) return;
+    resetState();
+    setLoading(true);
+
+    const sess      = sessionData;
+    const tier      = quota.tier || 'free';
+    const startTime = Date.now();
+
+    timerRef.current = setInterval(
+      () => setElapsed(Math.floor((Date.now() - startTime) / 1000)),
+      1000
+    );
+
+    const xhr      = new XMLHttpRequest();
+    let processed  = 0;
+
+    xhr.open('POST', `${LABS_API}/api/builder/generate`, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('x-sal-key', 'sal-live-2026');
+
+    xhr.onprogress = () => {
+      const newText = xhr.responseText.slice(processed);
+      processed     = xhr.responseText.length;
+      const lines   = newText.split('\n');
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (raw === '[DONE]') break;
+        try {
+          const d = JSON.parse(raw);
+          if (d.type === 'content_block_delta' && d.delta?.text) {
+            outputRef.current += d.delta.text;
+            setOutput(outputRef.current);
+          }
+        } catch {}
       }
     };
-    const sub = Linking.addEventListener('url', handleUrl);
-    return () => sub.remove();
-  }, []);
 
-  /* ── CODE ─────────────────────────────────────── */
-  const runCode = (override) => {
-    const text = override || codeInput;
-    if (!text?.trim() || codeLoading) return;
-    setCodeInput('');
-    setCodeLoading(true);
+    xhr.onload = async () => {
+      const seconds = Math.floor((Date.now() - startTime) / 1000);
+      await finalizeGeneration(seconds, outputRef.current, sess);
+    };
 
-    const userMsg = { id: Date.now() + 'u', role: 'user', content: text };
-    const asstMsg = { id: Date.now() + 'a', role: 'assistant', content: '', streaming: true };
-    const history = [...codeHistory, userMsg];
+    xhr.onerror = () => {
+      clearInterval(timerRef.current);
+      setLoading(false);
+      Alert.alert('Generation failed', 'Network error. Please try again.');
+    };
 
-    setCodeHistory([...history, asstMsg]);
+    xhr.send(JSON.stringify({ prompt, tier, type: mode }));
+  }, [prompt, mode, quota, sessionData, checkQuota, finalizeGeneration]);
 
-    xhrRef.current = streamBuilder({
-      prompt: text,
-      system: SYS.builder,
-      onChunk: (chunk) => {
-        setCodeHistory(prev => {
-          const h = [...prev];
-          const last = h[h.length - 1];
-          if (last?.role === 'assistant') h[h.length - 1] = { ...last, content: last.content + chunk };
-          return h;
-        });
-      },
-      onDone: () => {
-        setCodeHistory(prev => {
-          const h = [...prev];
-          const last = h[h.length - 1];
-          if (last?.role === 'assistant') h[h.length - 1] = { ...last, streaming: false };
-          return h;
-        });
-        setCodeLoading(false);
-      },
-      onError: (err) => {
-        setCodeHistory(prev => {
-          const h = [...prev];
-          const last = h[h.length - 1];
-          if (last?.role === 'assistant') h[h.length - 1] = { ...last, content: `⚠ ${err}`, streaming: false };
-          return h;
-        });
-        setCodeLoading(false);
-      },
-    });
-  };
-
-  /* ── SOCIAL ───────────────────────────────────── */
-  const runSocial = async () => {
-    if (!socialPrompt.trim() || socialLoading || !selPlatforms.length) return;
-    setSocialLoading(true);
-    setSocialResults({});
-    setPostingState({});
+  /* ── IMAGE generation ──────────────────────────── */
+  const generateImage = useCallback(async () => {
+    if (!checkQuota()) return;
+    resetState();
+    setLoading(true);
+    const startTime = Date.now();
+    timerRef.current = setInterval(
+      () => setElapsed(Math.floor((Date.now() - startTime) / 1000)),
+      1000
+    );
     try {
-      const results = await generateSocial({ prompt: socialPrompt, platforms: selPlatforms });
-      setSocialResults(results);
-    } catch (e) {
-      setSocialResults({ _error: 'Generation failed. Try again.' });
-    }
-    setSocialLoading(false);
-  };
-
-  /* ── POST TO LINKEDIN ─────────────────────────── */
-  const handlePostToLinkedIn = async (content) => {
-    if (!linkedInToken || !content) return;
-    setPostingState(prev => ({ ...prev, linkedin: 'posting' }));
-    try {
-      const result = await postToLinkedIn({ access_token: linkedInToken, content });
-      if (result.error) throw new Error(result.error);
-      setPostingState(prev => ({ ...prev, linkedin: 'posted' }));
-      setPostHistory(prev => [
-        { platform: 'LinkedIn', timestamp: Date.now(), content: content.slice(0, 80) + '...' },
-        ...prev,
-      ]);
-    } catch {
-      setPostingState(prev => ({ ...prev, linkedin: 'failed' }));
-    }
-  };
-
-  /* ── CONNECT LINKEDIN ─────────────────────────── */
-  /* ── POST TO TWITTER ───────────────────────── */
-  const handlePostToTwitter = async (content) => {
-    if (!content) return;
-    setPostingState(prev => ({ ...prev, twitter: 'posting' }));
-    try {
-      const result = await postToTwitter({ content: content.slice(0, 280) });
-      if (result.error) throw new Error(result.error);
-      setPostingState(prev => ({ ...prev, twitter: 'posted' }));
-      setPostHistory(prev => [
-        { platform: 'X / Twitter', timestamp: Date.now(), content: content.slice(0, 80) + '...' },
-        ...prev,
-      ]);
+      const res = await fetch(`${LABS_API}/api/builder/image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-sal-key': 'sal-live-2026' },
+        body: JSON.stringify({ prompt, size: '1024x1024' }),
+      });
+      const { url } = await res.json();
+      setGeneratedImageUrl(url);
+      const seconds = Math.floor((Date.now() - startTime) / 1000);
+      await finalizeGeneration(seconds, url, sessionData);
     } catch (err) {
-      setPostingState(prev => ({ ...prev, twitter: 'failed' }));
-      Alert.alert('Twitter Post Failed', err.message || 'Could not post to Twitter.');
+      Alert.alert('Image generation failed', err.message);
+      clearInterval(timerRef.current);
+      setLoading(false);
     }
-  };
+  }, [prompt, quota, sessionData, checkQuota, finalizeGeneration]);
 
-  /* ── VERIFY TWITTER ──────────────────────────── */
-  const handleVerifyTwitter = async () => {
-    setTwitterChecking(true);
+  /* ── VIDEO generation (Runway polling) ─────────── */
+  const generateVideo = useCallback(async () => {
+    if (!checkQuota()) return;
+    resetState();
+    setLoading(true);
+    setVideoStatus('QUEUED');
+    const startTime = Date.now();
+    timerRef.current = setInterval(
+      () => setElapsed(Math.floor((Date.now() - startTime) / 1000)),
+      1000
+    );
     try {
-      const tw = await verifyTwitter();
-      if (tw.connected) {
-        setTwitterConnected(true);
-        setTwitterUsername(tw.username || tw.name || '');
-      } else {
-        Alert.alert('Twitter Not Connected', tw.reason || 'Consumer keys not configured on server.');
-      }
-    } catch {
-      Alert.alert('Twitter Error', 'Could not verify Twitter connection.');
-    }
-    setTwitterChecking(false);
-  };
+      const res = await fetch(`${LABS_API}/api/builder/video`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-sal-key': 'sal-live-2026' },
+        body: JSON.stringify({ prompt }),
+      });
+      const { task_id } = await res.json();
+      setVideoTaskId(task_id);
 
-  const handleConnectLinkedIn = async () => {
+      pollRef.current = setInterval(async () => {
+        try {
+          const sRes = await fetch(
+            `${LABS_API}/api/builder/video/${task_id}`,
+            { headers: { 'x-sal-key': 'sal-live-2026' } }
+          );
+          const { status, output: videoOutput } = await sRes.json();
+          setVideoStatus(status);
+          if (status === 'SUCCEEDED' || status === 'FAILED') {
+            clearInterval(pollRef.current);
+            const seconds = Math.floor((Date.now() - startTime) / 1000);
+            await finalizeGeneration(seconds, videoOutput || task_id, sessionData);
+          }
+        } catch {}
+      }, 3000);
+    } catch (err) {
+      Alert.alert('Video generation failed', err.message);
+      clearInterval(timerRef.current);
+      setLoading(false);
+    }
+  }, [prompt, quota, sessionData, checkQuota, finalizeGeneration]);
+
+  /* ── VOICE generation ──────────────────────────── */
+  const generateVoice = useCallback(async () => {
+    if (!checkQuota()) return;
+    resetState();
+    setLoading(true);
+    const startTime = Date.now();
+    timerRef.current = setInterval(
+      () => setElapsed(Math.floor((Date.now() - startTime) / 1000)),
+      1000
+    );
     try {
-      const result = await getLinkedInAuthUrl();
-      if (result.authorization_url) {
-        await Linking.openURL(result.authorization_url);
+      const res = await fetch(`${LABS_API}/api/builder/voice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-sal-key': 'sal-live-2026' },
+        body: JSON.stringify({ text: prompt }),
+      });
+      if (res.ok) {
+        setVoiceReady(true);
+        const blob = await res.blob();
+        const seconds = Math.floor((Date.now() - startTime) / 1000);
+        await finalizeGeneration(seconds, `voice:${prompt.slice(0, 40)}`, sessionData);
       }
-    } catch (e) {
-      console.error('LinkedIn connect error:', e);
+    } catch (err) {
+      Alert.alert('Voice generation failed', err.message);
+    } finally {
+      clearInterval(timerRef.current);
+      setLoading(false);
+    }
+  }, [prompt, quota, sessionData, checkQuota, finalizeGeneration]);
+
+  /* ── SOCIAL generation (code stream) ───────────── */
+  const generateSocial = generateCode;
+
+  /* ── Main dispatch ─────────────────────────────── */
+  const handleGenerate = () => {
+    if (!prompt.trim()) {
+      Alert.alert('Empty prompt', 'Describe what you want to build.');
+      return;
+    }
+    switch (mode) {
+      case 'code':
+      case 'social': return generateCode();
+      case 'image':  return generateImage();
+      case 'video':  return generateVideo();
+      case 'voice':  return generateVoice();
     }
   };
 
-  /* ── DISCONNECT LINKEDIN ──────────────────────── */
-  const handleDisconnectLinkedIn = async () => {
-    await SecureStore.deleteItemAsync('linkedin_token');
-    await SecureStore.deleteItemAsync('linkedin_name');
-    setLinkedInConnected(false);
-    setLinkedInToken('');
-    setLinkedInName('');
+  /* ── Copy ──────────────────────────────────────── */
+  const handleCopy = () => {
+    Clipboard.setString(output || generatedImageUrl || '');
+    Alert.alert('Copied!', 'Content copied to clipboard.');
   };
 
-  /* ── EDIT RESULT ──────────────────────────────── */
-  const startEdit = (platformId, content) => {
-    setEditingPlatform(platformId);
-    setEditText(content);
-  };
-
-  const saveEdit = (platformId) => {
-    setSocialResults(prev => ({ ...prev, [platformId]: editText }));
-    setEditingPlatform(null);
-    setEditText('');
-  };
-
-  const cancelEdit = () => {
-    setEditingPlatform(null);
-    setEditText('');
-  };
-
-  /* ── IMAGES ───────────────────────────────────── */
-  const runImg = () => {
-    if (!imgPrompt.trim() || imgLoading) return;
-    setImgLoading(true);
-    setImgResult('');
-    streamBuilder({
-      prompt: `Generate professional AI image prompts for: "${imgPrompt}"\nStyle: ${imgStyle}\n\n**DALL-E 3 Prompt** (under 900 chars, highly descriptive):\n\n**Midjourney Prompt** (with --ar 16:9 --style raw --q 2):\n\n**Stable Diffusion** (positive + negative):\n\n**Director Notes** (lighting, mood, color palette, composition):`,
-      system: SYS.builder,
-      onChunk: (c) => setImgResult(p => p + c),
-      onDone: () => setImgLoading(false),
-      onError: () => setImgLoading(false),
+  /* ── Preview ───────────────────────────────────── */
+  const handlePreview = () => {
+    router.push({
+      pathname: '/(stack)/builder-viewport',
+      params: { content: output },
     });
   };
 
-  /* ── VIDEO ────────────────────────────────────── */
-  const runVideo = () => {
-    if (!videoPrompt.trim() || videoLoading) return;
-    setVideoLoading(true);
-    setVideoResult('');
-    streamBuilder({
-      prompt: `Complete video production package for: "${videoPrompt}"\n\n**HOOK** (first 3 seconds — stop the scroll):\n\n**FULL SCRIPT** (with [TIMESTAMP], [SPEAKER], [ACTION]):\n\n**SHOT LIST** (angles, b-roll, transitions):\n\n**RUNWAY GEN-3 PROMPTS** (3-5 AI video scene prompts):\n\n**CAPTIONS** (key subtitle lines, 6 words max):\n\n**MUSIC DIRECTION** (mood, genre, BPM):\n\n**CTA** (end card + call to action):`,
-      system: SYS.builder,
-      onChunk: (c) => setVideoResult(p => p + c),
-      onDone: () => setVideoLoading(false),
-      onError: () => setVideoLoading(false),
-    });
-  };
-
-  const clearCode = () => {
-    xhrRef.current?.abort();
-    setCodeLoading(false);
-    setCodeHistory([]);
-  };
-
-  /* ── Time ago helper ──────────────────────────── */
-  const timeAgo = (ts) => {
-    const diff = Math.floor((Date.now() - ts) / 1000);
-    if (diff < 60) return 'just now';
-    if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return `${Math.floor(diff / 86400)}d ago`;
-  };
-
-  return (
-    <SafeAreaView style={s.safe}>
-      {/* Header */}
-      <View style={s.header}>
-        <View>
-          <Text style={s.headerTitle}>SAL Builder</Text>
-          <Text style={s.headerSub}>Code · Social · Images · Video · Deploy</Text>
+  /* ── Render output area ────────────────────────── */
+  const renderOutput = () => {
+    if (mode === 'image' && generatedImageUrl) {
+      return (
+        <View style={styles.outputBox}>
+          <Image source={{ uri: generatedImageUrl }} style={styles.genImage} resizeMode="contain" />
         </View>
-        {codeHistory.length > 0 && mode === 'code' && (
-          <TouchableOpacity onPress={clearCode} style={s.newBtn}>
-            <Text style={s.newBtnText}>New</Text>
+      );
+    }
+    if (mode === 'video') {
+      return (
+        <View style={styles.videoCard}>
+          {loading && <ActivityIndicator color={GOLD} size="large" />}
+          <Text style={styles.videoStatus}>
+            {videoStatus === 'SUCCEEDED' ? '✅ VIDEO READY' :
+             videoStatus === 'FAILED'    ? '❌ GENERATION FAILED' :
+             videoStatus               ? `⏳ ${videoStatus}...` : ''}
+          </Text>
+          {videoStatus === 'SUCCEEDED' && videoTaskId && (
+            <TouchableOpacity
+              style={styles.videoBtn}
+              onPress={() => Linking.openURL(`${LABS_API}/api/builder/video/${videoTaskId}/download`)}
+            >
+              <Text style={styles.videoBtnTxt}>🎬 Open Video</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    }
+    if (mode === 'voice') {
+      return (
+        <View style={styles.voiceCard}>
+          {loading
+            ? <ActivityIndicator color={GOLD} />
+            : voiceReady
+              ? <Text style={styles.voiceReady}>🎵 Audio generated. Tap Play.</Text>
+              : null}
+          {voiceReady && (
+            <TouchableOpacity style={styles.playBtn}>
+              <Text style={styles.playBtnTxt}>▶ PLAY</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    }
+    // Code / social / default
+    if (!output && !loading) return null;
+    return (
+      <ScrollView style={styles.outputBox} nestedScrollEnabled>
+        {loading && !output && <ActivityIndicator color={GOLD} />}
+        <Text style={styles.outputTxt}>{output}</Text>
+      </ScrollView>
+    );
+  };
+
+  /* ── Render ────────────────────────────────────── */
+  return (
+    <SafeAreaView style={styles.root}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+
+        {/* ── Header ── */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Text style={styles.backTxt}>‹ BUILDER</Text>
           </TouchableOpacity>
-        )}
-      </View>
+          <QuotaBar
+            minutesLeft={quota.minutesLeft}
+            limit={quota.limit}
+            pulsing={loading}
+          />
+        </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={90}
-      >
-        <ScrollView
-          ref={scrollRef}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ padding: 16, paddingBottom: 20 }}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Mode tabs */}
-          <ModeBar modes={MODES} active={mode} onSelect={setMode} />
+        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-          {/* ══════════ CODE ══════════ */}
-          {mode === 'code' && (
-            <View>
-              {codeHistory.length === 0 && (
-                <View style={s.landingSection}>
-                  <Text style={s.modeTitle}>Code & Apps</Text>
-                  <Text style={s.modeSub}>Describe what you need → complete deployable code, instantly.</Text>
-                  {[
-                    'Build a full-stack Next.js 15 SaaS landing page — dark amber theme, 3-tier pricing, Stripe integration, scroll animations',
-                    'Create a Cloudflare Worker that captures leads, validates email, stores in D1 database, sends webhook to GoHighLevel CRM',
-                    'Build a React dashboard with Recharts line chart, animated stat cards, dark amber theme, and CSV export',
-                    'Write a Node.js script: pulls leads from Apollo → enriches with Clay → pushes to GoHighLevel with full error handling',
-                  ].map((t, i) => (
-                    <TouchableOpacity key={i} onPress={() => runCode(t)} style={s.starterCode}>
-                      <Text style={s.starterCodeText}>{t}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-              {codeHistory.map((msg) => (
-                <ChatBubble key={msg.id} msg={msg} accent="#818CF8" />
-              ))}
-              <InputBar
-                value={codeInput}
-                onChange={setCodeInput}
-                onSend={runCode}
-                placeholder="Describe what you want to build..."
-                loading={codeLoading}
-                accent="#818CF8"
+          {/* ── Mode tabs ── */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.modeBar}>
+            {MODES.map(m => (
+              <TouchableOpacity
+                key={m.id}
+                style={[styles.modeChip, mode === m.id && styles.modeChipActive]}
+                onPress={() => { setMode(m.id); resetState(); }}
+              >
+                <Text style={[styles.modeChipTxt, mode === m.id && styles.modeChipTxtActive]}>
+                  {m.icon} {m.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {/* ── Prompt area ── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>What do you want to build?</Text>
+            <View style={styles.inputCard}>
+              <TextInput
+                style={styles.input}
+                placeholder="Describe your idea..."
+                placeholderTextColor={MUTED}
+                value={prompt}
+                onChangeText={setPrompt}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
               />
+              <TouchableOpacity
+                style={[styles.generateBtn, loading && styles.generateBtnDim]}
+                onPress={handleGenerate}
+                disabled={loading}
+              >
+                <Text style={styles.generateBtnTxt}>
+                  {loading ? `⏳ ${elapsed}s` : '⚡ GENERATE'}
+                </Text>
+              </TouchableOpacity>
             </View>
-          )}
+          </View>
 
-          {/* ══════════════════════════════════════════════
-              SOCIAL STUDIO v2 — Direct Posting
-          ══════════════════════════════════════════════ */}
-          {mode === 'social' && (
-            <View>
-              {/* ─── Header with neon glow ─── */}
-              <View style={s.socialHeader}>
-                <Text style={s.socialTitle}>Social Studio</Text>
-                <Animated.Text style={[s.socialNeonLabel, { opacity: glowAnim }]}>
-                  DIRECT POSTING
-                </Animated.Text>
-              </View>
-              <Text style={s.socialSubtitle}>
-                Generate platform-native posts and publish directly.
-              </Text>
+          {/* ── Output ── */}
+          {(loading || output || generatedImageUrl || videoStatus || voiceReady) && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>OUTPUT</Text>
+              {renderOutput()}
 
-              {/* ─── A) Connected Accounts ─── */}
-              <Text style={s.socialSectionLabel}>CONNECTED ACCOUNTS</Text>
-              <View style={s.accountsContainer}>
-                {/* LinkedIn — connectable */}
-                <View style={[s.accountCard, linkedInConnected && s.accountCardConnected]}>
-                  <View style={s.accountLeft}>
-                    <View style={[s.accountIcon, { backgroundColor: linkedInConnected ? '#F59E0B20' : '#1A1A22' }]}>
-                      <Text style={[s.accountIconText, { color: linkedInConnected ? '#F59E0B' : '#555' }]}>in</Text>
-                    </View>
-                    <View style={s.accountInfo}>
-                      <View style={s.accountNameRow}>
-                        <Text style={[s.accountName, linkedInConnected && { color: '#F59E0B' }]}>LinkedIn</Text>
-                        {linkedInConnected && <View style={s.greenDot} />}
-                      </View>
-                      <Text style={s.accountStatus}>
-                        {linkedInConnected ? linkedInName || 'Connected' : 'Not connected'}
-                      </Text>
-                    </View>
-                  </View>
-                  {linkedInConnected ? (
-                    <TouchableOpacity onPress={handleDisconnectLinkedIn} style={s.disconnectBtn}>
-                      <Text style={s.disconnectBtnText}>Disconnect</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity onPress={handleConnectLinkedIn} style={s.connectBtn}>
-                      <Text style={s.connectBtnText}>Connect</Text>
+              {/* Action buttons */}
+              {(output || generatedImageUrl) && (
+                <View style={styles.actionRow}>
+                  <TouchableOpacity style={styles.actionBtn} onPress={handleCopy}>
+                    <Text style={styles.actionBtnTxt}>📋 COPY</Text>
+                  </TouchableOpacity>
+                  {mode === 'code' && output && (
+                    <TouchableOpacity style={styles.actionBtn} onPress={handlePreview}>
+                      <Text style={styles.actionBtnTxt}>👁 PREVIEW</Text>
                     </TouchableOpacity>
                   )}
-                </View>
-
-                {/* Twitter — Server-side Connection */}
-                <View style={[s.accountCard, twitterConnected && s.accountCardConnected]}>
-                  <View style={s.accountLeft}>
-                    <View style={[s.accountIcon, { backgroundColor: twitterConnected ? '#1DA1F220' : '#1A1A22' }]}>
-                      <Text style={[s.accountIconText, { color: twitterConnected ? '#1DA1F2' : '#555' }]}>𝕏</Text>
-                    </View>
-                    <View style={s.accountInfo}>
-                      <View style={s.accountNameRow}>
-                        <Text style={[s.accountName, twitterConnected && { color: '#1DA1F2' }]}>X / Twitter</Text>
-                        {twitterConnected && <View style={s.greenDot} />}
-                      </View>
-                      <Text style={s.accountStatus}>
-                        {twitterConnected ? `@${twitterUsername}` : 'Server-side tokens'}
-                      </Text>
-                    </View>
-                  </View>
-                  {twitterChecking ? (
-                    <ActivityIndicator size="small" color="#1DA1F2" />
-                  ) : twitterConnected ? (
-                    <View style={[s.connectedBadge, { backgroundColor: '#1DA1F220', borderColor: '#1DA1F240' }]}>
-                      <Text style={[s.connectedBadgeText, { color: '#1DA1F2' }]}>Live</Text>
-                    </View>
-                  ) : (
-                    <TouchableOpacity onPress={handleVerifyTwitter} style={s.connectBtn}>
-                      <Text style={s.connectBtnText}>Verify</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {/* Instagram — coming soon */}
-                <View style={s.accountCard}>
-                  <View style={s.accountLeft}>
-                    <View style={[s.accountIcon, { backgroundColor: '#1A1A22' }]}>
-                      <Text style={[s.accountIconText, { color: '#444' }]}>◎</Text>
-                    </View>
-                    <View style={s.accountInfo}>
-                      <Text style={s.accountName}>Instagram</Text>
-                      <Text style={s.accountStatus}>Not connected</Text>
-                    </View>
-                  </View>
-                  <View style={s.comingSoonBadge}>
-                    <Text style={s.comingSoonText}>Soon</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* ─── B) Content Generation ─── */}
-              <Text style={s.socialSectionLabel}>PLATFORMS</Text>
-              <View style={s.platformRow}>
-                {PLATFORMS.map(p => {
-                  const sel = selPlatforms.includes(p.id);
-                  const isLinkedIn = p.id === 'linkedin';
-                  const accentColor = isLinkedIn && linkedInConnected ? '#F59E0B' : p.color;
-                  return (
-                    <TouchableOpacity
-                      key={p.id}
-                      onPress={() => setSelPlatforms(prev => sel ? prev.filter(x => x !== p.id) : [...prev, p.id])}
-                      style={[
-                        s.platBtn,
-                        {
-                          borderColor: sel ? accentColor + '55' : '#1E1E28',
-                          backgroundColor: sel ? accentColor + '12' : 'transparent',
-                        },
-                      ]}
-                    >
-                      <Text style={[s.platBtnIcon, { color: sel ? accentColor : '#444' }]}>{p.icon}</Text>
-                      <Text style={[s.platBtnText, { color: sel ? accentColor : '#555', fontWeight: sel ? '700' : '400' }]}>
-                        {p.label}
-                      </Text>
-                      {isLinkedIn && linkedInConnected && sel && <View style={s.tinyGreenDot} />}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* Tone selector */}
-              <Text style={s.socialSectionLabel}>TONE</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {TONE_OPTIONS.map(t => (
-                    <TouchableOpacity
-                      key={t.id}
-                      onPress={() => setSocialTone(t.id)}
-                      style={[
-                        s.toneBtn,
-                        {
-                          borderColor: socialTone === t.id ? '#F59E0B55' : '#1E1E28',
-                          backgroundColor: socialTone === t.id ? '#F59E0B12' : 'transparent',
-                        },
-                      ]}
-                    >
-                      <Text style={s.toneBtnIcon}>{t.icon}</Text>
-                      <Text style={[s.toneBtnText, { color: socialTone === t.id ? '#F59E0B' : '#555' }]}>{t.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-
-              {/* Prompt input */}
-              <View style={s.socialInputWrap}>
-                <TextInput
-                  style={s.socialInput}
-                  value={socialPrompt}
-                  onChangeText={setSocialPrompt}
-                  placeholder="What should this post be about?"
-                  placeholderTextColor="#444"
-                  multiline
-                />
-                <TouchableOpacity
-                  onPress={runSocial}
-                  disabled={socialLoading || !socialPrompt.trim() || !selPlatforms.length}
-                  style={[s.socialSend, { backgroundColor: socialPrompt.trim() && !socialLoading ? '#F59E0B' : '#1A1A22' }]}
-                >
-                  {socialLoading
-                    ? <ActivityIndicator size="small" color="#000" />
-                    : <Text style={{ color: socialPrompt.trim() ? '#000' : '#444', fontSize: 16, fontWeight: '800' }}>↑</Text>
-                  }
-                </TouchableOpacity>
-              </View>
-
-              {/* Content ideas (show only when no results) */}
-              {!Object.keys(socialResults).filter(k => k !== '_error').length && !socialLoading && (
-                <View>
-                  <Text style={s.socialSectionLabel}>CONTENT IDEAS</Text>
-                  {[
-                    'SaintSal Labs just launched — AI intelligence for medical, real estate, finance, and tech',
-                    '3 lessons from building a multi-division AI company with US patent from scratch',
-                    'Why we patented our AI protocol before the AI boom — HACP Protocol origin story',
-                    'How SaintSal is replacing 6 different SaaS tools for our enterprise clients',
-                  ].map((t, i) => (
-                    <TouchableOpacity key={i} onPress={() => setSocialPrompt(t)} style={s.ideaBtn}>
-                      <Text style={s.ideaBtnText}>{t}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-
-              {/* Error */}
-              {socialResults._error && (
-                <View style={s.errorBox}>
-                  <Text style={s.errorText}>{socialResults._error}</Text>
-                </View>
-              )}
-
-              {/* Loading */}
-              {socialLoading && (
-                <View style={s.loadingRow}>
-                  <ActivityIndicator size="small" color="#F59E0B" />
-                  <Text style={s.loadingText}>Generating platform-native posts...</Text>
-                </View>
-              )}
-
-              {/* ─── C) Generated Results — THE SHOWSTOPPER ─── */}
-              {PLATFORMS.filter(p => selPlatforms.includes(p.id) && socialResults[p.id]).map(p => {
-                const content = socialResults[p.id];
-                const charCount = content?.length || 0;
-                const isLinkedIn = p.id === 'linkedin';
-                const isTwitter = p.id === 'twitter';
-                const canPost = (isLinkedIn && linkedInConnected) || (isTwitter && twitterConnected);
-                const pState = postingState[p.id] || 'idle';
-                const isEditing = editingPlatform === p.id;
-                const accentColor = isLinkedIn ? '#F59E0B' : isTwitter ? '#1DA1F2' : p.color;
-
-                return (
-                  <View key={p.id} style={[s.resultCard, { borderColor: accentColor + '25' }]}>
-                    {/* Card header */}
-                    <View style={s.resultCardHeader}>
-                      <View style={s.resultCardLeft}>
-                        <View style={[s.resultPlatIcon, { backgroundColor: accentColor + '18' }]}>
-                          <Text style={{ fontSize: 12, color: accentColor, fontWeight: '900' }}>{p.icon}</Text>
-                        </View>
-                        <Text style={[s.resultPlatLabel, { color: accentColor }]}>{p.label}</Text>
-                      </View>
-                      <View style={[s.charBadge, { backgroundColor: accentColor + '15', borderColor: accentColor + '30' }]}>
-                        <Text style={[s.charBadgeText, { color: accentColor }]}>
-                          {charCount}{p.chars ? `/${p.chars}` : ''} chars
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Content — editable or read-only */}
-                    {isEditing ? (
-                      <View style={s.editContainer}>
-                        <TextInput
-                          style={s.editInput}
-                          value={editText}
-                          onChangeText={setEditText}
-                          multiline
-                          autoFocus
-                        />
-                        <View style={s.editActions}>
-                          <TouchableOpacity onPress={cancelEdit} style={s.editCancelBtn}>
-                            <Text style={s.editCancelText}>Cancel</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity onPress={() => saveEdit(p.id)} style={s.editSaveBtn}>
-                            <Text style={s.editSaveText}>Save</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    ) : (
-                      <Text style={s.resultContent} selectable>{content}</Text>
-                    )}
-
-                    {/* Action buttons */}
-                    {!isEditing && (
-                      <View style={s.resultActions}>
-                        {/* Edit */}
-                        <TouchableOpacity onPress={() => startEdit(p.id, content)} style={s.resultActionBtn}>
-                          <Text style={s.resultActionBtnText}>Edit</Text>
-                        </TouchableOpacity>
-
-                        {/* Copy */}
-                        <CopyButton content={content} accentColor={accentColor} />
-
-                        {/* Post to Platform — only for connected platforms */}
-                        {canPost && pState === 'idle' && (
-                          <TouchableOpacity
-                            onPress={() => isTwitter ? handlePostToTwitter(content) : handlePostToLinkedIn(content)}
-                            style={[s.postBtn, isTwitter && { backgroundColor: '#1DA1F2' }]}
-                          >
-                            <Text style={[s.postBtnText, isTwitter && { color: '#FFF' }]}>Post to {isLinkedIn ? 'LinkedIn' : isTwitter ? 'Twitter' : p.label} →</Text>
-                          </TouchableOpacity>
-                        )}
-
-                        {canPost && pState === 'posting' && (
-                          <View style={s.postingIndicator}>
-                            <ActivityIndicator size="small" color="#F59E0B" />
-                            <Text style={s.postingText}>Posting...</Text>
-                          </View>
-                        )}
-
-                        {canPost && pState === 'posted' && (
-                          <View style={s.postedBadge}>
-                            <Text style={s.postedText}>✓ Posted!</Text>
-                          </View>
-                        )}
-
-                        {canPost && pState === 'failed' && (
-                          <TouchableOpacity onPress={() => isTwitter ? handlePostToTwitter(content) : handlePostToLinkedIn(content)} style={s.failedBtn}>
-                            <Text style={s.failedBtnText}>✗ Retry</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    )}
-                  </View>
-                );
-              })}
-
-              {/* ─── D) Post History ─── */}
-              {postHistory.length > 0 && (
-                <View style={s.historySection}>
-                  <Text style={s.socialSectionLabel}>RECENT POSTS</Text>
-                  {postHistory.map((entry, i) => (
-                    <View key={i} style={s.historyItem}>
-                      <View style={s.historyDot} />
-                      <Text style={s.historyText}>
-                        Posted to {entry.platform} · {timeAgo(entry.timestamp)}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          )}
-
-          {/* ══════════ IMAGES ══════════ */}
-          {mode === 'images' && (
-            <View>
-              <Text style={s.modeTitle}>AI Image Prompt Generator</Text>
-              <Text style={s.modeSub}>Your concept → optimized prompts for DALL-E 3, Midjourney, Stable Diffusion.</Text>
-
-              <Text style={[s.sectionLabel, { marginTop: 12 }]}>STYLE</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {IMG_STYLES.map(st => (
-                    <TouchableOpacity
-                      key={st}
-                      onPress={() => setImgStyle(st)}
-                      style={[
-                        s.styleBtn,
-                        { borderColor: imgStyle === st ? '#F59E0B' : '#1E1E28', backgroundColor: imgStyle === st ? '#F59E0B18' : 'transparent' },
-                      ]}
-                    >
-                      <Text style={[s.styleBtnText, { color: imgStyle === st ? '#F59E0B' : '#555' }]}>{st}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-
-              <View style={s.socialInputWrap}>
-                <TextInput
-                  style={s.socialInput}
-                  value={imgPrompt}
-                  onChangeText={setImgPrompt}
-                  placeholder="Describe your image concept..."
-                  placeholderTextColor="#444"
-                  multiline
-                />
-                <TouchableOpacity
-                  onPress={runImg}
-                  disabled={imgLoading || !imgPrompt.trim()}
-                  style={[s.socialSend, { backgroundColor: imgPrompt.trim() && !imgLoading ? '#F59E0B' : '#1A1A22' }]}
-                >
-                  {imgLoading
-                    ? <ActivityIndicator size="small" color="#000" />
-                    : <Text style={{ color: imgPrompt.trim() ? '#000' : '#444', fontSize: 16, fontWeight: '700' }}>↑</Text>
-                  }
-                </TouchableOpacity>
-              </View>
-
-              {(imgLoading || imgResult) && (
-                <View style={[s.resultBox, { borderColor: '#F59E0B22' }]}>
-                  <Text style={s.resultBoxLabel}>SAL IMAGE PROMPTS</Text>
-                  {imgLoading && !imgResult && <ActivityIndicator size="small" color="#F59E0B" />}
-                  {imgResult ? (
-                    <Text style={s.resultText} selectable>{imgResult}</Text>
-                  ) : null}
-                </View>
-              )}
-            </View>
-          )}
-
-          {/* ══════════ VIDEO ══════════ */}
-          {mode === 'video' && (
-            <View>
-              <Text style={[s.modeTitle, { color: '#22C55E' }]}>Video & Script Generator</Text>
-              <Text style={s.modeSub}>Full production package: hook, script, shot list, Runway prompts, captions, music.</Text>
-
-              <View style={s.socialInputWrap}>
-                <TextInput
-                  style={s.socialInput}
-                  value={videoPrompt}
-                  onChangeText={setVideoPrompt}
-                  placeholder="e.g. '60-second TikTok ad for SaintSal Labs targeting business owners'"
-                  placeholderTextColor="#444"
-                  multiline
-                />
-                <TouchableOpacity
-                  onPress={runVideo}
-                  disabled={videoLoading || !videoPrompt.trim()}
-                  style={[s.socialSend, { backgroundColor: videoPrompt.trim() && !videoLoading ? '#22C55E' : '#1A1A22' }]}
-                >
-                  {videoLoading
-                    ? <ActivityIndicator size="small" color="#000" />
-                    : <Text style={{ color: videoPrompt.trim() ? '#000' : '#444', fontSize: 16, fontWeight: '700' }}>↑</Text>
-                  }
-                </TouchableOpacity>
-              </View>
-
-              {(videoLoading || videoResult) && (
-                <View style={[s.resultBox, { borderColor: '#22C55E22' }]}>
-                  <Text style={[s.resultBoxLabel, { color: '#22C55E' }]}>SAL VIDEO PACKAGE</Text>
-                  {videoLoading && !videoResult && <ActivityIndicator size="small" color="#22C55E" />}
-                  {videoResult ? (
-                    <Text style={s.resultText} selectable>{videoResult}</Text>
-                  ) : null}
-                </View>
-              )}
-
-              {/* Video starters */}
-              {!videoResult && !videoLoading && (
-                <View style={{ marginTop: 8 }}>
-                  <Text style={s.sectionLabel}>IDEAS</Text>
-                  {[
-                    '60-second TikTok ad for SaintSal Labs — target business owners, show ROI',
-                    'YouTube short: How we built an AI platform with US patent from a Goldman Sachs background',
-                    'Instagram Reel: CookinCapital real estate deal analysis — before and after',
-                    'LinkedIn video: 3 ways AI is replacing entire SaaS stacks for SMBs',
-                  ].map((t, i) => (
-                    <TouchableOpacity key={i} onPress={() => setVideoPrompt(t)} style={s.ideaBtn}>
-                      <Text style={s.ideaBtnText}>{t}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-          )}
-
-          {/* ══════════ DEPLOY ══════════ */}
-          {mode === 'deploy' && (
-            <View>
-              <Text style={[s.modeTitle, { color: '#818CF8' }]}>Deploy & Go Live</Text>
-              <Text style={s.modeSub}>Push to Vercel, Cloudflare, GitHub, or Render — one click.</Text>
-
-              <View style={s.deployGrid}>
-                {[
-                  { label: 'Vercel', desc: 'Next.js, React, static — zero config. Primary deploy.', color: '#fff', url: 'https://vercel.com' },
-                  { label: 'Cloudflare', desc: 'Workers, D1 database, R2 storage, AI bindings.', color: '#F59E0B', url: 'https://dash.cloudflare.com' },
-                  { label: 'GitHub', desc: 'Push code, create repos, set up CI/CD with Actions.', color: '#818CF8', url: 'https://github.com/SaintVisions-SaintSal' },
-                  { label: 'Render', desc: 'Node.js, Python, Docker with auto-scaling and WebSockets.', color: '#22C55E', url: 'https://render.com' },
-                ].map(item => (
                   <TouchableOpacity
-                    key={item.label}
-                    onPress={() => Linking.openURL(item.url)}
-                    style={[s.deployCard, { borderColor: item.color + '22' }]}
+                    style={styles.actionBtn}
+                    onPress={() => router.push('/(stack)/elite-deploy')}
                   >
-                    <Text style={[s.deployLabel, { color: item.color }]}>{item.label}</Text>
-                    <Text style={s.deployDesc}>{item.desc}</Text>
-                    <Text style={[s.deployOpen, { color: item.color }]}>Open {item.label} →</Text>
+                    <Text style={styles.actionBtnTxt}>🚀 DEPLOY</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* ── Recent builds ── */}
+          {savedBuilds.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>RECENT BUILDS</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {savedBuilds.slice(0, 6).map((b, i) => (
+                  <TouchableOpacity
+                    key={b.id || i}
+                    style={styles.buildChip}
+                    onPress={() => {
+                      setPrompt(b.name || '');
+                      setOutput(b.content || '');
+                      outputRef.current = b.content || '';
+                    }}
+                  >
+                    <Text style={styles.buildChipType}>{b.type || 'code'}</Text>
+                    <Text style={styles.buildChipName} numberOfLines={1}>
+                      {b.name || 'Untitled'}
+                    </Text>
                   </TouchableOpacity>
                 ))}
-              </View>
-
-              <View style={s.deployTip}>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: C.amber, marginBottom: 5 }}>
-                  Need deployment help?
-                </Text>
-                <Text style={{ fontSize: 12.5, color: '#555', lineHeight: 18 }}>
-                  Switch to Code mode and ask SAL: "Write a Vercel deployment config for my Next.js app" or "Create GitHub Actions CI/CD pipeline for Node.js"
-                </Text>
-              </View>
+              </ScrollView>
             </View>
           )}
+
+          <View style={{ height: 60 }} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-/* ─── Copy Button (self-contained) ─────────────────── */
-const CopyButton = ({ content, accentColor }) => {
-  const [copied, setCopied] = useState(false);
-
-  const copy = () => {
-    Clipboard.setString(content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-
-  return (
-    <TouchableOpacity
-      onPress={copy}
-      style={[s.resultActionBtn, copied && { borderColor: accentColor + '44', backgroundColor: accentColor + '12' }]}
-    >
-      <Text style={[s.resultActionBtnText, copied && { color: accentColor }]}>
-        {copied ? '✓ Copied' : 'Copy'}
-      </Text>
-    </TouchableOpacity>
-  );
-};
-
-/* ═══════════════════════════════════════════════════
-   STYLES
-═══════════════════════════════════════════════════ */
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
+/* ── Styles ──────────────────────────────────────── */
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: BLACK,
+  },
+  /* Header */
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: 8, paddingBottom: 10,
-    borderBottomWidth: 1, borderBottomColor: C.borderSm, backgroundColor: C.sidebar,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
   },
-  headerTitle: { fontSize: 16, fontWeight: '800', color: C.amber },
-  headerSub: { fontSize: 11, color: C.textGhost, marginTop: 1 },
-  newBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8, backgroundColor: C.amber + '18', borderWidth: 1, borderColor: C.amber + '33' },
-  newBtnText: { fontSize: 12, fontWeight: '700', color: C.amber },
-  landingSection: { marginBottom: 20 },
-  modeTitle: { fontSize: 18, fontWeight: '800', color: '#818CF8', marginBottom: 4 },
-  modeSub: { fontSize: 13, color: C.textGhost, marginBottom: 16 },
-  starterCode: { padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#818CF820', backgroundColor: '#818CF808', marginBottom: 8 },
-  starterCodeText: { fontSize: 13, color: '#818CF8AA' },
-  sectionLabel: { fontSize: 9, color: '#333', fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 },
-
-  // ─── Social Studio v2 ───
-  socialHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4,
-  },
-  socialTitle: {
-    fontSize: 20, fontWeight: '900', color: '#F59E0B',
-  },
-  socialNeonLabel: {
-    fontSize: 9, fontWeight: '900', color: '#F59E0B', letterSpacing: 1.5,
-    textShadowColor: '#F59E0B', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 10,
-  },
-  socialSubtitle: {
-    fontSize: 13, color: C.textGhost, marginBottom: 20,
-  },
-  socialSectionLabel: {
-    fontSize: 9, color: '#F59E0B88', fontWeight: '800', letterSpacing: 1.2,
-    textTransform: 'uppercase', marginBottom: 10, marginTop: 4,
-  },
-
-  // Connected accounts
-  accountsContainer: { gap: 8, marginBottom: 20 },
-  accountCard: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#0D0D12', borderRadius: 14, borderWidth: 1, borderColor: '#1C1C24',
-    paddingHorizontal: 14, paddingVertical: 12,
-  },
-  accountCardConnected: {
-    borderColor: '#F59E0B25',
-    shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.08, shadowRadius: 12,
-  },
-  accountLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  accountIcon: {
-    width: 36, height: 36, borderRadius: 10,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  accountIconText: { fontSize: 14, fontWeight: '900' },
-  accountInfo: { flex: 1 },
-  accountNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  accountName: { fontSize: 14, fontWeight: '700', color: '#888' },
-  accountStatus: { fontSize: 11, color: '#444', marginTop: 1 },
-  greenDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#22C55E' },
-  connectBtn: {
-    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10,
-    borderWidth: 1.5, borderColor: '#F59E0B55', backgroundColor: '#F59E0B10',
-  },
-  connectBtnText: { fontSize: 12, fontWeight: '800', color: '#F59E0B' },
-  disconnectBtn: {
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
-    backgroundColor: '#1A1A22',
-  },
-  disconnectBtnText: { fontSize: 11, fontWeight: '600', color: '#555' },
-  comingSoonBadge: {
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6,
-    backgroundColor: '#1A1A22',
-  },
-  comingSoonText: { fontSize: 10, fontWeight: '700', color: '#333', letterSpacing: 0.5 },
-  connectedBadge: {
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6,
+  backBtn: { paddingRight: 8 },
+  backTxt: { fontSize: 14, fontWeight: '700', color: GOLD, letterSpacing: 1 },
+  /* Quota bar */
+  quotaWrap: { alignItems: 'flex-end' },
+  quotaTxt:  { fontSize: 12, color: GOLD, fontWeight: '600', marginBottom: 4 },
+  quotaTrack: { width: 100, height: 3, backgroundColor: BORDER, borderRadius: 2, overflow: 'hidden' },
+  quotaFill:  { height: '100%', backgroundColor: GOLD, borderRadius: 2 },
+  /* Mode bar */
+  modeBar: { paddingHorizontal: 16, paddingVertical: 12 },
+  modeChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: SURFACE,
+    marginRight: 8,
   },
-  connectedBadgeText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
-
-  // Platform pills
-  platformRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  platBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 22, borderWidth: 1.5,
+  modeChipActive: {
+    backgroundColor: GOLD_DIM,
+    borderColor: GOLD_BORDER,
   },
-  platBtnIcon: { fontSize: 13, fontWeight: '900' },
-  platBtnText: { fontSize: 13 },
-  tinyGreenDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#22C55E' },
-
-  // Tone selector
-  toneBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1,
+  modeChipTxt:       { fontSize: 12, color: MUTED, fontWeight: '600', letterSpacing: 0.5 },
+  modeChipTxtActive: { color: GOLD },
+  /* Section */
+  section: { paddingHorizontal: 16, marginBottom: 20 },
+  sectionLabel: {
+    fontSize: 11,
+    color: DIM,
+    fontWeight: '700',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 10,
   },
-  toneBtnIcon: { fontSize: 14 },
-  toneBtnText: { fontSize: 12, fontWeight: '600' },
-
-  // Input
-  socialInputWrap: {
-    flexDirection: 'row', alignItems: 'flex-end',
-    backgroundColor: '#111118', borderRadius: 14, borderWidth: 1, borderColor: '#1E1E2A',
-    padding: 6, gap: 6, marginBottom: 16,
+  /* Input */
+  inputCard: {
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 14,
+    padding: 14,
   },
-  socialInput: { flex: 1, color: '#E8E6E1', fontSize: 14, paddingHorizontal: 8, paddingVertical: 8, maxHeight: 120 },
-  socialSend: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-
-  // Ideas
-  ideaBtn: { padding: 13, borderRadius: 10, borderWidth: 1, borderColor: '#F59E0B15', backgroundColor: '#F59E0B06', marginBottom: 6 },
-  ideaBtnText: { fontSize: 13, color: '#666', lineHeight: 19 },
-
-  // Error / loading
-  errorBox: { padding: 12, borderRadius: 9, backgroundColor: '#EF44440A', borderWidth: 1, borderColor: '#EF444422', marginBottom: 12 },
-  errorText: { color: '#EF4444', fontSize: 13 },
-  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14 },
-  loadingText: { fontSize: 13, color: '#555' },
-
-  // ─── Result cards (showstopper) ───
-  resultCard: {
-    backgroundColor: '#0D0D14', borderWidth: 1, borderRadius: 16,
-    padding: 18, marginBottom: 14,
+  input: {
+    color: '#fff',
+    fontSize: 15,
+    lineHeight: 22,
+    minHeight: 90,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
-  resultCardHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14,
+  generateBtn: {
+    backgroundColor: GOLD,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 10,
   },
-  resultCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  resultPlatIcon: {
-    width: 34, height: 34, borderRadius: 9,
-    alignItems: 'center', justifyContent: 'center',
+  generateBtnDim: { opacity: 0.6 },
+  generateBtnTxt: { fontSize: 14, fontWeight: '800', color: BLACK, letterSpacing: 1 },
+  /* Output */
+  outputBox: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 12,
+    padding: 14,
+    maxHeight: 320,
   },
-  resultPlatLabel: { fontSize: 14, fontWeight: '800' },
-  charBadge: {
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1,
+  outputTxt: {
+    color: '#E2E8F0',
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    lineHeight: 20,
   },
-  charBadgeText: { fontSize: 10, fontWeight: '700' },
-  resultContent: {
-    fontSize: 14, color: '#D4D1CB', lineHeight: 23, marginBottom: 14,
+  genImage: {
+    width: '100%',
+    height: 280,
+    borderRadius: 10,
   },
-
-  // Edit mode
-  editContainer: { marginBottom: 14 },
-  editInput: {
-    backgroundColor: '#111118', borderRadius: 10, borderWidth: 1, borderColor: '#F59E0B33',
-    color: '#E8E6E1', fontSize: 14, lineHeight: 22,
-    padding: 14, minHeight: 100,
+  /* Video card */
+  videoCard: {
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: GOLD_BORDER,
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+    minHeight: 120,
+    justifyContent: 'center',
   },
-  editActions: {
-    flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8,
+  videoStatus: { color: GOLD, fontSize: 16, fontWeight: '700', marginTop: 12, textAlign: 'center' },
+  videoBtn: {
+    marginTop: 16,
+    backgroundColor: GOLD,
+    borderRadius: 10,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
   },
-  editCancelBtn: {
-    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8,
-    backgroundColor: '#1A1A22',
+  videoBtnTxt: { color: BLACK, fontWeight: '800', fontSize: 14 },
+  /* Voice card */
+  voiceCard: {
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+    minHeight: 100,
+    justifyContent: 'center',
   },
-  editCancelText: { fontSize: 12, fontWeight: '600', color: '#555' },
-  editSaveBtn: {
-    paddingHorizontal: 16, paddingVertical: 7, borderRadius: 8,
-    backgroundColor: '#F59E0B',
+  voiceReady: { color: GOLD, fontSize: 15, fontWeight: '600', marginBottom: 16 },
+  playBtn: {
+    backgroundColor: GOLD_DIM,
+    borderWidth: 1,
+    borderColor: GOLD_BORDER,
+    borderRadius: 30,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
   },
-  editSaveText: { fontSize: 12, fontWeight: '800', color: '#000' },
-
-  // Action buttons row
-  resultActions: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+  playBtnTxt: { color: GOLD, fontWeight: '800', fontSize: 15, letterSpacing: 1 },
+  /* Action row */
+  actionRow: {
+    flexDirection: 'row',
+    marginTop: 10,
+    gap: 8,
   },
-  resultActionBtn: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 9,
-    borderWidth: 1, borderColor: '#1E1E28', backgroundColor: '#111118',
+  actionBtn: {
+    flex: 1,
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
   },
-  resultActionBtnText: { fontSize: 12, fontWeight: '600', color: '#666' },
-
-  // Post to LinkedIn
-  postBtn: {
-    paddingHorizontal: 18, paddingVertical: 9, borderRadius: 10,
-    backgroundColor: '#F59E0B',
-    shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 8,
-    elevation: 4,
+  actionBtnTxt: { fontSize: 11, color: MUTED, fontWeight: '700', letterSpacing: 0.5 },
+  /* Recent builds */
+  buildChip: {
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginRight: 10,
+    minWidth: 100,
+    maxWidth: 150,
   },
-  postBtnText: { fontSize: 12.5, fontWeight: '800', color: '#000' },
-
-  // Posting indicator
-  postingIndicator: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8 },
-  postingText: { fontSize: 12, color: '#F59E0B', fontWeight: '600' },
-
-  // Posted
-  postedBadge: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 9,
-    backgroundColor: '#22C55E18', borderWidth: 1, borderColor: '#22C55E33',
-  },
-  postedText: { fontSize: 12, fontWeight: '700', color: '#22C55E' },
-
-  // Failed
-  failedBtn: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 9,
-    backgroundColor: '#EF444418', borderWidth: 1, borderColor: '#EF444433',
-  },
-  failedBtnText: { fontSize: 12, fontWeight: '700', color: '#EF4444' },
-
-  // Post history
-  historySection: { marginTop: 10 },
-  historyItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#111118',
-  },
-  historyDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#22C55E' },
-  historyText: { fontSize: 12, color: '#555' },
-
-  // ─── Images / Video / Deploy (unchanged) ───
-  styleBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
-  styleBtnText: { fontSize: 11.5 },
-  resultBox: { backgroundColor: '#0A0A0D', borderWidth: 1, borderRadius: 10, padding: 16, marginTop: 4 },
-  resultBoxLabel: { fontSize: 9, color: '#F59E0B', fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 12 },
-  resultText: { fontSize: 13.5, color: '#C8C5BE', lineHeight: 22 },
-  deployGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 11, marginBottom: 14 },
-  deployCard: { width: '47%', backgroundColor: '#111116', borderWidth: 1, borderRadius: 11, padding: 16 },
-  deployLabel: { fontSize: 14, fontWeight: '700', marginBottom: 6 },
-  deployDesc: { fontSize: 12, color: '#555', lineHeight: 18, marginBottom: 12 },
-  deployOpen: { fontSize: 11.5, fontWeight: '600' },
-  deployTip: { backgroundColor: '#111116', borderWidth: 1, borderColor: '#F59E0B18', borderRadius: 10, padding: 16 },
+  buildChipType: { fontSize: 10, color: GOLD, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
+  buildChipName: { fontSize: 12, color: MUTED },
 });

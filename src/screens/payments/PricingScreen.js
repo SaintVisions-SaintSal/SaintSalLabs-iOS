@@ -24,6 +24,15 @@ const STRIPE_PRICE_IDS = {
   Enterprise: 'price_1T7p1uL47U80vDLAR4Wk6uW0',
 };
 
+// Direct Stripe payment links — no server round-trip needed
+const STRIPE_PAYMENT_LINKS = {
+  free:       'https://buy.stripe.com/28EaEYgvk7zjbaPa2gbjW06',
+  starter:    'https://buy.stripe.com/8x2eVea6W3j30wb3DSbjW07',
+  pro:        'https://buy.stripe.com/5kQ3w92S8Dn3In4HWbjW08',
+  teams:      'https://buy.stripe.com/fZufZia6W9Hr2Ej4HWbjW09',
+  enterprise: 'https://buy.stripe.com/7sY5kEbb0cTDa6L2zObjW0a',
+};
+
 const TIERS = [
   {
     id: 'free',
@@ -147,16 +156,26 @@ export default function PricingScreen() {
 
   const fetchCurrentPlan = async () => {
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/user_subscriptions?select=plan,status&limit=1`, {
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-      });
+      // Get current user session first
+      const { createClient } = await import('@supabase/supabase-js');
+      const sbClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const { data: { session } } = await sbClient.auth.getSession();
+
+      if (!session) { setCurrentPlan('free'); setLoading(false); return; }
+
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/user_profiles?user_id=eq.${session.user.id}&select=tier,role&limit=1`,
+        {
+          headers: {
+            apikey:         SUPABASE_ANON_KEY,
+            Authorization:  `Bearer ${session.access_token}`,
+          },
+        }
+      );
       if (res.ok) {
         const data = await res.json();
-        if (data && data.length > 0) setCurrentPlan(data[0].plan?.toLowerCase() || 'free');
-        else setCurrentPlan('free');
+        const profile = data?.[0];
+        setCurrentPlan(profile?.tier || profile?.role || 'free');
       } else {
         setCurrentPlan('free');
       }
@@ -169,31 +188,27 @@ export default function PricingScreen() {
 
   const handleSubscribe = async (tier) => {
     if (tier.id === 'free') {
-      Alert.alert('Free Plan', 'You are already on the free plan or sign up is required first.');
+      Alert.alert('Free Plan Active', 'You are on the Free plan. Upgrade anytime to unlock more compute.');
       return;
     }
-    const priceId = STRIPE_PRICE_IDS[tier.name];
-    if (!priceId) return;
+
+    // Use direct Stripe payment links — instant, no server needed
+    const paymentLink = STRIPE_PAYMENT_LINKS[tier.id];
+    if (!paymentLink) {
+      Alert.alert('Error', 'Payment link not found.');
+      return;
+    }
+
     setPurchasing(tier.id);
     try {
-      const res = await fetch(`${LABS_API}/api/billing/create-checkout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ price_id: priceId }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const url = data.url || data.checkout_url || data.session_url;
-        if (url) {
-          await Linking.openURL(url);
-        } else {
-          Alert.alert('Error', 'No checkout URL returned. Please try again.');
-        }
+      const supported = await Linking.canOpenURL(paymentLink);
+      if (supported) {
+        await Linking.openURL(paymentLink);
       } else {
-        Alert.alert('Error', `Checkout failed (${res.status}). Please try again.`);
+        Alert.alert('Error', 'Cannot open payment page. Please try again.');
       }
     } catch (err) {
-      Alert.alert('Error', 'Could not connect to checkout. Please try again.');
+      Alert.alert('Error', 'Could not open checkout. Please try again.');
     } finally {
       setPurchasing(null);
     }

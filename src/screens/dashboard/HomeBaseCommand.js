@@ -87,19 +87,38 @@ export default function HomeBaseCommand() {
     setLoading(false);
   }, []);
 
-  /* ── Supabase user profile ── */
+  /* ── Supabase user profile (uses real session token + user ID filter) ── */
   const loadProfile = useCallback(async () => {
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=*&limit=1`, {
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.[0]) setProfile(data[0]);
-      }
+      const { createClient } = await import('@supabase/supabase-js');
+      const sbClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+      const { data: { session } } = await sbClient.auth.getSession();
+      if (!session) return;
+
+      const token  = session.access_token;
+      const userId = session.user.id;
+
+      // Fetch both tables in parallel: profiles (business DNA) + user_profiles (tier/compute)
+      const [profileRes, userProfileRes] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=*&limit=1`, {
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${SUPABASE_URL}/rest/v1/user_profiles?user_id=eq.${userId}&select=*&limit=1`, {
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      const profileData     = profileRes.ok     ? await profileRes.json()     : [];
+      const userProfileData = userProfileRes.ok ? await userProfileRes.json() : [];
+
+      // Merge both into a single profile object
+      const merged = {
+        ...(profileData?.[0]    || {}),
+        ...(userProfileData?.[0] || {}),
+        // Prefer user_profiles tier over profiles role
+        tier: userProfileData?.[0]?.tier || userProfileData?.[0]?.role || profileData?.[0]?.role || 'free',
+      };
+      setProfile(merged);
     } catch (e) {
       console.warn('Profile fetch:', e.message);
     }
@@ -153,32 +172,59 @@ export default function HomeBaseCommand() {
     }
   }, []);
 
-  /* ── Compute quota from backend ── */
+  /* ── Compute quota from backend (with real session token) ── */
   const loadComputeQuota = useCallback(async () => {
     try {
-      const res = await fetch(`${BACKEND_BASE}/api/compute/quota`, {
-        headers: { 'Content-Type': 'application/json' },
+      const { createClient } = await import('@supabase/supabase-js');
+      const sbClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+      const { data: { session } } = await sbClient.auth.getSession();
+
+      const res = await fetch(`${BACKEND_BASE}/api/builder/compute-quota`, {
+        headers: {
+          'Content-Type':  'application/json',
+          ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
       });
       if (res.ok) {
         const data = await res.json();
-        setComputeQuota(data);
+        // data = { minutesLeft, minutesUsed, limit, tier }
+        const pct = data.limit > 0 ? Math.round((data.minutesUsed / data.limit) * 100) : 0;
+        setComputeQuota({
+          minutesLeft: data.minutesLeft,
+          minutesUsed: data.minutesUsed,
+          limit:       data.limit,
+          tier:        data.tier,
+          // Legacy node percentages for the compute bars
+          mini: Math.min(100, 100 - pct),
+          pro:  data.tier === 'pro' || data.tier === 'teams' || data.tier === 'enterprise' ? Math.min(100, 100 - pct) : 0,
+          max:  data.tier === 'teams' || data.tier === 'enterprise' ? Math.min(100, 100 - pct) : 0,
+          fast: data.tier === 'enterprise' ? Math.min(100, 100 - pct) : 0,
+        });
       } else {
-        setComputeQuota({ mini: 82, pro: 45, max: 12, fast: 95 });
+        setComputeQuota({ mini: 82, pro: 45, max: 12, fast: 95, minutesLeft: 100, limit: 100, tier: 'free' });
       }
     } catch (e) {
-      setComputeQuota({ mini: 82, pro: 45, max: 12, fast: 95 });
+      setComputeQuota({ mini: 82, pro: 45, max: 12, fast: 95, minutesLeft: 100, limit: 100, tier: 'free' });
     }
   }, []);
 
-  /* ── Builds from Supabase ── */
+  /* ── Builds from Supabase (user-scoped with session token) ── */
   const loadBuilds = useCallback(async () => {
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/website_builder_versions?select=id,project_name,updated_at,status&limit=5&order=updated_at.desc`, {
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-        },
-      });
+      const { createClient } = await import('@supabase/supabase-js');
+      const sbClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+      const { data: { session } } = await sbClient.auth.getSession();
+      if (!session) { setBuilds([]); return; }
+
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/website_builder_versions?user_id=eq.${session.user.id}&select=id,name,created_at,type&limit=5&order=created_at.desc`,
+        {
+          headers: {
+            apikey:        SUPABASE_KEY,
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
       if (res.ok) {
         const data = await res.json();
         setBuilds(Array.isArray(data) ? data : []);
@@ -225,14 +271,14 @@ export default function HomeBaseCommand() {
             <View style={styles.avatarRing}>
               <View style={styles.avatarInner}>
                 <Text style={styles.avatarInitials}>
-                  {profile?.full_name?.[0] || profile?.email?.[0]?.toUpperCase() || 'S'}
+                  {profile?.business_name?.[0] || profile?.full_name?.[0] || profile?.email?.[0]?.toUpperCase() || 'S'}
                 </Text>
               </View>
               <Animated.View style={[styles.onlineDot, { opacity: pulseAnim }]} />
             </View>
             <View>
-              <Text style={styles.headerName}>{profile?.full_name || 'Alexander Saint'}</Text>
-              <Text style={styles.headerTier}>SAINTSAL™ DNA: {(profile?.tier || 'Alpha Elite').toUpperCase()}</Text>
+              <Text style={styles.headerName}>{profile?.business_name || profile?.full_name || profile?.email?.split('@')[0] || 'SaintSal Labs'}</Text>
+              <Text style={styles.headerTier}>SAINTSAL™ DNA: {(profile?.tier || profile?.role || 'Free').toUpperCase()} · {profile?.industry || 'Elite Member'}</Text>
             </View>
           </View>
           <View style={styles.headerActions}>
@@ -267,12 +313,12 @@ export default function HomeBaseCommand() {
                 <Text style={styles.colorHex}>#0F0F0F</Text>
               </View>
               <Text style={styles.identityCardLabel2}>INITIALIZED GOALS</Text>
-              <Text style={styles.identityGoals}>"Dominating the high-end digital luxury space through AI-driven design excellence and elite-tier performance metrics."</Text>
+              <Text style={styles.identityGoals}>"{profile?.business_goals || 'Scale with AI-powered intelligence across every vertical.'}"</Text>
             </View>
             <View style={styles.memberCard}>
-              <Text style={styles.memberCardTitle}>Pro{'\n'}Member</Text>
-              <Text style={styles.memberCardSub}>Elite Labs Access Active</Text>
-              <TouchableOpacity style={styles.manageSubBtn} onPress={() => Alert.alert('Stripe', 'Opening billing portal...')}>
+              <Text style={styles.memberCardTitle}>{profile?.tier ? profile.tier.charAt(0).toUpperCase() + profile.tier.slice(1) : 'Free'}{'\n'}Member</Text>
+              <Text style={styles.memberCardSub}>{computeQuota?.minutesLeft != null ? `${Math.round(computeQuota.minutesLeft)} min left` : 'Elite Labs Access'}</Text>
+              <TouchableOpacity style={styles.manageSubBtn} onPress={() => { const { Linking } = require('react-native'); Linking.openURL('https://buy.stripe.com/5kQ3w92S8Dn3In4HWbjW08'); }}>
                 <Text style={styles.manageSubBtnText}>MANAGE SUBSCRIPTION</Text>
               </TouchableOpacity>
             </View>

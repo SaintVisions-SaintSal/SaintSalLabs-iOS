@@ -253,3 +253,70 @@ export const checkHealth = async () => {
     return { status: 'offline' };
   }
 };
+
+/* ─── Compute quota check (call before every AI generation) ─── */
+export const checkComputeQuota = async (accessToken) => {
+  try {
+    const res = await fetch(`${API_BASE}/api/builder/compute-quota`, {
+      headers: {
+        'x-sal-key': API_KEY,
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+    });
+    if (!res.ok) return { minutesLeft: 30, tier: 'guest' };
+    return res.json(); // { minutesLeft, minutesUsed, limit, tier }
+  } catch {
+    return { minutesLeft: 30, tier: 'guest' };
+  }
+};
+
+/* ─── Deduct compute after generation ─────────────── */
+export const deductComputeSeconds = async (seconds, userId, accessToken) => {
+  try {
+    await fetch(`${API_BASE}/api/metering/deduct`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify({ seconds, user_id: userId }),
+    });
+  } catch (e) {
+    console.warn('[metering] deduct error:', e.message);
+  }
+};
+
+/* ─── Builder generate (tier-routed SSE) ─────────── */
+export const streamBuilderGenerate = ({ prompt, tier = 'free', type = 'code', files, system, onChunk, onDone, onError }) => {
+  const xhr = new XMLHttpRequest();
+  let processed = 0;
+
+  xhr.open('POST', `${API_BASE}/api/builder/generate`, true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('x-sal-key', API_KEY);
+
+  xhr.onprogress = () => {
+    const newText = xhr.responseText.slice(processed);
+    processed = xhr.responseText.length;
+    const lines = newText.split('\n');
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const raw = line.slice(6).trim();
+      if (raw === '[DONE]') { onDone?.(); return; }
+      try {
+        const d = JSON.parse(raw);
+        if (d.type === 'content_block_delta' && d.delta?.text) onChunk(d.delta.text);
+        else if (d.choices?.[0]?.delta?.content) onChunk(d.choices[0].delta.content);
+        else if (d.error) onError?.(d.error);
+      } catch {}
+    }
+  };
+
+  xhr.onload  = () => onDone?.();
+  xhr.onerror = () => onError?.('Connection failed. Check your network.');
+  xhr.ontimeout = () => onError?.('Request timed out.');
+  xhr.timeout = 180000; // 3 min for large generations
+
+  xhr.send(JSON.stringify({ prompt, tier, type, files, system, stream: true }));
+  return xhr;
+};
