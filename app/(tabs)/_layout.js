@@ -1,21 +1,25 @@
-/* ═══════════════════════════════════════════════════
-   SAINTSALLABS — TAB NAVIGATION
-   5 tabs: Chat · Builder · Search · Dashboard · Settings
-   Deep charcoal + gold accents
-═══════════════════════════════════════════════════ */
 import { Tabs } from 'expo-router';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 
-const AMBER = '#F59E0B';
+const GOLD = '#D4AF37';
+const BG = '#0F0F0F';
 
-const TabIcon = ({ focused, label, glyph }) => (
-  <View style={s.tabIcon}>
-    <View style={[s.tabGlyphWrap, focused && s.tabGlyphWrapActive]}>
-      <Text style={[s.tabGlyph, { color: focused ? '#000' : '#6B7280' }]}>{glyph}</Text>
+function TabIcon({ icon, label, focused }) {
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center', paddingTop: 4 }}>
+      <Text style={{ fontSize: focused ? 22 : 20, color: focused ? GOLD : 'rgba(255,255,255,0.4)' }}>
+        {icon}
+      </Text>
+      <Text style={{
+        fontSize: 9, fontWeight: '700', letterSpacing: 0.5, marginTop: 2,
+        color: focused ? GOLD : 'rgba(255,255,255,0.4)'
+      }}>
+        {label}
+      </Text>
+      {focused && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: GOLD, marginTop: 2 }} />}
     </View>
-    <Text style={[s.tabLabel, { color: focused ? '#F5E6C6' : '#5B616E' }]}>{label}</Text>
-  </View>
-);
+  );
+}
 
 export default function TabLayout() {
   return (
@@ -23,86 +27,60 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#070709',
-          borderTopColor: '#141420',
+          backgroundColor: '#0A0A0A',
           borderTopWidth: 1,
-          height: 84,
+          borderTopColor: 'rgba(212,175,55,0.15)',
+          height: 80,
+          paddingBottom: 16,
           paddingTop: 8,
-          paddingBottom: 8,
-          shadowColor: '#000',
-          shadowOpacity: 0.22,
-          shadowRadius: 14,
-          shadowOffset: { width: 0, height: -4 },
-          elevation: 18,
         },
         tabBarShowLabel: false,
-        tabBarActiveTintColor: AMBER,
-        tabBarInactiveTintColor: '#444',
+        tabBarActiveTintColor: GOLD,
+        tabBarInactiveTintColor: 'rgba(255,255,255,0.4)',
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Chat" glyph="✦" />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="🔍" label="SEARCH" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="chat"
+        options={{
+          tabBarIcon: ({ focused }) => <TabIcon icon="💬" label="CHAT" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="builder"
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Builder" glyph="⌘" />,
+          tabBarIcon: ({ focused }) => (
+            <View style={{
+              width: 52, height: 52, borderRadius: 26,
+              backgroundColor: focused ? GOLD : 'rgba(212,175,55,0.15)',
+              borderWidth: 2, borderColor: GOLD,
+              alignItems: 'center', justifyContent: 'center',
+              marginBottom: 16,
+              shadowColor: GOLD, shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: focused ? 0.6 : 0.2, shadowRadius: 12,
+            }}>
+              <Text style={{ fontSize: 22, color: focused ? BG : GOLD }}>⚡</Text>
+            </View>
+          ),
         }}
       />
       <Tabs.Screen
-        name="search"
+        name="home"
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Search" glyph="◌" />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="🏠" label="HOME" focused={focused} />,
         }}
       />
       <Tabs.Screen
-        name="dashboard"
+        name="more"
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Dashboard" glyph="◫" />,
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} label="Settings" glyph="⋯" />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="☰" label="MORE" focused={focused} />,
         }}
       />
     </Tabs>
   );
 }
-
-const s = StyleSheet.create({
-  tabIcon: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingTop: 2,
-  },
-  tabGlyphWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#101118',
-    borderWidth: 1,
-    borderColor: '#191B24',
-  },
-  tabGlyphWrapActive: {
-    backgroundColor: AMBER,
-    borderColor: '#F8C15A',
-  },
-  tabGlyph: {
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  tabLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    marginTop: 1,
-    letterSpacing: 0.4,
-  },
-});

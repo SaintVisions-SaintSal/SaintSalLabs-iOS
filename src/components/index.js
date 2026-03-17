@@ -1,6 +1,10 @@
 /* ═══════════════════════════════════════════════════
    SAINTSALLABS — SHARED COMPONENTS
 ═══════════════════════════════════════════════════ */
+export { default as ComputeBar } from './ComputeBar';
+export { default as VerticalSwitcher } from './VerticalSwitcher';
+export { default as OnboardingTooltip } from './OnboardingTooltip';
+export { default as ErrorState } from './ErrorState';
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, TextInput,
