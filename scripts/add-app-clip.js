@@ -195,7 +195,7 @@ objs['PBXResourcesBuildPhase'][`${IDs.resourcesBP}_comment`] = 'Resources';
 // ── 5. Embed App Clips phase in main target ─────────────────
 objs['PBXCopyFilesBuildPhase'][IDs.embedClipsBP] = {
   isa: 'PBXCopyFilesBuildPhase', buildActionMask: 2147483647,
-  dstPath: '', dstSubfolderSpec: 16,
+  dstPath: '""', dstSubfolderSpec: 16,
   name: '"Embed App Clips"',
   runOnlyForDeploymentPostprocessing: 0,
   files: [
@@ -212,7 +212,7 @@ if (mainTarget && mainTarget.buildPhases) {
 
 // ── 6. Build Configurations ─────────────────────────────────
 const commonSettings = {
-  ALWAYS_SEARCH_USER_PATHS: 0,
+  ALWAYS_SEARCH_USER_PATHS: 'NO',
   ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: 'YES',
   CLANG_ANALYZER_NONNULL: 'YES',
   CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION: 'YES_AGGRESSIVE',
@@ -254,7 +254,7 @@ const commonSettings = {
   MARKETING_VERSION: '2.0.2',
   PRODUCT_BUNDLE_IDENTIFIER: BUNDLE_ID,
   PRODUCT_NAME: '"$(TARGET_NAME)"',
-  PROVISIONING_PROFILE_SPECIFIER: '',
+  PROVISIONING_PROFILE_SPECIFIER: '""',
   SWIFT_EMIT_LOC_STRINGS: 'YES',
   SWIFT_VERSION: '5.0',
   TARGETED_DEVICE_FAMILY: '"1,2"',
@@ -267,7 +267,7 @@ objs['XCBuildConfiguration'][IDs.debugConfig] = {
     DEBUG_INFORMATION_FORMAT: 'dwarf',
     ENABLE_TESTABILITY: 'YES',
     GCC_DYNAMIC_NO_PIC: 'NO',
-    GCC_OPTIMIZATION_LEVEL: 0,
+    GCC_OPTIMIZATION_LEVEL: '"0"',
     GCC_PREPROCESSOR_DEFINITIONS: ['"DEBUG=1"', '"$(inherited)"'],
     MTL_ENABLE_DEBUG_INFO: 'INCLUDE_SOURCE',
     ONLY_ACTIVE_ARCH: 'YES',

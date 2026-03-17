@@ -14,10 +14,10 @@
 		AE2501F950E72D929AF6B976 /* libPods-SaintSalLabs.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1ECABA38E70D3899B25F342D /* libPods-SaintSalLabs.a */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
-		FBD2E4145A97C8095D055690 /* AppClipApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7063A4938659792606E3F20A; };
-		E84D29429225B9C5B227DD6B /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D29CD3CFD17DA8469846D469; };
-		D65942797A213DB9FA9DC992 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 728881224531649148799509; };
-		BDCDC29018631E8C4D36140E /* SaintSalLabsClip.app in Embed App Clips */ = {isa = PBXBuildFile; fileRef = DDE664FFC16610860F2F1C97; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B33DB486424B6DF67F71ECF5 /* AppClipApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F3CA5A3364C194BF0052440; };
+		5963EAADCD6296956F4768A1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C67A952EEEB2C5C728546E83; };
+		6C2135174FD2A2F6F2FBF432 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6A4E003F7A4DC9DA3FDA0F1E; };
+		84AA9AD46D02737B38031A60 /* SaintSalLabsClip.app in Embed App Clips */ = {isa = PBXBuildFile; fileRef = 1E04B6A7AAF7CFEA34D0B33C; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,12 +34,12 @@
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = SaintSalLabs/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* SaintSalLabs-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "SaintSalLabs-Bridging-Header.h"; path = "SaintSalLabs/SaintSalLabs-Bridging-Header.h"; sourceTree = "<group>"; };
-		7063A4938659792606E3F20A /* AppClipApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppClipApp.swift; sourceTree = "<group>"; };
-		D29CD3CFD17DA8469846D469 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		F0E59CC1D32978F75727E11E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		33DAB4054888068B17E2365A /* SaintSalLabsClip.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SaintSalLabsClip.entitlements; sourceTree = "<group>"; };
-		728881224531649148799509 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		DDE664FFC16610860F2F1C97 /* SaintSalLabsClip.app */ = {isa = PBXFileReference; explicitFileType = "wrapper.application"; includeInIndex = 0; path = SaintSalLabsClip.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4F3CA5A3364C194BF0052440 /* AppClipApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppClipApp.swift; sourceTree = "<group>"; };
+		C67A952EEEB2C5C728546E83 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		50EA41DB30DB98204C57275D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		60A9B1793001402AC670E446 /* SaintSalLabsClip.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SaintSalLabsClip.entitlements; sourceTree = "<group>"; };
+		6A4E003F7A4DC9DA3FDA0F1E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1E04B6A7AAF7CFEA34D0B33C /* SaintSalLabsClip.app */ = {isa = PBXFileReference; explicitFileType = "wrapper.application"; includeInIndex = 0; path = SaintSalLabsClip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,7 +51,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		1D989C43545531169D8E0DEE /* Frameworks */ = {
+		C6C15565491F950D949C48A4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			runOnlyForDeploymentPostprocessing = 0;
@@ -118,7 +118,7 @@
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				26494609EC9E84004B2BC082 /* Pods */,
 				961C86092AF3865D63FF3237 /* ExpoModulesProviders */,
-				731A779F933975222BAE7724 /* SaintSalLabsClip */,
+				A52262CEEFD8062C1BEA2B2C /* SaintSalLabsClip */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -129,7 +129,7 @@
 			isa = PBXGroup;
 			children = (
 				13B07F961A680F5B00A75B9A /* SaintSalLabs.app */,
-				DDE664FFC16610860F2F1C97 /* SaintSalLabsClip.app */,
+				1E04B6A7AAF7CFEA34D0B33C /* SaintSalLabsClip.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -151,14 +151,14 @@
 			path = SaintSalLabs/Supporting;
 			sourceTree = "<group>";
 		};
-		731A779F933975222BAE7724 /* SaintSalLabsClip */ = {
+		A52262CEEFD8062C1BEA2B2C /* SaintSalLabsClip */ = {
 			isa = PBXGroup;
 			children = (
-				7063A4938659792606E3F20A /* AppClipApp.swift */,
-				D29CD3CFD17DA8469846D469 /* ContentView.swift */,
-				728881224531649148799509 /* Assets.xcassets */,
-				F0E59CC1D32978F75727E11E /* Info.plist */,
-				33DAB4054888068B17E2365A /* SaintSalLabsClip.entitlements */,
+				4F3CA5A3364C194BF0052440 /* AppClipApp.swift */,
+				C67A952EEEB2C5C728546E83 /* ContentView.swift */,
+				6A4E003F7A4DC9DA3FDA0F1E /* Assets.xcassets */,
+				50EA41DB30DB98204C57275D /* Info.plist */,
+				60A9B1793001402AC670E446 /* SaintSalLabsClip.entitlements */,
 			);
 			path = SaintSalLabsClip;
 			sourceTree = "<group>";
@@ -178,7 +178,7 @@
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
 				FD36EC4739CB3F175DBB2FF3 /* [CP] Embed Pods Frameworks */,
-				0C2BB5463B6D9EEB3E42B78B /* Embed App Clips */,
+				5D9A180697D398596A2B047D /* Embed App Clips */,
 			);
 			buildRules = (
 			);
@@ -189,13 +189,13 @@
 			productReference = 13B07F961A680F5B00A75B9A /* SaintSalLabs.app */;
 			productType = "com.apple.product-type.application";
 		};
-		63829FE7653857D25E45AB0C /* SaintSalLabsClip */ = {
+		CF20258C6DCB0ED970E95DE7 /* SaintSalLabsClip */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = EC30B05F6F0EA271F7BD529C;
+			buildConfigurationList = C6889B16B727C61D51275355;
 			buildPhases = (
-				F2C909BC50C1D4512D495CD9 /* Sources */,
-				1D989C43545531169D8E0DEE /* Frameworks */,
-				E4D96D282A2F4757FF7D934A /* Resources */,
+				E1E30A32C445B9EDCBB97EEA /* Sources */,
+				C6C15565491F950D949C48A4 /* Frameworks */,
+				FE9FBE5CB6F398D0EE1617FB /* Resources */,
 			);
 			buildRules = (
 			);
@@ -203,7 +203,7 @@
 			);
 			name = SaintSalLabsClip;
 			productName = SaintSalLabsClip;
-			productReference = DDE664FFC16610860F2F1C97;
+			productReference = 1E04B6A7AAF7CFEA34D0B33C;
 			productType = "com.apple.product-type.application.on-demand-install-capable";
 		};
 /* End PBXNativeTarget section */
@@ -233,7 +233,7 @@
 			projectRoot = "";
 			targets = (
 				13B07F861A680F5B00A75B9A /* SaintSalLabs */,
-				63829FE7653857D25E45AB0C /* SaintSalLabsClip */,
+				CF20258C6DCB0ED970E95DE7 /* SaintSalLabsClip */,
 			);
 		};
 /* End PBXProject section */
@@ -250,12 +250,12 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		E4D96D282A2F4757FF7D934A /* Resources */ = {
+		FE9FBE5CB6F398D0EE1617FB /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			runOnlyForDeploymentPostprocessing = 0;
 			files = (
-				D65942797A213DB9FA9DC992 /* Assets.xcassets in Resources */,
+				6C2135174FD2A2F6F2FBF432 /* Assets.xcassets in Resources */,
 			);
 		};
 /* End PBXResourcesBuildPhase section */
@@ -386,13 +386,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		F2C909BC50C1D4512D495CD9 /* Sources */ = {
+		E1E30A32C445B9EDCBB97EEA /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			runOnlyForDeploymentPostprocessing = 0;
 			files = (
-				FBD2E4145A97C8095D055690 /* AppClipApp.swift in Sources */,
-				E84D29429225B9C5B227DD6B /* ContentView.swift in Sources */,
+				B33DB486424B6DF67F71ECF5 /* AppClipApp.swift in Sources */,
+				5963EAADCD6296956F4768A1 /* ContentView.swift in Sources */,
 			);
 		};
 /* End PBXSourcesBuildPhase section */
@@ -582,11 +582,11 @@
 			};
 			name = Release;
 		};
-		4F8319F7D116DDC34F4B17D1 /* Debug */ = {
+		C8058EABB91834F6BCEE8EF0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			name = Debug;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = 0;
+				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -631,14 +631,14 @@
 				MARKETING_VERSION = 2.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.saintvision.saintsallabs.Clip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = ;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_TESTABILITY = YES;
 				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_OPTIMIZATION_LEVEL = "0";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
@@ -649,11 +649,11 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 		};
-		2B098A0CBFC589E55AE9D64C /* Release */ = {
+		A80DB990087F0F486B14C651 /* Release */ = {
 			isa = XCBuildConfiguration;
 			name = Release;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = 0;
+				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -698,7 +698,7 @@
 				MARKETING_VERSION = 2.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.saintvision.saintsallabs.Clip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = ;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -732,11 +732,11 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		EC30B05F6F0EA271F7BD529C /* Build configuration list for PBXNativeTarget "SaintSalLabsClip" */ = {
+		C6889B16B727C61D51275355 /* Build configuration list for PBXNativeTarget "SaintSalLabsClip" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				4F8319F7D116DDC34F4B17D1 /* Debug */,
-				2B098A0CBFC589E55AE9D64C /* Release */,
+				C8058EABB91834F6BCEE8EF0 /* Debug */,
+				A80DB990087F0F486B14C651 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -744,15 +744,15 @@
 /* End XCConfigurationList section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		0C2BB5463B6D9EEB3E42B78B /* Embed App Clips */ = {
+		5D9A180697D398596A2B047D /* Embed App Clips */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = ;
+			dstPath = "";
 			dstSubfolderSpec = 16;
 			name = "Embed App Clips";
 			runOnlyForDeploymentPostprocessing = 0;
 			files = (
-				BDCDC29018631E8C4D36140E /* SaintSalLabsClip.app in Embed App Clips */,
+				84AA9AD46D02737B38031A60 /* SaintSalLabsClip.app in Embed App Clips */,
 			);
 		};
 /* End PBXCopyFilesBuildPhase section */
