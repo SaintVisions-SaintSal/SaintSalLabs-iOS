@@ -59,22 +59,30 @@ export const streamChat = ({ provider = 'anthropic', model, system, messages, on
   return xhr; // return for cancellation
 };
 
-/* ─── SAL Chat (routed to saintsal-backend) ──────── */
-export const SAL_BACKEND = 'https://saintsal-backend-0mv8.onrender.com';
+/* ─── SAL Chat (routed through Labs API Gateway) ─── */
+export const SAL_BACKEND = 'https://saintsallabs-api.onrender.com';
 
 export const streamSalChat = ({ mode = 'creative', messages, system, onChunk, onDone, onError }) => {
-  // Model routing by mode
-  const modelMap = {
-    creative:   'claude-sonnet-4-6',
-    finance:    'claude-sonnet-4-6',
-    realestate: 'claude-sonnet-4-6',
-    global:     'grok-3',
+  // Model + provider routing by mode
+  const routeMap = {
+    creative:   { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+    finance:    { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+    realestate: { provider: 'anthropic', model: 'claude-sonnet-4-6' },
+    global:     { provider: 'xai',       model: 'grok-3-mini' },
+  };
+  const { provider, model } = routeMap[mode] || routeMap.creative;
+
+  // Route through the Labs API gateway chat endpoint
+  const endpointMap = {
+    anthropic: `${SAL_BACKEND}/api/chat/anthropic`,
+    xai:       `${SAL_BACKEND}/api/chat/xai`,
+    openai:    `${SAL_BACKEND}/api/chat/openai`,
   };
 
   const xhr = new XMLHttpRequest();
   let processed = 0;
 
-  xhr.open('POST', `${SAL_BACKEND}/api/sal/chat`, true);
+  xhr.open('POST', endpointMap[provider] || endpointMap.anthropic, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
 
   xhr.onprogress = () => {
@@ -117,19 +125,7 @@ export const streamSalChat = ({ mode = 'creative', messages, system, onChunk, on
   xhr.ontimeout = () => onError?.('Request timed out.');
   xhr.timeout   = 120000;
 
-  // Build message string from messages array for SAL backend
-  const lastUserMsg = messages?.filter(m => m.role === 'user').pop()?.content || '';
-  const conversationHistory = messages?.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n') || '';
-
-  xhr.send(JSON.stringify({
-    mode,
-    model: modelMap[mode] || 'claude-sonnet-4-6',
-    system,
-    message: lastUserMsg,
-    context: conversationHistory,
-    messages,  // keep for backends that accept array
-    stream: true,
-  }));
+  xhr.send(JSON.stringify({ model, system, messages, max_tokens: 4096, stream: true }));
   return xhr;
 };
 

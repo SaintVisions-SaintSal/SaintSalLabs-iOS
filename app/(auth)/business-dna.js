@@ -1,1 +1,1 @@
-export { default } from '../../src/screens/auth/BusinessDNAScreen';
+export { default } from '../../src/screens/auth/BusinessDNASetup';

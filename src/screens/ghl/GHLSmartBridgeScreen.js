@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════
    SCREEN 25 — GHL SMART BRIDGE
    elite_ghl_smart_bridge_supercharged
-   Wire: GHL API pit-24654b55-6e44-49f5-8912-5632ab08c615
+   Wire: GHL API 
    Contacts · Pipelines · Snapshots · Voice Agents
 ═══════════════════════════════════════════════════ */
 import React, { useState, useEffect, useRef } from 'react';
@@ -17,7 +17,7 @@ const BG    = '#0F0F0F';
 const CARD  = '#161616';
 
 const GHL_BASE = 'https://services.leadconnectorhq.com';
-const GHL_TOKEN = 'pit-24654b55-6e44-49f5-8912-5632ab08c615';
+const GHL_TOKEN = '';
 const GHL_LOCATION = 'oRA8vL3OSiCPjpwmEC0V';
 
 const TABS = ['OVERVIEW', 'CONTACTS', 'PIPELINES', 'SNAPSHOTS'];

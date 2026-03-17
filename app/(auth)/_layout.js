@@ -14,6 +14,8 @@ export default function AuthLayout() {
       <Stack.Screen name="signup" />
       <Stack.Screen name="verify-email" />
       <Stack.Screen name="business-dna" />
+      <Stack.Screen name="elite-auth" />
+      <Stack.Screen name="branded-auth-email" />
     </Stack>
   );
 }

@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/AuthContext';
 import { API_BASE, API_KEY } from '../../lib/api';
 
-const GHL_TOKEN = 'pit-24654b55-6e44-49f5-8912-5632ab08c615';
+const GHL_TOKEN = '';
 const GHL_BASE  = 'https://services.leadconnectorhq.com';
 const GHL_LOC   = 'oRA8vL3OSiCPjpwmEC0V';
 

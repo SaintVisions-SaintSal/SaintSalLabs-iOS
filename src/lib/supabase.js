@@ -156,14 +156,14 @@ export const STRIPE_PRICE_IDS = {
 };
 
 /** Deduct compute seconds after an AI call
- *  Hits the shared backend endpoint — same as saintsal.ai
+ *  Hits the Labs backend endpoint
  */
 export const deductCompute = async (seconds) => {
   try {
     const session = await supabase.auth.getSession();
     const token = session?.data?.session?.access_token;
     const res = await fetch(
-      'https://saintsal-backend-0mv8.onrender.com/api/website-builder/compute-deduct',
+      'https://saintsallabs-api.onrender.com/api/website-builder/compute-deduct',
       {
         method: 'POST',
         headers: {

@@ -74,6 +74,31 @@ export default function StackLayout() {
       <Stack.Screen name="business-formation" />
       <Stack.Screen name="legal-vault" />
       <Stack.Screen name="help-ceo-desk" />
+
+      {/* Stitch Screens (Phase 10) — 16 new wired screens */}
+      <Stack.Screen name="elite-intel-hub" />
+      <Stack.Screen name="elite-re-finder" />
+      <Stack.Screen name="global-intel-chat" />
+      <Stack.Screen name="finance-chat" />
+      <Stack.Screen name="creative-chat" />
+      <Stack.Screen name="re-executive-chat" />
+      <Stack.Screen name="ghl-smart-bridge-v2" />
+      <Stack.Screen name="home-base-command" />
+      <Stack.Screen name="social-studio-v2" />
+      <Stack.Screen name="content-generator" />
+      <Stack.Screen name="full-spectrum-v2" />
+      <Stack.Screen name="image-hub-v2" />
+      <Stack.Screen name="connectors-hub" />
+      <Stack.Screen name="ai-planning-agent" />
+      <Stack.Screen name="high-fidelity-ide" />
+
+      {/* Stitch Screens (Phase 11) — additional screens */}
+      <Stack.Screen name="domain-ssl-command" />
+      <Stack.Screen name="connections-hub" />
+      <Stack.Screen name="viewport-simulator" />
+      <Stack.Screen name="file-system-apis" />
+      <Stack.Screen name="github-console-v2" />
+      <Stack.Screen name="elite-nav-hub" />
     </Stack>
   );
 }

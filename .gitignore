@@ -9,3 +9,5 @@ dist/
 *.mobileprovision
 *.orig.*
 web-build/
+stitch-screens/saintsal.txt
+stitch-screens/

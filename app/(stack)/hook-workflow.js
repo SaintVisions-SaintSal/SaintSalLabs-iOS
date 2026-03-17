@@ -1,2 +1,2 @@
 /* Route: /(stack)/hook-workflow */
-export { default } from '../../src/screens/platform/HookWorkflowScreen';
+export { default } from '../../src/screens/platform/WorkflowHooks';

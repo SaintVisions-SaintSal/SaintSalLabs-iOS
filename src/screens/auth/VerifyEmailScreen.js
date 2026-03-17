@@ -1,220 +1,255 @@
 /* ═══════════════════════════════════════════════════
-   SCREEN 4 — EMAIL VERIFICATION
-   saintsal_branded_auth_email → Check your inbox
-   Colors: #0C0C0F bg · #D4AF37 gold gradient border
+   SAINTSAL LABS — EMAIL VERIFY SCREEN
+   saintsal_branded_auth_email — Check your inbox
 ═══════════════════════════════════════════════════ */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  SafeAreaView, Animated, Alert,
+  SafeAreaView, ActivityIndicator, StatusBar, ScrollView,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 
-const GOLD     = '#D4AF37';
-const GOLD_DIM = '#B8860B';
-const BG       = '#0C0C0F';
+const GOLD = '#D4AF37';
+const BLACK = '#0F0F0F';
+const SURFACE = 'rgba(255,255,255,0.04)';
+const BORDER = 'rgba(255,255,255,0.08)';
+const GOLD_DIM = 'rgba(212,175,55,0.1)';
+const MUTED = 'rgba(255,255,255,0.5)';
 
-export default function VerifyEmailScreen() {
+export default function EmailVerifyScreen() {
   const router = useRouter();
-  const { email } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const email = params.email || 'your email';
   const [resending, setResending] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-
-  const fadeIn  = useRef(new Animated.Value(0)).current;
-  const slideUp = useRef(new Animated.Value(30)).current;
-  const shimmer = useRef(new Animated.Value(0)).current;
+  const [resendDone, setResendDone] = useState(false);
+  const [resendError, setResendError] = useState('');
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeIn,  { toValue: 1, duration: 600, useNativeDriver: true }),
-      Animated.timing(slideUp, { toValue: 0, duration: 600, useNativeDriver: true }),
-    ]).start();
-
-    // Gold shimmer on border
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmer, { toValue: 1, duration: 1800, useNativeDriver: false }),
-        Animated.timing(shimmer, { toValue: 0, duration: 1800, useNativeDriver: false }),
-      ])
-    ).start();
-
-    // Poll for auth state change (user clicks link in email)
+    // Poll for verification every 3s
     const interval = setInterval(async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+      if (session?.user?.email_confirmed_at) {
         clearInterval(interval);
-        router.replace('/(auth)/business-dna');
+        router.replace('/business-dna-setup');
       }
     }, 3000);
-
     return () => clearInterval(interval);
   }, []);
 
   const handleResend = async () => {
-    if (countdown > 0) return;
+    setResendError('');
     setResending(true);
     try {
-      await supabase.auth.resend({ type: 'signup', email });
-      Alert.alert('Sent!', 'Verification email resent. Check your inbox.');
-      setCountdown(60);
-      const cd = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) { clearInterval(cd); return 0; }
-          return prev - 1;
-        });
-      }, 1000);
-    } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to resend. Try again.');
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: typeof email === 'string' ? email : email[0],
+      });
+      if (error) { setResendError(error.message); return; }
+      setResendDone(true);
+      setTimeout(() => setResendDone(false), 5000);
+    } catch {
+      setResendError('Failed to resend. Try again.');
     } finally {
       setResending(false);
     }
   };
 
-  const borderColor = shimmer.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [GOLD_DIM, GOLD, GOLD_DIM],
-  });
+  const handleCheckVerification = async () => {
+    setChecking(true);
+    try {
+      await supabase.auth.refreshSession();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.email_confirmed_at) {
+        router.replace('/business-dna-setup');
+      } else {
+        setResendError('Not verified yet. Check your inbox.');
+      }
+    } catch {
+      setResendError('Could not check status. Try again.');
+    } finally {
+      setChecking(false);
+    }
+  };
 
   return (
-    <SafeAreaView style={s.safe}>
-      <Animated.View style={[s.container, { opacity: fadeIn, transform: [{ translateY: slideUp }] }]}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={BLACK} />
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Gold gradient top bar */}
-        <View style={s.topBar} />
+        {/* Top accent */}
+        <View style={styles.topAccent} />
 
-        {/* Card */}
-        <Animated.View style={[s.card, { borderColor }]}>
+        {/* Logo */}
+        <View style={styles.logoSection}>
+          <View style={styles.logoBadge}>
+            <Text style={styles.logoLetter}>S</Text>
+          </View>
+          <Text style={styles.logoLabel}>SAINTSAL™ LABS</Text>
+        </View>
 
-          {/* Logo */}
-          <View style={s.logoWrap}>
-            <View style={s.logoBox}>
-              <Text style={s.logoTxt}>S</Text>
-            </View>
+        {/* Identity verification title */}
+        <View style={styles.titleSection}>
+          <Text style={styles.eyebrow}>IDENTITY VERIFICATION</Text>
+          <Text style={styles.title}>Your Elite Access{'\n'}Key is here.</Text>
+        </View>
+
+        {/* Main card */}
+        <View style={styles.card}>
+          {/* Email icon */}
+          <View style={styles.emailIconCircle}>
+            <Text style={styles.emailIcon}>✉</Text>
           </View>
 
-          {/* Title */}
-          <Text style={s.tagline}>IDENTITY VERIFICATION</Text>
-          <Text style={s.title}>Your Elite Access Key is here.</Text>
-
-          {/* Body */}
-          <Text style={s.body}>
+          <Text style={styles.cardBody}>
             To complete your secure authentication and access the SaintSal™ Labs infrastructure, please verify your identity using the link sent to:
           </Text>
 
-          {/* Email display */}
-          <View style={s.emailBadge}>
-            <Text style={s.emailTxt}>{email || 'your email'}</Text>
+          <View style={styles.emailBadge}>
+            <Text style={styles.emailText}>{email}</Text>
           </View>
 
-          {/* Verify instruction */}
-          <View style={s.instructionBox}>
-            <Text style={s.instructionLabel}>ALTERNATIVE ACCESS CODE</Text>
-            <Text style={s.instructionBody}>
-              Check your inbox for the verification email and click the button inside. This page will automatically continue once verified.
-            </Text>
+          <Text style={styles.expiryNote}>Access key expires in 10 minutes.</Text>
+
+          {/* Fallback code section */}
+          <View style={styles.fallbackSection}>
+            <Text style={styles.fallbackLabel}>ALTERNATIVE ACCESS CODE</Text>
+            <View style={styles.codePlaceholder}>
+              <Text style={styles.codeText}>— — — — — —</Text>
+            </View>
+            <Text style={styles.fallbackNote}>Check your email for the numeric code</Text>
           </View>
 
-          {/* Waiting indicator */}
-          <View style={s.waitRow}>
-            <View style={s.waitDot} />
-            <Text style={s.waitTxt}>Waiting for verification...</Text>
-          </View>
-
-          {/* Resend */}
+          {/* Actions */}
           <TouchableOpacity
-            style={[s.resendBtn, (countdown > 0 || resending) && s.resendDisabled]}
-            onPress={handleResend}
-            disabled={countdown > 0 || resending}
+            style={[styles.primaryBtn, checking && styles.btnDisabled]}
+            onPress={handleCheckVerification}
+            disabled={checking}
+            activeOpacity={0.85}
           >
-            <Text style={s.resendTxt}>
-              {resending ? 'SENDING...' : countdown > 0 ? `RESEND IN ${countdown}s` : 'RESEND EMAIL'}
-            </Text>
+            {checking ? (
+              <ActivityIndicator color={BLACK} size="small" />
+            ) : (
+              <Text style={styles.primaryBtnText}>VERIFY IDENTITY</Text>
+            )}
           </TouchableOpacity>
 
-          {/* Back to login */}
-          <TouchableOpacity style={s.backRow} onPress={() => router.replace('/(auth)/login')}>
-            <Text style={s.backTxt}>← Back to Sign In</Text>
-          </TouchableOpacity>
-        </Animated.View>
+          {resendDone ? (
+            <View style={styles.successBox}>
+              <Text style={styles.successText}>✓ New access key sent! Check your inbox.</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[styles.resendBtn, resending && styles.btnDisabled]}
+              onPress={handleResend}
+              disabled={resending}
+            >
+              {resending ? (
+                <ActivityIndicator color={GOLD} size="small" />
+              ) : (
+                <Text style={styles.resendBtnText}>RESEND ACCESS KEY</Text>
+              )}
+            </TouchableOpacity>
+          )}
+
+          {!!resendError && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{resendError}</Text>
+            </View>
+          )}
+        </View>
 
         {/* Footer */}
-        <View style={s.footer}>
-          <Text style={s.footerTxt}>© 2025 Saint Vision Technologies. All Rights Reserved.</Text>
-          <Text style={s.footerSub}>SaintSal™ Labs Division · Confidentiality Level: Restricted</Text>
-          <View style={s.footerLinks}>
-            <TouchableOpacity><Text style={s.footerLink}>Privacy Policy</Text></TouchableOpacity>
-            <Text style={s.footerDot}>•</Text>
-            <TouchableOpacity><Text style={s.footerLink}>Security Protocols</Text></TouchableOpacity>
+        <View style={styles.footer}>
+          <Text style={styles.footerCopy}>© 2024 Saint Vision Technologies. All Rights Reserved.</Text>
+          <Text style={styles.footerSub}>SaintSal™ Labs Division</Text>
+          <Text style={styles.footerSub}>Confidentiality Level: Restricted</Text>
+          <View style={styles.footerLinks}>
+            <TouchableOpacity><Text style={styles.footerLink}>Privacy Policy</Text></TouchableOpacity>
+            <Text style={styles.footerDot}>•</Text>
+            <TouchableOpacity><Text style={styles.footerLink}>Security Protocols</Text></TouchableOpacity>
           </View>
         </View>
-      </Animated.View>
+
+        {/* Back */}
+        <TouchableOpacity style={styles.backRow} onPress={() => router.push('/sign-in')}>
+          <Text style={styles.backText}>← BACK TO SIGN IN</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
-  container: { flex: 1, paddingHorizontal: 20, paddingTop: 20 },
-  topBar: {
-    height: 4,
-    backgroundColor: GOLD,
-    borderRadius: 2,
-    marginBottom: 24,
-    shadowColor: GOLD,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 8,
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0C0C0F' },
+  scroll: { flexGrow: 1, paddingBottom: 40 },
+  topAccent: { height: 4, backgroundColor: GOLD },
+  logoSection: { alignItems: 'center', paddingTop: 32, paddingBottom: 24, gap: 12 },
+  logoBadge: {
+    width: 48, height: 48, borderRadius: 24, backgroundColor: GOLD_DIM,
+    borderWidth: 1, borderColor: `${GOLD}4D`, alignItems: 'center', justifyContent: 'center',
   },
+  logoLetter: { color: GOLD, fontWeight: '800', fontSize: 24, fontFamily: 'PublicSans-Bold' },
+  logoLabel: { color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 3, fontFamily: 'PublicSans-Bold' },
+  titleSection: { paddingHorizontal: 32, paddingBottom: 24 },
+  eyebrow: { color: GOLD, fontSize: 10, fontWeight: '700', letterSpacing: 5, marginBottom: 12, fontFamily: 'PublicSans-Bold' },
+  title: { color: '#fff', fontSize: 26, fontWeight: '300', lineHeight: 34, letterSpacing: 1, fontFamily: 'PublicSans-Light' },
   card: {
-    backgroundColor: '#111116',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: GOLD + '44',
-    padding: 28,
-    gap: 16,
+    marginHorizontal: 24, backgroundColor: SURFACE, borderWidth: 1, borderColor: BORDER,
+    borderRadius: 12, padding: 24, gap: 16, overflow: 'hidden',
   },
-  logoWrap: { alignItems: 'center', marginBottom: 4 },
-  logoBox: {
-    width: 56, height: 56, borderRadius: 14,
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: GOLD + '55',
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: GOLD, shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
-  },
-  logoTxt: { fontSize: 28, fontWeight: '800', color: GOLD },
-  tagline: { fontSize: 10, fontWeight: '800', color: GOLD, letterSpacing: 3, textAlign: 'center', textTransform: 'uppercase' },
-  title: { fontSize: 22, fontWeight: '300', color: '#FFFFFF', textAlign: 'center', letterSpacing: 0.5 },
-  body: { fontSize: 13, color: '#9CA3AF', textAlign: 'center', lineHeight: 20 },
-  emailBadge: {
-    backgroundColor: GOLD + '15', borderRadius: 8, borderWidth: 1,
-    borderColor: GOLD + '30', paddingVertical: 10, paddingHorizontal: 16,
+  emailIconCircle: {
+    width: 64, height: 64, borderRadius: 32, backgroundColor: GOLD_DIM,
+    borderWidth: 1, borderColor: GOLD, alignItems: 'center', justifyContent: 'center',
     alignSelf: 'center',
   },
-  emailTxt: { fontSize: 13, fontWeight: '700', color: GOLD, letterSpacing: 0.5 },
-  instructionBox: {
-    backgroundColor: '#FFFFFF08', borderRadius: 10, borderWidth: 1,
-    borderColor: '#FFFFFF10', padding: 16, gap: 8,
+  emailIcon: { fontSize: 28, color: GOLD },
+  cardBody: { color: 'rgba(156,163,175,1)', fontSize: 14, lineHeight: 22, textAlign: 'center', fontFamily: 'PublicSans-Regular' },
+  emailBadge: {
+    backgroundColor: GOLD_DIM, borderWidth: 1, borderColor: `${GOLD}4D`,
+    borderRadius: 8, padding: 12, alignItems: 'center',
   },
-  instructionLabel: { fontSize: 9, fontWeight: '700', color: '#6B7280', letterSpacing: 2, textTransform: 'uppercase' },
-  instructionBody: { fontSize: 12, color: '#9CA3AF', lineHeight: 18, textAlign: 'center' },
-  waitRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  waitDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#22C55E' },
-  waitTxt: { fontSize: 12, color: '#6B7280', fontWeight: '600' },
+  emailText: { color: GOLD, fontWeight: '700', fontSize: 14, fontFamily: 'PublicSans-Bold' },
+  expiryNote: { color: MUTED, fontSize: 12, textAlign: 'center', fontStyle: 'italic', fontFamily: 'PublicSans-Regular' },
+  fallbackSection: {
+    backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: BORDER,
+    borderRadius: 8, padding: 20, alignItems: 'center', gap: 8,
+  },
+  fallbackLabel: { color: MUTED, fontSize: 9, letterSpacing: 4, fontFamily: 'PublicSans-Bold' },
+  codePlaceholder: { paddingVertical: 8 },
+  codeText: { color: GOLD, fontSize: 28, fontWeight: '700', letterSpacing: 12, fontFamily: 'PublicSans-Bold' },
+  fallbackNote: { color: 'rgba(75,85,99,1)', fontSize: 10, fontFamily: 'PublicSans-Regular' },
+  primaryBtn: {
+    backgroundColor: GOLD, borderRadius: 4, paddingVertical: 16,
+    alignItems: 'center',
+  },
+  btnDisabled: { opacity: 0.6 },
+  primaryBtnText: { color: BLACK, fontWeight: '800', fontSize: 13, letterSpacing: 4, fontFamily: 'PublicSans-ExtraBold' },
   resendBtn: {
-    backgroundColor: GOLD, borderRadius: 8, paddingVertical: 14,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: GOLD, shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
+    borderWidth: 1, borderColor: GOLD, borderRadius: 4, paddingVertical: 14,
+    alignItems: 'center',
   },
-  resendDisabled: { backgroundColor: GOLD + '55' },
-  resendTxt: { fontSize: 12, fontWeight: '800', color: BG, letterSpacing: 2 },
-  backRow: { alignItems: 'center' },
-  backTxt: { fontSize: 12, color: GOLD + '80', fontWeight: '600' },
-  footer: { alignItems: 'center', paddingTop: 24, paddingBottom: 16, gap: 4 },
-  footerTxt: { fontSize: 10, color: '#444455', textAlign: 'center' },
-  footerSub: { fontSize: 9, color: '#333344', textAlign: 'center' },
-  footerLinks: { flexDirection: 'row', gap: 10, alignItems: 'center', marginTop: 4 },
-  footerLink: { fontSize: 9, color: GOLD + '66', letterSpacing: 1 },
-  footerDot: { fontSize: 9, color: '#333344' },
+  resendBtnText: { color: GOLD, fontWeight: '700', fontSize: 11, letterSpacing: 3, fontFamily: 'PublicSans-Bold' },
+  successBox: {
+    backgroundColor: 'rgba(74,222,128,0.1)', borderWidth: 1,
+    borderColor: 'rgba(74,222,128,0.3)', borderRadius: 8, padding: 12, alignItems: 'center',
+  },
+  successText: { color: '#4ade80', fontSize: 13, fontFamily: 'PublicSans-Regular' },
+  errorBox: {
+    backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.3)', borderRadius: 8, padding: 12,
+  },
+  errorText: { color: '#f87171', fontSize: 13, fontFamily: 'PublicSans-Regular' },
+  footer: {
+    marginTop: 32, paddingHorizontal: 32, backgroundColor: 'rgba(0,0,0,0.4)',
+    borderTopWidth: 1, borderTopColor: BORDER, paddingVertical: 32, alignItems: 'center', gap: 4,
+  },
+  footerCopy: { color: 'rgba(107,114,128,1)', fontSize: 11, fontFamily: 'PublicSans-Regular' },
+  footerSub: { color: 'rgba(75,85,99,1)', fontSize: 10, letterSpacing: 2, fontFamily: 'PublicSans-Regular' },
+  footerLinks: { flexDirection: 'row', gap: 12, marginTop: 16 },
+  footerLink: { color: `${GOLD}80`, fontSize: 10, fontFamily: 'PublicSans-Regular' },
+  footerDot: { color: BORDER },
+  backRow: { alignItems: 'center', paddingVertical: 16 },
+  backText: { color: GOLD, fontSize: 11, letterSpacing: 3, fontFamily: 'PublicSans-Bold' },
 });
