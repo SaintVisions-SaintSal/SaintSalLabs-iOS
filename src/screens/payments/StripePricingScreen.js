@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { C, PRICING_TIERS } from '../../config/theme';
 import AuthContext from '../../lib/AuthContext';
 
-const LABS_API = 'https://saintsallabs.com/api/mcp/stripe';
+const LABS_API = 'https://saintsallabs-api.onrender.com/api/mcp/stripe';
 const SAL_KEY  = 'sal-live-2026';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -63,8 +63,8 @@ export default function StripePricingScreen() {
           payload: {
             priceKey,
             email:      user?.email || profile?.email || '',
-            successUrl: 'https://saintsallabs.com/success?upgraded=1',
-            cancelUrl:  'https://saintsallabs.com/pricing',
+            successUrl: 'saintsallabs://payment/success?upgraded=1',
+            cancelUrl:  'saintsallabs://payment/cancel',
             metadata:   { userId: user?.id || '', plan: tierName.toLowerCase(), source: 'ios' },
           },
         }),

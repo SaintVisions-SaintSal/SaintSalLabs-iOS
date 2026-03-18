@@ -7,7 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { C } from '../../config/theme';
 import AuthContext from '../../lib/AuthContext';
 
-const LABS_API = 'https://saintsallabs.com/api/mcp/stripe';
+const LABS_API = 'https://saintsallabs-api.onrender.com/api/mcp/stripe';
 const SAL_KEY  = 'sal-live-2026';
 
 const PLAN_META = {
@@ -38,8 +38,8 @@ export default function CheckoutScreen() {
           payload: {
             priceKey:   plan.priceKey,
             email:      user?.email || profile?.email || '',
-            successUrl: 'https://saintsallabs.com/success?upgraded=1',
-            cancelUrl:  'https://saintsallabs.com/pricing',
+            successUrl: 'saintsallabs://payment/success?upgraded=1',
+            cancelUrl:  'saintsallabs://payment/cancel',
             metadata:   { userId: user?.id || '', plan: planId, source: 'ios' },
           },
         }),
