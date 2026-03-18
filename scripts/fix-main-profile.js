@@ -13,7 +13,7 @@ const KEY_ID     = 'L5THU6WGBB';
 const ISSUER_ID  = '5cefc466-9ad9-4956-b761-683c25505aa1';
 const TEAM_ID    = '2DG74QA62B';
 const MAIN_BID   = 'com.saintvision.saintsallabs';
-const CERT_SERIAL = '25A3FB4BA20DA228DA453F929B8DB6F6';
+const CERT_SERIAL = '28BB00AADE251FA8CF3AF6C9F77C8BDF';
 const KEY_PATH   = path.join(__dirname, '../AuthKey_L5THU6WGBB.p8');
 const OUT_PATH   = path.join(__dirname, '../saintsallabs.mobileprovision');
 

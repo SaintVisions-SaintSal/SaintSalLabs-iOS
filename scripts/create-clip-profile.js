@@ -12,7 +12,7 @@ const path  = require('path');
 const KEY_ID     = 'L5THU6WGBB';
 const ISSUER_ID  = '5cefc466-9ad9-4956-b761-683c25505aa1';
 const CLIP_BID_ID = 'TA2WW69CC7';   // portal ID from create-appclip-bundleid.js
-const CERT_SERIAL = '25A3FB4BA20DA228DA453F929B8DB6F6'; // EAS-created dist cert
+const CERT_SERIAL = '28BB00AADE251FA8CF3AF6C9F77C8BDF'; // dist_cert.p12 cert
 const KEY_PATH   = path.join(__dirname, '../AuthKey_L5THU6WGBB.p8');
 const OUT_PATH   = path.join(__dirname, '../saintsallabsclip.mobileprovision');
 
@@ -82,14 +82,15 @@ async function createProfile(certId) {
   let profileData = null;
 
   if (existing.body.data && existing.body.data.length > 0) {
-    profileData = existing.body.data[0];
-    console.log(`✅ Found existing profile: ${profileData.id} (${profileData.attributes?.name})`);
-    // Check if it's still valid
-    if (profileData.attributes?.profileState === 'ACTIVE') {
-      console.log('✅ Profile is active, using it');
-    } else {
-      console.log('⚠️  Profile invalid, creating new one...');
-      profileData = null;
+    // Force delete and recreate to ensure the profile uses the correct cert
+    for (const p of existing.body.data) {
+      console.log(`🗑️  Deleting old profile: ${p.id} (${p.attributes?.name})`);
+      const del = await api('DELETE', `/v1/profiles/${p.id}`);
+      if (del.status === 204) {
+        console.log(`✅ Deleted`);
+      } else {
+        console.log(`⚠️  Could not delete: status ${del.status}`);
+      }
     }
   }
 
