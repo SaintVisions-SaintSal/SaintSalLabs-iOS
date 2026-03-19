@@ -14,6 +14,7 @@ import {
   Modal,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -218,6 +219,7 @@ export default function ContentGenerator({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe}>
+        <ScreenHeader title="Content Generator" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

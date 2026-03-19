@@ -24,6 +24,7 @@ import {
   Animated,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
 
 /* ── Credentials ── */
 const GHL_TOKEN    = '';
@@ -464,6 +465,7 @@ export default function GHLSmartBridge() {
 
   return (
     <SafeAreaView style={styles.container}>
+        <ScreenHeader title="GHL Smart Bridge" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLogoArea}>

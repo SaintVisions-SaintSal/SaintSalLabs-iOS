@@ -125,10 +125,7 @@ export default function StackLayout() {
       <Stack.Screen name="co-ceo-desk" />
       <Stack.Screen name="navigation-hub-v2" />
 
-      {/* Credit / Billing */}
-      <Stack.Screen name="credit-topup" />
-      <Stack.Screen name="social-generator" />
-      <Stack.Screen name="social-connections" />
+      {/* NOTE: credit-topup, social-generator, social-connections already declared above */}
     </Stack>
   );
 }

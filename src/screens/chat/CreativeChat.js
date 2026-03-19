@@ -23,6 +23,7 @@ import {
   Animated,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -320,6 +321,7 @@ export default function CreativeChat() {
 
   return (
     <SafeAreaView style={styles.container}>
+        <ScreenHeader title="Creative AI" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

@@ -22,6 +22,7 @@ import {
   Platform,
 } from 'react-native';
 import { C } from '../../config/theme';
+import { useRouter } from 'expo-router';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -45,15 +46,16 @@ const COMPUTE_NODES = [
 ];
 
 const INTELLIGENCE_CARDS = [
-  { icon: '🔍', label: 'SAL Search',    desc: 'Research anything. Know everything.', accent: '#F59E0B' },
-  { icon: '📈', label: 'Finance AI',    desc: 'Markets. Macro. Money.',              accent: '#22C55E' },
-  { icon: '🏠', label: 'RE Executive',  desc: 'Find deals. Analyze fast.',           accent: '#D4AF37' },
-  { icon: '⚡', label: 'GHL Bridge',    desc: 'CRM · Leads · Automations.',         accent: '#F59E0B' },
-  { icon: '🎨', label: 'Creative AI',   desc: 'Copy · Image · Video.',              accent: '#818CF8' },
-  { icon: '🏗',  label: 'SAL Builder',  desc: 'Build. Create. Ship.',               accent: '#EC4899' },
+  { icon: '🔍', label: 'SAL Search',    desc: 'Research anything. Know everything.', accent: '#F59E0B', route: '/(tabs)/search' },
+  { icon: '📈', label: 'Finance AI',    desc: 'Markets. Macro. Money.',              accent: '#22C55E', route: '/(stack)/finance-chat' },
+  { icon: '🏠', label: 'RE Executive',  desc: 'Find deals. Analyze fast.',           accent: '#D4AF37', route: '/(stack)/elite-real-estate' },
+  { icon: '⚡', label: 'GHL Bridge',    desc: 'CRM · Leads · Automations.',         accent: '#F59E0B', route: '/(stack)/ghl-smart-bridge' },
+  { icon: '🎨', label: 'Creative AI',   desc: 'Copy · Image · Video.',              accent: '#818CF8', route: '/(stack)/creative-chat' },
+  { icon: '🏗',  label: 'SAL Builder',  desc: 'Build. Create. Ship.',               accent: '#EC4899', route: '/(tabs)/builder' },
 ];
 
 export default function HomeBaseCommand() {
+  const router = useRouter();
   const [profile, setProfile]           = useState(null);
   const [portfolio, setPortfolio]       = useState(null);
   const [positions, setPositions]       = useState([]);
@@ -285,7 +287,7 @@ export default function HomeBaseCommand() {
             <TouchableOpacity style={styles.notifBtn}>
               <Text style={styles.notifIcon}>🔔</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.upgradeBtn}>
+            <TouchableOpacity style={styles.upgradeBtn} onPress={() => router.push('/(stack)/stripe-pricing')}>
               <Text style={styles.upgradeBtnIcon}>⚡</Text>
               <Text style={styles.upgradeBtnText}>UPGRADE</Text>
             </TouchableOpacity>
@@ -415,11 +417,32 @@ export default function HomeBaseCommand() {
           </View>
           <View style={styles.intelGrid}>
             {INTELLIGENCE_CARDS.map((card, i) => (
-              <TouchableOpacity key={i} style={styles.intelCard} onPress={() => Alert.alert(card.label, card.desc)}>
+              <TouchableOpacity key={i} style={styles.intelCard} onPress={() => router.push(card.route)}>
                 <Text style={styles.intelCardIcon}>{card.icon}</Text>
                 <Text style={styles.intelCardLabel}>{card.label}</Text>
                 <Text style={styles.intelCardDesc}>{card.desc}</Text>
                 <View style={[styles.intelCardDot, { backgroundColor: card.accent }]} />
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* ── Quick Links ── */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionBar} />
+            <Text style={styles.sectionTitle}>QUICK LINKS</Text>
+          </View>
+          <View style={styles.intelGrid}>
+            {[
+              { icon: '📱', label: 'Social Studio',   route: '/(stack)/social-studio-v2' },
+              { icon: '💼', label: 'Portfolio',        route: '/(stack)/portfolio' },
+              { icon: '🚀', label: 'Deploy Hub',       route: '/(stack)/elite-deploy' },
+              { icon: '💳', label: 'Credit Top-Up',    route: '/(stack)/credit-topup' },
+              { icon: '📂', label: 'GitHub Console',   route: '/(stack)/github-console' },
+              { icon: '🌐', label: 'Domain & SSL',     route: '/(stack)/domain-ssl-command' },
+            ].map((link, i) => (
+              <TouchableOpacity key={i} style={styles.intelCard} onPress={() => router.push(link.route)}>
+                <Text style={styles.intelCardIcon}>{link.icon}</Text>
+                <Text style={styles.intelCardLabel}>{link.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -451,7 +474,7 @@ export default function HomeBaseCommand() {
               <Text style={styles.billingTitle}>Stripe Billing Portal</Text>
               <Text style={styles.billingDesc}>View invoices and payment history</Text>
             </View>
-            <TouchableOpacity style={styles.billingBtn} onPress={() => Alert.alert('Billing', 'Opening Stripe billing portal...')}>
+            <TouchableOpacity style={styles.billingBtn} onPress={() => router.push('/(stack)/stripe-pricing')}>
               <Text style={styles.billingBtnText}>MANAGE</Text>
             </TouchableOpacity>
           </View>
@@ -460,28 +483,7 @@ export default function HomeBaseCommand() {
         </View>
       </ScrollView>
 
-      {/* Mobile bottom navigation */}
-      <View style={styles.bottomNav}>
-        {[
-          { icon: '🏠', label: 'HOME',    active: true  },
-          { icon: '🏗',  label: 'BUILDS',  active: false },
-          { icon: '⚡', label: '',         active: false, fab: true },
-          { icon: '🔑', label: 'API',     active: false },
-          { icon: '👤', label: 'PROFILE', active: false },
-        ].map((item, i) => {
-          if (item.fab) return (
-            <TouchableOpacity key={i} style={styles.fabBtn} onPress={() => Alert.alert('New', 'Start a new build or chat session.')}>
-              <Text style={styles.fabIcon}>+</Text>
-            </TouchableOpacity>
-          );
-          return (
-            <TouchableOpacity key={i} style={styles.navItem}>
-              <Text style={styles.navItemIcon}>{item.icon}</Text>
-              <Text style={[styles.navItemLabel, item.active && styles.navItemLabelActive]}>{item.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      {/* Navigation handled by tab bar */}
     </SafeAreaView>
   );
 }

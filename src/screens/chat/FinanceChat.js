@@ -15,6 +15,7 @@ import {
   Alert,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const ANTHROPIC_API_KEY =
   'LABS_BACKEND_PROXY';
@@ -416,6 +417,7 @@ export default function FinanceChat({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
+        <ScreenHeader title="Finance AI" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

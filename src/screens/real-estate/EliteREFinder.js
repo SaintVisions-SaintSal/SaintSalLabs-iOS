@@ -13,6 +13,7 @@ import {
   Animated,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const SUPABASE_URL = 'https://euxrlpuegeiggedqbkiv.supabase.co';
 const SUPABASE_ANON_KEY =
@@ -320,6 +321,7 @@ export default function EliteREFinder({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
+        <ScreenHeader title="RE Property Finder" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

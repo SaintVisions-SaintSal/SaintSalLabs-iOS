@@ -13,6 +13,7 @@ import {
   Alert,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const SUPABASE_URL = 'https://euxrlpuegeiggedqbkiv.supabase.co';
 const SUPABASE_ANON_KEY =
@@ -290,6 +291,7 @@ export default function EliteIntelHub({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
+        <ScreenHeader title="Intelligence Hub" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.statusBar}>

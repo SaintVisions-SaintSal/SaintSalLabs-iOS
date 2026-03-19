@@ -14,6 +14,7 @@ import {
   Animated,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const ANTHROPIC_API_KEY =
   'LABS_BACKEND_PROXY';
@@ -281,6 +282,7 @@ export default function GlobalIntelChat({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
+        <ScreenHeader title="Global Intelligence" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

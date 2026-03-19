@@ -21,6 +21,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
 
 /* ── API credentials ── */
 const ANTHROPIC_KEY   = 'LABS_BACKEND_PROXY';
@@ -318,6 +319,7 @@ export default function REExecutiveChat() {
 
   return (
     <SafeAreaView style={styles.container}>
+        <ScreenHeader title="RE Executive" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
