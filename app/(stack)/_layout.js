@@ -126,6 +126,15 @@ export default function StackLayout() {
       <Stack.Screen name="navigation-hub-v2" />
 
       {/* NOTE: credit-topup, social-generator, social-connections already declared above */}
+
+      {/* Build #68 — Onboarding Flow */}
+      <Stack.Screen name="onboarding-welcome" />
+      <Stack.Screen name="onboarding-dna" />
+      <Stack.Screen name="onboarding-profile" />
+      <Stack.Screen name="onboarding-tutorial" />
+
+      {/* Build #68 — GHL Command Center */}
+      <Stack.Screen name="ghl-command" />
     </Stack>
   );
 }
