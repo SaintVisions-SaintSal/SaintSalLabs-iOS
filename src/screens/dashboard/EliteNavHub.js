@@ -134,7 +134,7 @@ export default function NavigationHub() {
           </View>
         </View>
         <Text style={styles.headerTitle}>SaintSal™</Text>
-        <TouchableOpacity style={styles.menuBtn} onPress={() => router.push('/(tabs)')}>
+        <TouchableOpacity style={styles.menuBtn} onPress={() => router.replace('/(tabs)')}>
           <Text style={styles.menuIcon}>≡</Text>
         </TouchableOpacity>
       </View>

@@ -416,7 +416,7 @@ export default function DashboardScreen() {
       </ScrollView>
 
       {/* ── FAB (preserved) ────────────────────────── */}
-      <TouchableOpacity style={s.fab} activeOpacity={0.8} onPress={() => router.push('/(tabs)/')}>
+      <TouchableOpacity style={s.fab} activeOpacity={0.8} onPress={() => router.replace('/(tabs)')}>
         <Text style={s.fabIcon}>💬</Text>
       </TouchableOpacity>
     </SafeAreaView>

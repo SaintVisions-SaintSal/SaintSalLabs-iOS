@@ -1,13 +1,13 @@
 /* ═══════════════════════════════════════════════════
    REUSABLE SCREEN HEADER — Back button + title
    Used by stack screens to enable navigation back
+   Does NOT include SafeAreaView — screens handle that
 ═══════════════════════════════════════════════════ */
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 
 const GOLD = '#D4AF37';
-const BG = '#0F0F0F';
 
 export default function ScreenHeader({ title, subtitle, onBack }) {
   const router = useRouter();
@@ -20,25 +20,20 @@ export default function ScreenHeader({ title, subtitle, onBack }) {
   });
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
-        <View style={styles.titleArea}>
-          <Text style={styles.title} numberOfLines={1}>{title || 'SaintSal™ Labs'}</Text>
-          {!!subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
-        </View>
-        <View style={styles.backBtn} />
+    <View style={styles.header}>
+      <TouchableOpacity style={styles.backBtn} onPress={handleBack} activeOpacity={0.7}>
+        <Text style={styles.backIcon}>‹</Text>
+      </TouchableOpacity>
+      <View style={styles.titleArea}>
+        <Text style={styles.title} numberOfLines={1}>{title || 'SaintSal™ Labs'}</Text>
+        {!!subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       </View>
-    </SafeAreaView>
+      <View style={styles.spacer} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: BG,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -78,5 +73,8 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     marginTop: 2,
     textTransform: 'uppercase',
+  },
+  spacer: {
+    width: 40,
   },
 });

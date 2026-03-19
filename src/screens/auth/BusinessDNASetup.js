@@ -115,15 +115,15 @@ export default function BusinessDNASetup() {
       });
       if (res.ok || res.status === 201) {
         Alert.alert('Business DNA Initialized', 'Your elite profile is live. Welcome to SaintSal Labs.', [
-          { text: 'Launch Dashboard', onPress: () => router.replace('/(tabs)/dashboard') },
+          { text: 'Launch Dashboard', onPress: () => router.replace('/(tabs)') },
         ]);
       } else {
         Alert.alert('Save Error', `Status ${res.status}. Profile may already exist.`);
-        router.replace('/(tabs)/dashboard');
+        router.replace('/(tabs)');
       }
     } catch (err) {
       Alert.alert('Connection Error', 'Could not save. Proceeding to dashboard.');
-      router.replace('/(tabs)/dashboard');
+      router.replace('/(tabs)');
     } finally {
       setSaving(false);
     }

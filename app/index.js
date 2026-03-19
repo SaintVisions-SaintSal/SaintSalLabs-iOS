@@ -1,31 +1,41 @@
 /* ═══════════════════════════════════════════════════
    SAINTSALLABS — ROOT INDEX
-   Routes through SmartEntryScreen on every launch
+   Auth check → route to tabs (authenticated) or sign-in (not)
+   Tabs are the home base. Stack screens push on top.
 ═══════════════════════════════════════════════════ */
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../src/lib/supabase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Index() {
   const router = useRouter();
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (session) {
-        router.replace('/(stack)/smart-entry?mode=returning');
-      } else {
-        const hasVisited = await AsyncStorage.getItem('sal_has_visited');
-        if (hasVisited) {
-          router.replace('/(stack)/smart-entry?mode=guest-returning');
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          // Authenticated → go to main app (tabs)
+          router.replace('/(tabs)');
         } else {
-          router.replace('/(stack)/smart-entry?mode=first-time');
+          // Not authenticated → go to sign-in
+          router.replace('/(auth)/elite-auth');
         }
+      } catch (e) {
+        console.warn('[Index] Auth check error:', e);
+        router.replace('/(auth)/elite-auth');
+      } finally {
+        setChecking(false);
       }
     })();
   }, []);
 
-  return null;
+  // Loading spinner while checking auth
+  return (
+    <View style={{ flex: 1, backgroundColor: '#0F0F0F', alignItems: 'center', justifyContent: 'center' }}>
+      <ActivityIndicator color="#D4AF37" size="large" />
+    </View>
+  );
 }

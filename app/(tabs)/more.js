@@ -23,7 +23,7 @@ export default function MoreScreen() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.replace('/(stack)/sign-in');
+    router.replace('/(auth)/elite-auth');
   };
 
   return (

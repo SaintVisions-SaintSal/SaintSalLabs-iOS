@@ -191,10 +191,10 @@ export default function EliteAuthScreen() {
 
           {/* Navigation links */}
           <View style={styles.navLinks}>
-            <TouchableOpacity onPress={() => router.push('/sign-in')}>
+            <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
               <Text style={styles.navLink}>← SIGN IN</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push('/sign-up')}>
+            <TouchableOpacity onPress={() => router.push('/(auth)/signup')}>
               <Text style={styles.navLink}>CREATE ACCOUNT →</Text>
             </TouchableOpacity>
           </View>

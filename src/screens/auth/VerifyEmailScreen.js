@@ -32,7 +32,7 @@ export default function EmailVerifyScreen() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.email_confirmed_at) {
         clearInterval(interval);
-        router.replace('/business-dna-setup');
+        router.replace('/(auth)/business-dna');
       }
     }, 3000);
     return () => clearInterval(interval);
@@ -62,7 +62,7 @@ export default function EmailVerifyScreen() {
       await supabase.auth.refreshSession();
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.email_confirmed_at) {
-        router.replace('/business-dna-setup');
+        router.replace('/(auth)/business-dna');
       } else {
         setResendError('Not verified yet. Check your inbox.');
       }
@@ -173,7 +173,7 @@ export default function EmailVerifyScreen() {
         </View>
 
         {/* Back */}
-        <TouchableOpacity style={styles.backRow} onPress={() => router.push('/sign-in')}>
+        <TouchableOpacity style={styles.backRow} onPress={() => router.push('/(auth)/login')}>
           <Text style={styles.backText}>← BACK TO SIGN IN</Text>
         </TouchableOpacity>
       </ScrollView>

@@ -104,7 +104,7 @@ export default function EliteNavigationHubScreen() {
           <Text style={s.avatarTxt}>{user?.email?.charAt(0)?.toUpperCase() ?? 'S'}</Text>
         </View>
         <Text style={s.brandTxt}>SaintSal™</Text>
-        <TouchableOpacity style={s.menuBtn} onPress={() => router.push('/(tabs)/dashboard')}>
+        <TouchableOpacity style={s.menuBtn} onPress={() => router.push('/(tabs)/home')}>
           <Text style={s.menuIcon}>☰</Text>
         </TouchableOpacity>
       </View>

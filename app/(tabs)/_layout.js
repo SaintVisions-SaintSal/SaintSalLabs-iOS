@@ -72,7 +72,7 @@ export default function TabLayout() {
   const handleSignOut = async () => {
     closeNav(async () => {
       await supabase.auth.signOut();
-      router.replace('/(auth)/sign-in');
+      router.replace('/(auth)/elite-auth');
     });
   };
 
