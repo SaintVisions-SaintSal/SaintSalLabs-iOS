@@ -14,10 +14,6 @@
 		AE2501F950E72D929AF6B976 /* libPods-SaintSalLabs.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1ECABA38E70D3899B25F342D /* libPods-SaintSalLabs.a */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
-		B33DB486424B6DF67F71ECF5 /* AppClipApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F3CA5A3364C194BF0052440; };
-		5963EAADCD6296956F4768A1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C67A952EEEB2C5C728546E83; };
-		6C2135174FD2A2F6F2FBF432 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6A4E003F7A4DC9DA3FDA0F1E; };
-		84AA9AD46D02737B38031A60 /* SaintSalLabsClip.app in Embed App Clips */ = {isa = PBXBuildFile; fileRef = 1E04B6A7AAF7CFEA34D0B33C; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,12 +30,6 @@
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = SaintSalLabs/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* SaintSalLabs-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "SaintSalLabs-Bridging-Header.h"; path = "SaintSalLabs/SaintSalLabs-Bridging-Header.h"; sourceTree = "<group>"; };
-		4F3CA5A3364C194BF0052440 /* AppClipApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppClipApp.swift; sourceTree = "<group>"; };
-		C67A952EEEB2C5C728546E83 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		50EA41DB30DB98204C57275D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		60A9B1793001402AC670E446 /* SaintSalLabsClip.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SaintSalLabsClip.entitlements; sourceTree = "<group>"; };
-		6A4E003F7A4DC9DA3FDA0F1E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		1E04B6A7AAF7CFEA34D0B33C /* SaintSalLabsClip.app */ = {isa = PBXFileReference; explicitFileType = "wrapper.application"; includeInIndex = 0; path = SaintSalLabsClip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -50,13 +40,6 @@
 				AE2501F950E72D929AF6B976 /* libPods-SaintSalLabs.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
-		};
-		C6C15565491F950D949C48A4 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			runOnlyForDeploymentPostprocessing = 0;
-			files = (
-			);
 		};
 /* End PBXFrameworksBuildPhase section */
 
@@ -118,7 +101,6 @@
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				26494609EC9E84004B2BC082 /* Pods */,
 				961C86092AF3865D63FF3237 /* ExpoModulesProviders */,
-				A52262CEEFD8062C1BEA2B2C /* SaintSalLabsClip */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -129,7 +111,6 @@
 			isa = PBXGroup;
 			children = (
 				13B07F961A680F5B00A75B9A /* SaintSalLabs.app */,
-				1E04B6A7AAF7CFEA34D0B33C /* SaintSalLabsClip.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -151,18 +132,6 @@
 			path = SaintSalLabs/Supporting;
 			sourceTree = "<group>";
 		};
-		A52262CEEFD8062C1BEA2B2C /* SaintSalLabsClip */ = {
-			isa = PBXGroup;
-			children = (
-				4F3CA5A3364C194BF0052440 /* AppClipApp.swift */,
-				C67A952EEEB2C5C728546E83 /* ContentView.swift */,
-				6A4E003F7A4DC9DA3FDA0F1E /* Assets.xcassets */,
-				50EA41DB30DB98204C57275D /* Info.plist */,
-				60A9B1793001402AC670E446 /* SaintSalLabsClip.entitlements */,
-			);
-			path = SaintSalLabsClip;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -178,7 +147,6 @@
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
 				FD36EC4739CB3F175DBB2FF3 /* [CP] Embed Pods Frameworks */,
-				5D9A180697D398596A2B047D /* Embed App Clips */,
 			);
 			buildRules = (
 			);
@@ -188,23 +156,6 @@
 			productName = SaintSalLabs;
 			productReference = 13B07F961A680F5B00A75B9A /* SaintSalLabs.app */;
 			productType = "com.apple.product-type.application";
-		};
-		CF20258C6DCB0ED970E95DE7 /* SaintSalLabsClip */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = C6889B16B727C61D51275355;
-			buildPhases = (
-				E1E30A32C445B9EDCBB97EEA /* Sources */,
-				C6C15565491F950D949C48A4 /* Frameworks */,
-				FE9FBE5CB6F398D0EE1617FB /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = SaintSalLabsClip;
-			productName = SaintSalLabsClip;
-			productReference = 1E04B6A7AAF7CFEA34D0B33C;
-			productType = "com.apple.product-type.application.on-demand-install-capable";
 		};
 /* End PBXNativeTarget section */
 
@@ -233,7 +184,6 @@
 			projectRoot = "";
 			targets = (
 				13B07F861A680F5B00A75B9A /* SaintSalLabs */,
-				CF20258C6DCB0ED970E95DE7 /* SaintSalLabsClip */,
 			);
 		};
 /* End PBXProject section */
@@ -249,14 +199,6 @@
 				12EC61227162DFDCA957B3A7 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
-		};
-		FE9FBE5CB6F398D0EE1617FB /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			runOnlyForDeploymentPostprocessing = 0;
-			files = (
-				6C2135174FD2A2F6F2FBF432 /* Assets.xcassets in Resources */,
-			);
 		};
 /* End PBXResourcesBuildPhase section */
 
@@ -385,15 +327,6 @@
 				512B2109871970E469F3EDFF /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
-		};
-		E1E30A32C445B9EDCBB97EEA /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			runOnlyForDeploymentPostprocessing = 0;
-			files = (
-				B33DB486424B6DF67F71ECF5 /* AppClipApp.swift in Sources */,
-				5963EAADCD6296956F4768A1 /* ContentView.swift in Sources */,
-			);
 		};
 /* End PBXSourcesBuildPhase section */
 
@@ -582,137 +515,6 @@
 			};
 			name = Release;
 		};
-		C8058EABB91834F6BCEE8EF0 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			name = Debug;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_ENTITLEMENTS = SaintSalLabsClip/SaintSalLabsClip.entitlements;
-				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2DG74QA62B;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = SaintSalLabsClip/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 2.0.2;
-				PRODUCT_BUNDLE_IDENTIFIER = com.saintvision.saintsallabs.Clip;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				ENABLE_TESTABILITY = YES;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_OPTIMIZATION_LEVEL = "0";
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				ONLY_ACTIVE_ARCH = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				PROVISIONING_PROFILE = "bab14679-e5ce-4610-81a4-3efc56fa3c92";
-				PROVISIONING_PROFILE_SPECIFIER = "";
-			};
-		};
-		A80DB990087F0F486B14C651 /* Release */ = {
-			isa = XCBuildConfiguration;
-			name = Release;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_ENTITLEMENTS = SaintSalLabsClip/SaintSalLabsClip.entitlements;
-				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2DG74QA62B;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = SaintSalLabsClip/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 2.0.2;
-				PRODUCT_BUNDLE_IDENTIFIER = com.saintvision.saintsallabs.Clip;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				ENABLE_NS_ASSERTIONS = NO;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				VALIDATE_PRODUCT = YES;
-				PROVISIONING_PROFILE = "bab14679-e5ce-4610-81a4-3efc56fa3c92";
-				PROVISIONING_PROFILE_SPECIFIER = "";
-			};
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -734,30 +536,8 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		C6889B16B727C61D51275355 /* Build configuration list for PBXNativeTarget "SaintSalLabsClip" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				C8058EABB91834F6BCEE8EF0 /* Debug */,
-				A80DB990087F0F486B14C651 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 /* End XCConfigurationList section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-		5D9A180697D398596A2B047D /* Embed App Clips */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 16;
-			name = "Embed App Clips";
-			runOnlyForDeploymentPostprocessing = 0;
-			files = (
-				84AA9AD46D02737B38031A60 /* SaintSalLabsClip.app in Embed App Clips */,
-			);
-		};
-/* End PBXCopyFilesBuildPhase section */
 	};
 	rootObject = 83CBB9F71A601CBA00E9B192 /* Project object */;
 }
