@@ -11,9 +11,10 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { C } from '../../config/theme';
+import { mcpChat } from '../../lib/api';
 
-const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
-const ANTHROPIC_KEY = 'LABS_BACKEND_PROXY';
+// MCP gateway handles all AI routing (Build #70)
+// MCP gateway handles all AI routing (Build #70)
 
 const CEO_SYSTEM_PROMPT = `You are SAL Co-CEO — an elite executive AI assistant for SaintSal™ Labs (Patent #10,290,222). You operate with the authority and strategic acumen of a Fortune 500 CEO combined with the technical depth of a world-class CTO.
 
@@ -69,27 +70,18 @@ export default function HelpCEODesk() {
     setLoading(true);
 
     try {
-      const res = await fetch(ANTHROPIC_API, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_KEY,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-opus-4-5',
-          system: CEO_SYSTEM_PROMPT,
-          messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
-          max_tokens: 1200,
-        }),
+      const mcpRes = await mcpChat({
+        message: input,
+        model: 'pro',
+        vertical: 'general',
+        history: messages.map(m => ({ role: m.role, content: m.content })),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        const reply = data.content?.[0]?.text || 'Strategic response received.';
+      if (mcpRes.ok) {
+        const reply = mcpRes.response || 'Strategic response received.';
         setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
       } else {
-        setMessages(prev => [...prev, { role: 'assistant', content: `Anthropic API returned ${res.status}. Executive systems on standby.` }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: 'Executive systems on standby. Please try again.' }]);
       }
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Network connection interrupted. Executive intelligence on standby — check your connection.' }]);

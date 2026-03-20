@@ -16,9 +16,9 @@ import {
 } from 'react-native';
 import { C } from '../../config/theme';
 import ScreenHeader from '../../components/ScreenHeader';
+import { mcpChat } from '../../lib/api';
 
-const ANTHROPIC_API_KEY =
-  'LABS_BACKEND_PROXY';
+// MCP gateway handles all AI routing (Build #70)
 const PERPLEXITY_API_KEY = '';
 const XAI_API_KEY =
   '';
@@ -235,30 +235,15 @@ export default function FinanceChat({ navigation }) {
         .slice(-6)
         .map((m) => ({ role: m.role, content: m.text }));
 
-      const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-opus-4-5',
-          max_tokens: 1400,
-          system: SAL_FINANCE_SYSTEM,
-          messages: [
-            ...history,
-            {
-              role: 'user',
-              content: `${text}${contextBlock}`,
-            },
-          ],
-        }),
+      const mcpRes = await mcpChat({
+        message: `${text}${contextBlock}`,
+        model: 'pro',
+        vertical: 'finance',
+        history: history.slice(-10),
       });
 
-      if (claudeRes.ok) {
-        const data = await claudeRes.json();
-        const responseText = data.content?.[0]?.text || 'Analysis unavailable.';
+      if (mcpRes.ok) {
+        const responseText = mcpRes.response || 'Analysis unavailable.';
 
         const hasFinancialData =
           mentionedTickers.length > 0 ||

@@ -172,11 +172,11 @@ export default function TabLayout() {
           name="more"
           options={{
             tabBarIcon: () => <TabIcon icon="•••" label="More" focused={false} />,
-            listeners: {
-              tabPress: (e) => {
-                e.preventDefault();
-                openSheet();
-              },
+          }}
+          listeners={{
+            tabPress: (e) => {
+              e.preventDefault();
+              openSheet();
             },
           }}
         />
