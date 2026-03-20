@@ -7,7 +7,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Tabs, useRouter } from 'expo-router';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
+  View, Text, TouchableOpacity, StyleSheet, Image,
   Animated, ScrollView, SafeAreaView, Dimensions, Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -73,7 +73,11 @@ function TabIcon({ icon, label, focused }) {
 function SALCenterIcon({ focused }) {
   return (
     <View style={tabStyles.salBtn(focused)}>
-      <Text style={{ fontSize: 24, color: focused ? BG : '#fff' }}>🤖</Text>
+      <Image
+        source={require('../../assets/logo-80.png')}
+        style={{ width: 28, height: 28, borderRadius: 14 }}
+        resizeMode="contain"
+      />
       <Text style={{
         fontSize: 7,
         fontWeight: '900',

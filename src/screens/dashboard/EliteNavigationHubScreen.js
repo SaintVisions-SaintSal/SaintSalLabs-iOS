@@ -104,7 +104,7 @@ export default function EliteNavigationHubScreen() {
           <Text style={s.avatarTxt}>{user?.email?.charAt(0)?.toUpperCase() ?? 'S'}</Text>
         </View>
         <Text style={s.brandTxt}>SaintSal™</Text>
-        <TouchableOpacity style={s.menuBtn} onPress={() => router.push('/(tabs)/home')}>
+        <TouchableOpacity style={s.menuBtn} onPress={() => router.push('/(stack)/home-base-command')}>
           <Text style={s.menuIcon}>☰</Text>
         </TouchableOpacity>
       </View>
@@ -182,7 +182,7 @@ export default function EliteNavigationHubScreen() {
           <Text style={s.navTabIcon}>📊</Text>
           <Text style={s.navTabLbl}>PORTFOLIO</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={s.navTabItem} onPress={() => router.push('/(tabs)/settings')}>
+        <TouchableOpacity style={s.navTabItem} onPress={() => router.push('/(stack)/api-settings')}>
           <Text style={s.navTabIcon}>👤</Text>
           <Text style={s.navTabLbl}>ACCOUNT</Text>
         </TouchableOpacity>

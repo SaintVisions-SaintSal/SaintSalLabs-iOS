@@ -504,6 +504,19 @@ export default function EliteRealEstateScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* ── Quick Actions ── */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }} contentContainerStyle={{ paddingHorizontal: 10, gap: 8, alignItems: 'center' }}>
+        <TouchableOpacity onPress={() => router.push('/(stack)/re-executive-chat')} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(212,175,55,0.12)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.25)' }}>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: '#D4AF37' }}>🧠 AI Deal Chat</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/(stack)/real-estate-suite')} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: '#9CA3AF' }}>🏠 Full Suite</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/(stack)/re-manifest')} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: '#9CA3AF' }}>📄 Documents</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
       {/* ── Filter panel (slides down) ── */}
       {showFilters && renderFilters()}
 

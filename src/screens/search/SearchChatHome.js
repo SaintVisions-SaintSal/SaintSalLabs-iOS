@@ -21,14 +21,14 @@ const BG = '#0A0A0A';
 const CARD_BG = '#141416';
 
 const VERTICALS = [
-  { id: 'all',         label: 'All',          icon: '✨' },
-  { id: 'sports',      label: 'Sports',       icon: '🏀' },
-  { id: 'news',        label: 'News',         icon: '📰' },
-  { id: 'tech',        label: 'Tech',         icon: '💻' },
-  { id: 'finance',     label: 'Finance',      icon: '📈' },
-  { id: 'realestate',  label: 'Real Estate',  icon: '🏠' },
-  { id: 'medical',     label: 'Medical',      icon: '🏥' },
-  { id: 'cookin',      label: 'CookinCards',  icon: '🃏' },
+  { id: 'all',         label: 'All',          icon: '✨', route: null },
+  { id: 'sports',      label: 'Sports',       icon: '🏀', route: '/(stack)/elite-intelligence' },
+  { id: 'news',        label: 'News',         icon: '📰', route: '/(stack)/full-spectrum-intel' },
+  { id: 'tech',        label: 'Tech',         icon: '💻', route: '/(stack)/elite-intel-hub' },
+  { id: 'finance',     label: 'Finance',      icon: '📈', route: '/(stack)/finance-chat' },
+  { id: 'realestate',  label: 'Real Estate',  icon: '🏠', route: '/(stack)/elite-real-estate' },
+  { id: 'medical',     label: 'Medical',      icon: '🏥', route: '/(stack)/full-spectrum-v2' },
+  { id: 'cookin',      label: 'CookinCards',  icon: '🃏', route: '/(stack)/portfolio' },
 ];
 
 const TIERS = [
@@ -181,7 +181,13 @@ export default function SearchChatHome() {
             <TouchableOpacity
               key={v.id}
               style={[s.chip, activeVertical === v.id && s.chipActive]}
-              onPress={() => setActiveVertical(v.id)}
+              onPress={() => {
+                if (v.route) {
+                  router.push(v.route);
+                } else {
+                  setActiveVertical(v.id);
+                }
+              }}
             >
               <Text style={s.chipIcon}>{v.icon}</Text>
               <Text style={[s.chipText, activeVertical === v.id && s.chipTextActive]}>{v.label}</Text>

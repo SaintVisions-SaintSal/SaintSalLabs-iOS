@@ -67,6 +67,9 @@ export default function BusinessDNAScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={styles.header}>
           <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => router.back()} style={{ padding: 8, marginRight: 8 }}>
+              <Text style={{ fontSize: 22, color: '#E8E6E1', fontWeight: '300' }}>‹</Text>
+            </TouchableOpacity>
             <Text style={styles.headerBrand}>SAINTSAL™ LABS</Text>
             <View style={styles.headerAccent} />
           </View>

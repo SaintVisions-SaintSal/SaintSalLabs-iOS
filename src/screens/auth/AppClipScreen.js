@@ -109,7 +109,7 @@ export default function AppClipScreen() {
 
         {/* PRIMARY CTA — Apple HIG: one clear action */}
         <View style={s.actions}>
-          <TouchableOpacity style={s.primaryBtn} onPress={() => router.replace('/(auth)/sign-up')}>
+          <TouchableOpacity style={s.primaryBtn} onPress={() => router.replace('/(auth)/signup')}>
             <Text style={s.primaryBtnTxt}>⚡ START FREE — NO CARD NEEDED</Text>
           </TouchableOpacity>
 

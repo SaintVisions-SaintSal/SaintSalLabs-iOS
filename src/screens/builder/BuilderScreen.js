@@ -628,6 +628,30 @@ export default function BuilderScreen() {
           )}
         />
 
+        {/* Pipeline building overlay */}
+        {pipe.generating && buildMode === 'supergrok' && (
+          <View style={{
+            ...StyleSheet.absoluteFillObject,
+            backgroundColor: '#050508F0',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10,
+          }}>
+            <ActivityIndicator color={KB.neon} size="large" />
+            <Text style={{
+              color: KB.neon, fontSize: 11, fontFamily: MONO,
+              fontWeight: '800', letterSpacing: 1, marginTop: 12,
+            }}>
+              BUILDING...
+            </Text>
+            <Text style={{
+              color: KB.textDim, fontSize: 10, fontFamily: MONO, marginTop: 4,
+            }}>
+              {pipe.agentMessages.claude || 'Waiting for pipeline...'}
+            </Text>
+          </View>
+        )}
+
         {/* Toolbar */}
         {pipe.phase === PHASE_COMPLETE && (
           <View style={s.toolbar}>

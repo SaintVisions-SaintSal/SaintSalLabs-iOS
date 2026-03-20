@@ -8,19 +8,18 @@ export { default as ErrorState } from './ErrorState';
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, TextInput,
-  StyleSheet, ActivityIndicator,
+  StyleSheet, ActivityIndicator, Image,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { C } from '../config/theme';
 
-/* ─── SAL Logo Mark ───────────────────────────────── */
+/* ─── SAL Logo Mark (Gold Helmet) ────────────────── */
 export const SALMark = ({ size = 32 }) => (
-  <View style={{
-    width: size, height: size, borderRadius: size * 0.25,
-    backgroundColor: C.amber, alignItems: 'center', justifyContent: 'center',
-  }}>
-    <Text style={{ fontSize: size * 0.45, fontWeight: '900', color: '#000' }}>S</Text>
-  </View>
+  <Image
+    source={require('../../assets/logo-80.png')}
+    style={{ width: size, height: size, borderRadius: size / 2 }}
+    resizeMode="contain"
+  />
 );
 
 /* ─── Section Header ──────────────────────────────── */
