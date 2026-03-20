@@ -1,14 +1,14 @@
 /* ═══════════════════════════════════════════════════
-   SAINTSALLABS — API CLIENT  (Build #70)
-   Dual backend: MCP gateway (primary) + Render gateway (legacy)
-   XHR streaming (works in React Native / Hermes)
+   SAINTSALLABS — API CLIENT  (Build #78)
+   MCP Gateway Only · XHR SSE Streaming · No Client Keys
+   US Patent #10,290,222 · HACP Protocol
 ═══════════════════════════════════════════════════ */
 
 // ── Primary: MCP Gateway on Python backend (saintsallabs.com) ──
 export const MCP_BASE = 'https://saintsallabs.com';
 export const MCP_KEY  = 'saintvision_gateway_2025';
 
-// ── Legacy: Render gateway (still used for voice, social post, builder v2) ──
+// ── Legacy: Render gateway (voice, social post) ──
 export const API_BASE = 'https://saintsallabs-api.onrender.com';
 export const API_KEY  = 'sal-live-2026';
 
@@ -22,9 +22,176 @@ const MCP_HEADERS = {
   'x-sal-key': MCP_KEY,
 };
 
+
+/* ═══════════════════════════════════════════════════
+   SECTION 1: AGENT SSE — THE NEW BUILDER PIPELINE
+   XHR-based SSE consumer for /api/builder/agent
+   Hermes-compatible (no ReadableStream, no EventSource)
+═══════════════════════════════════════════════════ */
+
+/**
+ * Connect to the agentic builder SSE endpoint.
+ *
+ * @param {Object} opts
+ * @param {string} opts.prompt       — User's build request
+ * @param {string} [opts.mode]       — 'supergrok' (default) or 'quick'
+ * @param {Array}  [opts.files]      — Existing project files for context
+ * @param {string} [opts.projectId]  — Existing project ID for continuity
+ *
+ * Callbacks (all optional):
+ * @param {Function} opts.onPlanning     — ({agent, message})
+ * @param {Function} opts.onPlanReady    — ({agent, plan: {title, components, apis, steps, complexity, estimated_time}})
+ * @param {Function} opts.onBuilding     — ({agent, message})
+ * @param {Function} opts.onStitchReady  — ({agent, design})
+ * @param {Function} opts.onWiring       — ({agent, message})
+ * @param {Function} opts.onFilesReady   — ({agent, files: [{name, content}], model})
+ * @param {Function} opts.onComplete     — ({message, model})
+ * @param {Function} opts.onError        — (errorMessage: string)
+ *
+ * @returns {{ abort: () => void }}
+ */
+export function connectAgentSSE({
+  prompt,
+  mode = 'supergrok',
+  files,
+  projectId,
+  onPlanning,
+  onPlanReady,
+  onBuilding,
+  onStitchReady,
+  onWiring,
+  onFilesReady,
+  onComplete,
+  onError,
+}) {
+  let cancelled = false;
+  const handle = { abort: () => { cancelled = true; xhr.abort(); } };
+
+  const xhr = new XMLHttpRequest();
+  let lastIndex = 0;
+  let eventBuffer = '';
+
+  xhr.open('POST', `${MCP_BASE}/api/builder/agent`);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('x-sal-key', MCP_KEY);
+  xhr.setRequestHeader('Accept', 'text/event-stream');
+  xhr.timeout = 120000; // 2 min for complex builds
+
+  /* ── Parse SSE events from XHR responseText delta ── */
+  xhr.onprogress = () => {
+    if (cancelled) return;
+
+    const newData = xhr.responseText.slice(lastIndex);
+    lastIndex = xhr.responseText.length;
+    eventBuffer += newData;
+
+    // Split on double-newline (SSE event boundary)
+    const parts = eventBuffer.split('\n\n');
+    // Last element may be incomplete — keep it in buffer
+    eventBuffer = parts.pop() || '';
+
+    for (const raw of parts) {
+      if (!raw.trim()) continue;
+      processSSEEvent(raw);
+    }
+  };
+
+  /* ── Route parsed events to callbacks ──
+     Backend sends two formats:
+     Format A: event: planning\ndata: {...}\n\n   (with event: header)
+     Format B: data: {"phase":"planning",...}\n\n  (phase inside JSON payload)
+     We support BOTH — check event: header first, fall back to data.phase ── */
+  function processSSEEvent(raw) {
+    const eventMatch = raw.match(/^event:\s*(.+)$/m);
+    const dataMatch = raw.match(/^data:\s*(.+)$/m);
+
+    if (!dataMatch) return; // Malformed event, skip
+
+    let data;
+    try {
+      data = JSON.parse(dataMatch[1].trim());
+    } catch (e) {
+      // Data line wasn't valid JSON — might be a plain text message
+      data = { message: dataMatch[1].trim() };
+    }
+
+    // Resolve event type: prefer event: header, fall back to data.phase
+    const eventType = eventMatch
+      ? eventMatch[1].trim()
+      : (data.phase || data.event || 'message');
+
+    switch (eventType) {
+      case 'planning':
+        onPlanning?.(data);
+        break;
+      case 'plan_ready':
+        onPlanReady?.(data);
+        break;
+      case 'building':
+        onBuilding?.(data);
+        break;
+      case 'stitch_ready':
+        onStitchReady?.(data);
+        break;
+      case 'wiring':
+        onWiring?.(data);
+        break;
+      case 'files_ready':
+        onFilesReady?.(data);
+        break;
+      case 'complete':
+        onComplete?.(data);
+        break;
+      case 'error':
+        onError?.(data.message || data.error || 'Pipeline error');
+        break;
+      default:
+        // Unknown event type — ignore gracefully
+        break;
+    }
+  }
+
+  /* ── Completion / error handlers ── */
+  xhr.onload = () => {
+    if (cancelled) return;
+    // Process any remaining buffered data
+    if (eventBuffer.trim()) {
+      processSSEEvent(eventBuffer);
+      eventBuffer = '';
+    }
+    // If we never got a 'complete' event, check status
+    if (xhr.status !== 200) {
+      onError?.(`Server returned ${xhr.status}`);
+    }
+  };
+
+  xhr.onerror = () => {
+    if (!cancelled) onError?.('Network error — check connection');
+  };
+
+  xhr.ontimeout = () => {
+    if (!cancelled) onError?.('Build timed out (120s). Try a simpler prompt or retry.');
+  };
+
+  /* ── Send request ── */
+  const body = {
+    prompt,
+    mode,
+    ...(files?.length ? { files } : {}),
+    ...(projectId ? { project_id: projectId } : {}),
+  };
+
+  xhr.send(JSON.stringify(body));
+  return handle;
+}
+
+
+/* ═══════════════════════════════════════════════════
+   SECTION 2: MCP GATEWAY CHAT (unchanged)
+   Claude → xAI → Gemini cascade fallback (server-side)
+═══════════════════════════════════════════════════ */
+
 /* ─── MCP Chat (non-streaming, universal) ────────── */
-// All AI chat goes through the MCP gateway which has
-// Claude → xAI → Gemini cascade fallback built in.
 export const mcpChat = async ({ message, model = 'pro', vertical = 'general', history = [] }) => {
   const res = await fetch(`${MCP_BASE}/api/mcp/chat`, {
     method: 'POST',
@@ -37,13 +204,10 @@ export const mcpChat = async ({ message, model = 'pro', vertical = 'general', hi
   }
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || 'MCP returned error');
-  return data; // { ok, response, model, fallback? }
+  return data;
 };
 
-/* ─── Simulated streaming via MCP (non-streaming endpoint) ───
-   Calls MCP gateway, gets full response, then drips tokens
-   to onChunk so the UI typing animation still works.
-   Returns an abort handle matching the XHR cancel interface. */
+/* ─── Simulated streaming via MCP (word-drip) ───── */
 function mcpStream({ message, model, vertical, history, onChunk, onDone, onError }) {
   let cancelled = false;
   const handle = { abort: () => { cancelled = true; } };
@@ -61,12 +225,10 @@ function mcpStream({ message, model, vertical, history, onChunk, onDone, onError
       if (cancelled) return;
       if (!data.ok) { onError?.(data.error || 'MCP error'); return; }
 
-      // Drip the response word-by-word for typing effect
-      const words = (data.response || '').split(/( )/); // keep spaces
+      const words = (data.response || '').split(/( )/);
       for (let i = 0; i < words.length; i++) {
         if (cancelled) return;
         onChunk(words[i]);
-        // Small delay every 3 words for natural feel
         if (i % 3 === 0) await new Promise(r => setTimeout(r, 12));
       }
       onDone?.();
@@ -78,52 +240,40 @@ function mcpStream({ message, model, vertical, history, onChunk, onDone, onError
   return handle;
 }
 
-/* ─── streamChat — primary chat streaming via MCP ─── */
+/* ─── streamChat — primary chat streaming via MCP ── */
 export const streamChat = ({ provider = 'anthropic', model, system, messages, onChunk, onDone, onError }) => {
-  // Build the last user message from messages array
   const lastUser = messages.filter(m => m.role === 'user').pop();
   const message = lastUser?.content || '';
   const history = messages.slice(0, -1).map(m => ({ role: m.role, content: m.content }));
-
   return mcpStream({ message, model: 'pro', vertical: 'general', history, onChunk, onDone, onError });
 };
 
-/* ─── SAL Chat (mode-routed through MCP gateway) ─── */
+/* ─── SAL Chat (mode-routed) ─────────────────────── */
 export const SAL_BACKEND = MCP_BASE;
 
 export const streamSalChat = ({ mode = 'creative', messages, system, onChunk, onDone, onError }) => {
-  const verticalMap = {
-    creative:   'creative',
-    finance:    'finance',
-    realestate: 'realestate',
-    global:     'general',
-  };
+  const verticalMap = { creative: 'creative', finance: 'finance', realestate: 'realestate', global: 'general' };
   const vertical = verticalMap[mode] || 'general';
-
   const lastUser = messages.filter(m => m.role === 'user').pop();
   const message = lastUser?.content || '';
   const history = messages.slice(0, -1).map(m => ({ role: m.role, content: m.content }));
-
   return mcpStream({ message, model: 'pro', vertical, history, onChunk, onDone, onError });
 };
 
-/* ─── Builder streaming (through MCP gateway) ────── */
+/* ─── Builder streaming (Quick Build, non-SSE) ──── */
 export const streamBuilder = ({ prompt, files, system, onChunk, onDone, onError }) => {
   const fileContext = files?.length
     ? '\n\nEXISTING FILES:\n' + files.map(f => `\`\`\`${f.lang} ${f.name}\n${f.content}\n\`\`\``).join('\n\n')
     : '';
-
-  return mcpStream({
-    message: prompt + fileContext,
-    model: 'pro',
-    vertical: 'general',
-    onChunk,
-    onDone,
-    onError,
-  });
+  return mcpStream({ message: prompt + fileContext, model: 'pro', vertical: 'general', onChunk, onDone, onError });
 };
 
-/* ─── Social content (JSON response, non-streaming) ── */
+
+/* ═══════════════════════════════════════════════════
+   SECTION 3: SOCIAL, SEARCH, OAUTH (unchanged)
+═══════════════════════════════════════════════════ */
+
+/* ─── Social content (JSON response) ─────────────── */
 export const generateSocial = async ({ prompt, platforms }) => {
   const platformHints = {
     twitter:   '280 chars max, punchy hook, 1-2 hashtags',
@@ -132,63 +282,39 @@ export const generateSocial = async ({ prompt, platforms }) => {
     tiktok:    'Hook in first line, conversational script-style, strong CTA',
     facebook:  'Conversational, question hooks, community-focused',
   };
-
   const systemPrompt = "You are SAL Social Studio — expert social media strategist. Generate platform-native posts. Respond ONLY with valid JSON — no markdown, no preamble, no backticks. Just raw JSON.";
   const userPrompt = `Create platform-native posts for: "${prompt}"\n\nPlatforms: ${platforms.join(', ')}\n\nGuidelines:\n${platforms.map(p => `${p}: ${platformHints[p] || ''}`).join('\n')}\n\nReturn ONLY valid JSON: {"twitter":"...","linkedin":"...","instagram":"...","tiktok":"...","facebook":"..."}\nOnly include requested platforms.`;
-
-  const mcpRes = await mcpChat({
-    message: `${systemPrompt}\n\n${userPrompt}`,
-    model: 'pro',
-    vertical: 'general',
-  });
-
-  const raw = (mcpRes.response || '{}')
-    .replace(/```json\n?/g, '').replace(/```/g, '').trim();
+  const mcpRes = await mcpChat({ message: `${systemPrompt}\n\n${userPrompt}`, model: 'pro', vertical: 'general' });
+  const raw = (mcpRes.response || '{}').replace(/```json\n?/g, '').replace(/```/g, '').trim();
   return JSON.parse(raw);
 };
 
-/* ─── Gemini search with web grounding ────────────── */
+/* ─── Gemini search ──────────────────────────────── */
 export const searchGemini = async (query) => {
-  const res = await fetch(`${API_BASE}/api/search/gemini`, {
-    method: 'POST',
-    headers: HEADERS,
-    body: JSON.stringify({ query }),
-  });
+  const res = await fetch(`${API_BASE}/api/search/gemini`, { method: 'POST', headers: HEADERS, body: JSON.stringify({ query }) });
   if (!res.ok) throw new Error(`Search failed: ${res.status}`);
-  return res.json(); // { answer, sources }
+  return res.json();
 };
 
-/* ─── LinkedIn OAuth ──────────────────────────────── */
+/* ─── LinkedIn OAuth ─────────────────────────────── */
 export const getLinkedInAuthUrl = async () => {
   const res = await fetch(`${API_BASE}/api/social/linkedin/auth`, { headers: HEADERS });
-  return res.json(); // { url, state }
+  return res.json();
 };
 
 export const exchangeLinkedInCode = async (code, state) => {
-  const res = await fetch(`${API_BASE}/api/social/linkedin/callback`, {
-    method: 'POST',
-    headers: HEADERS,
-    body: JSON.stringify({ code, state }),
-  });
-  return res.json(); // { access_token, name, email, profile_id }
+  const res = await fetch(`${API_BASE}/api/social/linkedin/callback`, { method: 'POST', headers: HEADERS, body: JSON.stringify({ code, state }) });
+  return res.json();
 };
 
 /* ─── Direct Social Posting ──────────────────────── */
 export const postToLinkedIn = async ({ access_token, content }) => {
-  const res = await fetch(`${API_BASE}/api/social/linkedin/post`, {
-    method: 'POST',
-    headers: HEADERS,
-    body: JSON.stringify({ access_token, content }),
-  });
+  const res = await fetch(`${API_BASE}/api/social/linkedin/post`, { method: 'POST', headers: HEADERS, body: JSON.stringify({ access_token, content }) });
   return res.json();
 };
 
 export const postToTwitter = async ({ content }) => {
-  const res = await fetch(`${API_BASE}/api/social/twitter/post`, {
-    method: 'POST',
-    headers: HEADERS,
-    body: JSON.stringify({ content }),
-  });
+  const res = await fetch(`${API_BASE}/api/social/twitter/post`, { method: 'POST', headers: HEADERS, body: JSON.stringify({ content }) });
   return res.json();
 };
 
@@ -199,11 +325,7 @@ export const verifyTwitter = async () => {
 
 /* ─── Server-side Social Generation ──────────────── */
 export const generateSocialServer = async ({ prompt, platforms, tone }) => {
-  const res = await fetch(`${API_BASE}/api/social/generate`, {
-    method: 'POST',
-    headers: HEADERS,
-    body: JSON.stringify({ prompt, platforms, tone }),
-  });
+  const res = await fetch(`${API_BASE}/api/social/generate`, { method: 'POST', headers: HEADERS, body: JSON.stringify({ prompt, platforms, tone }) });
   return res.json();
 };
 
@@ -213,272 +335,54 @@ export const getSocialStatus = async () => {
   return res.json();
 };
 
-/* ═══════════════════════════════════════════════════
-   SUPERGROK — GROK 4 DIRECT (xAI API)
-   4-Agent Orchestration Engine
-   US Patent #10,290,222 · HACP Protocol
-═══════════════════════════════════════════════════ */
-const XAI_BASE = 'https://api.x.ai/v1';
-const XAI_KEY  = 'xai-nHg5nPUWiBt78IZxQzWTUp8xlUYtFU7Ygz2OtfbKEh2ROke1ckosfMKFRnzVNudHLp12aw6teomzVkbt';
-
-const XAI_HEADERS = {
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${XAI_KEY}`,
-};
-
-/* ─── Grok 4 Chat (non-streaming, reasoning model) ─── */
-export const grokChat = async ({ message, system, model = 'grok-4', temperature = 1 }) => {
-  const messages = [];
-  if (system) messages.push({ role: 'system', content: system });
-  messages.push({ role: 'user', content: message });
-
-  const res = await fetch(`${XAI_BASE}/chat/completions`, {
-    method: 'POST',
-    headers: XAI_HEADERS,
-    body: JSON.stringify({ model, messages, temperature }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Grok error ${res.status}`);
-  }
-  const data = await res.json();
-  const choice = data.choices?.[0];
-  return {
-    content: choice?.message?.content || '',
-    reasoning: choice?.message?.reasoning_content || '',
-    model: data.model,
-    usage: data.usage,
-  };
-};
-
-/* ─── Grok 4 Streaming (XHR-based for React Native) ─── */
-export function grokStream({ message, system, model = 'grok-4', onChunk, onReasoning, onDone, onError }) {
-  let cancelled = false;
-  const handle = { abort: () => { cancelled = true; } };
-
-  (async () => {
-    try {
-      const messages = [];
-      if (system) messages.push({ role: 'system', content: system });
-      messages.push({ role: 'user', content: message });
-
-      const res = await fetch(`${XAI_BASE}/chat/completions`, {
-        method: 'POST',
-        headers: XAI_HEADERS,
-        body: JSON.stringify({ model, messages, stream: false, temperature: 1 }),
-      });
-      if (cancelled) return;
-      if (!res.ok) { onError?.(`Grok error ${res.status}`); return; }
-      const data = await res.json();
-      if (cancelled) return;
-
-      const choice = data.choices?.[0];
-      const reasoning = choice?.message?.reasoning_content || '';
-      const content = choice?.message?.content || '';
-
-      // Drip reasoning first (the "thinking" phase users see)
-      if (reasoning && onReasoning) {
-        const rWords = reasoning.split(/( )/);
-        for (let i = 0; i < rWords.length; i++) {
-          if (cancelled) return;
-          onReasoning(rWords[i]);
-          if (i % 4 === 0) await new Promise(r => setTimeout(r, 8));
-        }
-      }
-
-      // Then drip the final answer
-      const words = content.split(/( )/);
-      for (let i = 0; i < words.length; i++) {
-        if (cancelled) return;
-        onChunk(words[i]);
-        if (i % 3 === 0) await new Promise(r => setTimeout(r, 12));
-      }
-      onDone?.({ reasoning, content, model: data.model, usage: data.usage });
-    } catch (err) {
-      if (!cancelled) onError?.(err.message || 'Grok network error');
-    }
-  })();
-
-  return handle;
-}
-
-/* ─── SuperGrok 4-Agent Orchestration ─────────────────
-   Simulates the Grok 4.20 multi-agent architecture:
-   Captain (orchestrator) → Harper (research) → Benjamin (logic) → Lucas (creative)
-   Each phase calls Grok 4 with a specialized system prompt.
-   Returns real-time phase updates so users watch the AI think.
-   Patent #10,290,222 covers this orchestration layer.
-   ──────────────────────────────────────────────────── */
-const AGENT_PROMPTS = {
-  captain: `You are GROK CAPTAIN — the orchestrator agent in the SaintSal Labs SuperGrok system (US Patent #10,290,222).
-Your role: Analyze the user's request, decompose it into sub-tasks, and create a strategic plan.
-Be concise. Output a JSON object with: { "analysis": "brief analysis", "subtasks": [{ "agent": "harper|benjamin|lucas", "task": "specific instruction" }], "strategy": "overall approach" }`,
-
-  harper: `You are HARPER — the Research & Facts agent in the SaintSal Labs SuperGrok system.
-Your role: Validate technical choices, research best practices, check API compatibility, and provide evidence-based recommendations.
-Be specific with sources and data. Focus on what actually works in production.`,
-
-  benjamin: `You are BENJAMIN — the Logic & Code Architecture agent in the SaintSal Labs SuperGrok system.
-Your role: Design system architecture, data models, API contracts, file structure, and implementation strategy.
-Provide precise technical specifications. Think about performance, security, scalability. Output structured plans.`,
-
-  lucas: `You are LUCAS — the Creative & UX agent in the SaintSal Labs SuperGrok system.
-Your role: Design the user experience, component hierarchy, visual flow, copy, and interactions.
-Focus on what makes users love the product. Think mobile-first, clean, premium.`,
-
-  synthesizer: `You are GROK CAPTAIN — final synthesis phase.
-You have received analysis from 3 specialized agents (Harper/Research, Benjamin/Logic, Lucas/Creative).
-Synthesize their findings into a single, actionable implementation plan.
-Output JSON: { "plan": "executive summary", "architecture": "system design", "files": [{ "path": "filename", "purpose": "what it does" }], "phases": [{ "name": "phase", "tasks": ["task1"] }], "techStack": ["tech1"], "timeline": "estimate" }`,
-};
-
-export async function superGrokOrchestrate({ prompt, onPhase, onAgentThinking, onAgentResult, onSynthesis, onError }) {
-  const phases = ['captain', 'harper', 'benjamin', 'lucas', 'synthesizer'];
-  const results = {};
-
-  try {
-    // Phase 1: Captain decomposes the task
-    onPhase?.('captain', 'Analyzing request and decomposing into sub-tasks...');
-    const captainResult = await grokChat({
-      message: `User request: "${prompt}"\n\nDecompose this into sub-tasks for the research, logic, and creative agents.`,
-      system: AGENT_PROMPTS.captain,
-    });
-    results.captain = captainResult;
-    onAgentResult?.('captain', captainResult);
-
-    // Parse captain's subtasks
-    let subtasks = [];
-    try {
-      const parsed = JSON.parse(captainResult.content.replace(/```json\n?/g, '').replace(/```/g, '').trim());
-      subtasks = parsed.subtasks || [];
-    } catch {
-      subtasks = [
-        { agent: 'harper', task: `Research best practices for: ${prompt}` },
-        { agent: 'benjamin', task: `Design architecture for: ${prompt}` },
-        { agent: 'lucas', task: `Design UX/UI for: ${prompt}` },
-      ];
-    }
-
-    // Phase 2-4: Run Harper, Benjamin, Lucas (sequentially so user sees each)
-    for (const agent of ['harper', 'benjamin', 'lucas']) {
-      const agentTask = subtasks.find(s => s.agent === agent)?.task || `Analyze: ${prompt}`;
-      const label = agent === 'harper' ? 'Researching and validating...'
-                  : agent === 'benjamin' ? 'Designing architecture and logic...'
-                  : 'Crafting UX and creative direction...';
-
-      onPhase?.(agent, label);
-      onAgentThinking?.(agent);
-
-      const agentResult = await grokChat({
-        message: `Task from Captain: ${agentTask}\n\nOriginal user request: "${prompt}"\n\nCaptain's analysis: ${captainResult.content}`,
-        system: AGENT_PROMPTS[agent],
-      });
-      results[agent] = agentResult;
-      onAgentResult?.(agent, agentResult);
-    }
-
-    // Phase 5: Captain synthesizes all agent outputs
-    onPhase?.('synthesizer', 'Synthesizing all agent findings into final plan...');
-    const synthesisPrompt = `Original request: "${prompt}"
-
---- HARPER (Research) ---
-${results.harper?.content || 'No research data'}
-
---- BENJAMIN (Logic/Architecture) ---
-${results.benjamin?.content || 'No architecture data'}
-
---- LUCAS (Creative/UX) ---
-${results.lucas?.content || 'No creative data'}
-
-Synthesize these into a single actionable implementation plan.`;
-
-    const synthesis = await grokChat({
-      message: synthesisPrompt,
-      system: AGENT_PROMPTS.synthesizer,
-    });
-    results.synthesis = synthesis;
-    onSynthesis?.(synthesis);
-
-    return { ok: true, results, synthesis };
-  } catch (err) {
-    onError?.(err.message);
-    return { ok: false, error: err.message };
-  }
-}
-
-/* ─── Google Stitch Design Generation ─────────────── */
-const STITCH_KEY = 'AQ.Ab8RN6J06hjbP-TdeRU0rnX-gzN70Xr53XRvQA38VqgZQAL0Zg';
-
+/* ─── Google Stitch (through MCP gateway) ────────── */
 export const stitchGenerate = async ({ prompt, mode = 'flash' }) => {
-  // Route through MCP gateway which has Stitch integration
   const res = await fetch(`${MCP_BASE}/api/mcp/chat`, {
     method: 'POST',
     headers: MCP_HEADERS,
-    body: JSON.stringify({
-      message: prompt,
-      model: mode === 'ultra' ? 'stitch_ultra' : mode === 'pro' ? 'stitch_pro' : 'stitch_flash',
-      vertical: 'design',
-    }),
+    body: JSON.stringify({ message: prompt, model: mode === 'ultra' ? 'stitch_ultra' : mode === 'pro' ? 'stitch_pro' : 'stitch_flash', vertical: 'design' }),
   });
   if (!res.ok) throw new Error(`Stitch error ${res.status}`);
   const data = await res.json();
   return { ok: data.ok, content: data.response, model: data.model };
 };
 
-/* ─── Health check ────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════
+   SECTION 4: METERING & HEALTH (unchanged)
+═══════════════════════════════════════════════════ */
+
 export const checkHealth = async () => {
   try {
     const res = await fetch(`${API_BASE}/health`, { headers: { 'x-sal-key': API_KEY } });
     return res.json();
-  } catch {
-    return { status: 'offline' };
-  }
+  } catch { return { status: 'offline' }; }
 };
 
-/* ─── Compute quota check (call before every AI generation) ─── */
 export const checkComputeQuota = async (accessToken) => {
   try {
     const res = await fetch(`${API_BASE}/api/builder/compute-quota`, {
-      headers: {
-        'x-sal-key': API_KEY,
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      },
+      headers: { 'x-sal-key': API_KEY, ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
     });
     if (!res.ok) return { minutesLeft: 30, tier: 'guest' };
-    return res.json(); // { minutesLeft, minutesUsed, limit, tier }
-  } catch {
-    return { minutesLeft: 30, tier: 'guest' };
-  }
+    return res.json();
+  } catch { return { minutesLeft: 30, tier: 'guest' }; }
 };
 
-/* ─── Deduct compute after generation ─────────────── */
 export const deductComputeSeconds = async (seconds, userId, accessToken) => {
   try {
     await fetch(`${API_BASE}/api/metering/deduct`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      },
+      headers: { 'Content-Type': 'application/json', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
       body: JSON.stringify({ seconds, user_id: userId }),
     });
-  } catch (e) {
-    console.warn('[metering] deduct error:', e.message);
-  }
+  } catch (e) { console.warn('[metering] deduct error:', e.message); }
 };
 
-/* ─── Builder generate (tier-routed SSE) ─────────── */
+/* ─── Builder generate (Quick Build, tier-routed) ── */
 export const streamBuilderGenerate = ({ prompt, tier = 'free', type = 'code', files, system, onChunk, onDone, onError }) => {
   const fileContext = files?.length
     ? '\n\nEXISTING FILES:\n' + files.map(f => `\`\`\`${f.language || f.lang || ''} ${f.path || f.name || ''}\n${f.content}\n\`\`\``).join('\n\n')
     : '';
-
-  return mcpStream({
-    message: prompt + fileContext,
-    model: tier === 'max' ? 'max' : 'pro',
-    vertical: 'general',
-    onChunk,
-    onDone,
-    onError,
-  });
+  return mcpStream({ message: prompt + fileContext, model: tier === 'max' ? 'max' : 'pro', vertical: 'general', onChunk, onDone, onError });
 };

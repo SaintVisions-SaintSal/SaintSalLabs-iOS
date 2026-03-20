@@ -142,8 +142,7 @@ export default function StackLayout() {
       <Stack.Screen name="builder-settings" />
       <Stack.Screen name="kinetic-dashboard" />
 
-      {/* Build #76 — SuperGrok Orchestration Engine */}
-      <Stack.Screen name="supergrok" />
+      {/* Build #78 — SuperGrok folded into unified Builder tab */}
     </Stack>
   );
 }
