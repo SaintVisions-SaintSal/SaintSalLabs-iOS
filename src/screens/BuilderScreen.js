@@ -7,8 +7,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform,
-  Animated, Alert, Image, Linking, ActivityIndicator, Clipboard,
+  Animated, Alert, Image, Linking, ActivityIndicator,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
@@ -382,7 +383,7 @@ export default function BuilderScreen() {
 
   /* ── Copy ──────────────────────────────────────── */
   const handleCopy = () => {
-    Clipboard.setString(output || generatedImageUrl || '');
+    Clipboard.setStringAsync(output || generatedImageUrl || '');
     Alert.alert('Copied!', 'Content copied to clipboard.');
   };
 

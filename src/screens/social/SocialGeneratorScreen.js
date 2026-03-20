@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, ActivityIndicator, Clipboard, Animated,
+  StyleSheet, SafeAreaView, ActivityIndicator, Animated,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { C } from '../../config/theme';
 import { useRouter } from 'expo-router';
 import { generateSocial } from '../../lib/api';
@@ -56,7 +57,7 @@ export default function SocialGeneratorScreen() {
   };
 
   const copyContent = (platformId, text) => {
-    Clipboard.setString(text);
+    Clipboard.setStringAsync(text);
     setCopiedId(platformId);
     setTimeout(() => setCopiedId(null), 1500);
   };

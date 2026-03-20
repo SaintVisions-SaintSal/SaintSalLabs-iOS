@@ -16,11 +16,11 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
-  Clipboard,
   Dimensions,
   Animated,
   Platform,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { C } from '../../config/theme';
 import { useRouter } from 'expo-router';
 
@@ -249,7 +249,7 @@ export default function HomeBaseCommand() {
 
   /* ── Copy API key ── */
   const copyApiKey = useCallback(() => {
-    Clipboard.setString(apiKey);
+    Clipboard.setStringAsync(apiKey);
     Alert.alert('Copied', 'API key copied to clipboard.');
   }, [apiKey]);
 

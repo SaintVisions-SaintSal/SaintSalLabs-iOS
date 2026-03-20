@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, Alert, Clipboard,
+  StyleSheet, SafeAreaView, Alert,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { C } from '../../config/theme';
 
@@ -40,7 +41,7 @@ export default function APISettingsScreen() {
   const copyKey = (provider) => {
     const val = keys[provider];
     if (!val) return Alert.alert('Empty', 'No key to copy');
-    Clipboard.setString(val);
+    Clipboard.setStringAsync(val);
     Alert.alert('Copied', 'API key copied to clipboard');
   };
 
@@ -85,7 +86,7 @@ export default function APISettingsScreen() {
             </View>
             <View style={[s.infoRow, { borderBottomWidth: 0 }]}>
               <Text style={s.infoLabel}>Project ID</Text>
-              <TouchableOpacity onPress={() => { Clipboard.setString(PROJECT.id); Alert.alert('Copied'); }}>
+              <TouchableOpacity onPress={() => { Clipboard.setStringAsync(PROJECT.id); Alert.alert('Copied'); }}>
                 <Text style={s.infoMono}>{PROJECT.id}</Text>
               </TouchableOpacity>
             </View>
@@ -170,7 +171,7 @@ export default function APISettingsScreen() {
             />
             <TouchableOpacity
               style={s.webhookCopy}
-              onPress={() => { Clipboard.setString(webhookUrl); Alert.alert('Copied'); }}
+              onPress={() => { Clipboard.setStringAsync(webhookUrl); Alert.alert('Copied'); }}
             >
               <Text style={{ fontSize: 14 }}>📋</Text>
             </TouchableOpacity>

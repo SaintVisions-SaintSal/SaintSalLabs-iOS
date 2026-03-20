@@ -6,8 +6,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  SafeAreaView, ScrollView, Animated, Alert, Clipboard,
+  SafeAreaView, ScrollView, Animated, Alert,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/AuthContext';
 import { generateSocialServer } from '../../lib/api';
@@ -78,7 +79,7 @@ export default function SocialContentGenScreen() {
   };
 
   const handleCopy = (id, text) => {
-    Clipboard.setString(text);
+    Clipboard.setStringAsync(text);
     setCopied(id);
     setTimeout(() => setCopied(null), 2000);
   };

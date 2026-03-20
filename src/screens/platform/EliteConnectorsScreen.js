@@ -6,8 +6,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  SafeAreaView, ScrollView, Animated, Alert, TextInput, Clipboard,
+  SafeAreaView, ScrollView, Animated, Alert, TextInput,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { API_BASE, API_KEY } from '../../lib/api';
 
@@ -166,7 +167,7 @@ export default function EliteConnectorsScreen() {
             <Text style={s.fieldLabel}>YOUR WEBHOOK ENDPOINT</Text>
             <View style={s.webhookEndpoint}>
               <Text style={s.webhookUrl} numberOfLines={1}>{API_BASE}/api/webhooks/sal</Text>
-              <TouchableOpacity onPress={() => { Clipboard.setString(`${API_BASE}/api/webhooks/sal`); Alert.alert('Copied!', 'Webhook URL copied.'); }}>
+              <TouchableOpacity onPress={() => { Clipboard.setStringAsync(`${API_BASE}/api/webhooks/sal`); Alert.alert('Copied!', 'Webhook URL copied.'); }}>
                 <Text style={s.copyIcon}>⧉</Text>
               </TouchableOpacity>
             </View>

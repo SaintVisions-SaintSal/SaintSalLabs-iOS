@@ -6,8 +6,9 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  SafeAreaView, ScrollView, Alert, TextInput, Clipboard,
+  SafeAreaView, ScrollView, Alert, TextInput,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/AuthContext';
 import { streamChat } from '../../lib/api';
@@ -139,7 +140,7 @@ export default function LegalComplianceScreen() {
               <View style={s.docCard}>
                 <View style={s.docCardHeader}>
                   <Text style={s.docCardTitle}>{DOC_TYPES.find(d => d.id === docType)?.label}</Text>
-                  <TouchableOpacity onPress={() => { Clipboard.setString(document); Alert.alert('Copied!', 'Document copied to clipboard.'); }}>
+                  <TouchableOpacity onPress={() => { Clipboard.setStringAsync(document); Alert.alert('Copied!', 'Document copied to clipboard.'); }}>
                     <Text style={s.copyBtn}>⧉ COPY</Text>
                   </TouchableOpacity>
                 </View>

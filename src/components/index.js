@@ -8,8 +8,9 @@ export { default as ErrorState } from './ErrorState';
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, TextInput,
-  StyleSheet, ActivityIndicator, Clipboard,
+  StyleSheet, ActivityIndicator,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { C } from '../config/theme';
 
 /* ─── SAL Logo Mark ───────────────────────────────── */
@@ -55,7 +56,7 @@ export const ChatBubble = ({ msg, accent }) => {
   const isUser = msg.role === 'user';
 
   const copyText = () => {
-    Clipboard.setString(msg.content);
+    Clipboard.setStringAsync(msg.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -149,7 +150,7 @@ export const CodeBlock = ({ lang, code }) => {
   const [copied, setCopied] = useState(false);
 
   const copyCode = () => {
-    Clipboard.setString(code);
+    Clipboard.setStringAsync(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };

@@ -8,8 +8,9 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, Animated, Linking,
-  ActivityIndicator, Clipboard, Alert,
+  ActivityIndicator, Alert,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { C } from '../../config/theme';
 import { SALMark } from '../../components';
@@ -87,7 +88,7 @@ function ApiKeyRow({ profile, getOrCreateApiKey }) {
 
   const handleCopy = useCallback(() => {
     if (!apiKey) return;
-    Clipboard.setString(apiKey);
+    Clipboard.setStringAsync(apiKey);
     Alert.alert('Copied', 'API key copied to clipboard.');
   }, [apiKey]);
 

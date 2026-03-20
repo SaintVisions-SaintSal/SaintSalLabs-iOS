@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, Animated, Alert, Clipboard,
+  StyleSheet, SafeAreaView, Animated, Alert,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { C } from '../../config/theme';
 import { useRouter } from 'expo-router';
 
@@ -75,7 +76,7 @@ export default function DomainHubScreen() {
   };
 
   const handleCopy = (val) => {
-    Clipboard.setString(val);
+    Clipboard.setStringAsync(val);
     Alert.alert('Copied', val);
   };
 

@@ -6,9 +6,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  SafeAreaView, Animated, Alert, Clipboard, RefreshControl,
+  SafeAreaView, Animated, Alert, RefreshControl,
   Dimensions, Linking,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/AuthContext';
 import { supabase, TIER_LIMITS } from '../../lib/supabase';
@@ -76,7 +77,7 @@ export default function HomeBaseCommandScreen() {
   }, []);
 
   const handleCopyKey = () => {
-    Clipboard.setString(apiKey);
+    Clipboard.setStringAsync(apiKey);
     Alert.alert('Copied', 'API key copied to clipboard.');
   };
 
