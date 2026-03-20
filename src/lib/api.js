@@ -5,7 +5,7 @@
 ═══════════════════════════════════════════════════ */
 
 // ── Primary: MCP Gateway on Python backend (saintsallabs.com) ──
-export const MCP_BASE = 'https://saintsallabs.com';
+export const MCP_BASE = 'https://www.saintsallabs.com';
 export const MCP_KEY  = 'saintvision_gateway_2025';
 
 // ── Legacy: Render gateway (voice, social post) ──

@@ -28,8 +28,8 @@ const STRIPE_PRICE_IDS = {
 const STRIPE_PAYMENT_LINKS = {
   free:       'https://buy.stripe.com/28EaEYgvk7zjbaPa2gbjW06',
   starter:    'https://buy.stripe.com/8x2eVea6W3j30wb3DSbjW07',
-  pro:        'https://buy.stripe.com/5kQ3w92S8Dn3In4HWbjW08',
-  teams:      'https://buy.stripe.com/fZufZia6W9Hr2Ej4HWbjW09',
+  pro:        'https://buy.stripe.com/5kQ3cw92S8Dn3In4HWbjW08',
+  teams:      'https://buy.stripe.com/fZufZi5QG9Hr2Ej4HWbjW09',
   enterprise: 'https://buy.stripe.com/7sY5kEbb0cTDa6L2zObjW0a',
 };
 

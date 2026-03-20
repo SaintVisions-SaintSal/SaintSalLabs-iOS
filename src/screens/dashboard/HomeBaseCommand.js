@@ -320,7 +320,7 @@ export default function HomeBaseCommand() {
             <View style={styles.memberCard}>
               <Text style={styles.memberCardTitle}>{profile?.tier ? profile.tier.charAt(0).toUpperCase() + profile.tier.slice(1) : 'Free'}{'\n'}Member</Text>
               <Text style={styles.memberCardSub}>{computeQuota?.minutesLeft != null ? `${Math.round(computeQuota.minutesLeft)} min left` : 'Elite Labs Access'}</Text>
-              <TouchableOpacity style={styles.manageSubBtn} onPress={() => { const { Linking } = require('react-native'); Linking.openURL('https://buy.stripe.com/5kQ3w92S8Dn3In4HWbjW08'); }}>
+              <TouchableOpacity style={styles.manageSubBtn} onPress={() => { const { Linking } = require('react-native'); Linking.openURL('https://buy.stripe.com/5kQ3cw92S8Dn3In4HWbjW08'); }}>
                 <Text style={styles.manageSubBtnText}>MANAGE SUBSCRIPTION</Text>
               </TouchableOpacity>
             </View>
