@@ -141,6 +141,9 @@ export default function StackLayout() {
       <Stack.Screen name="file-explorer" />
       <Stack.Screen name="builder-settings" />
       <Stack.Screen name="kinetic-dashboard" />
+
+      {/* Build #76 — SuperGrok Orchestration Engine */}
+      <Stack.Screen name="supergrok" />
     </Stack>
   );
 }

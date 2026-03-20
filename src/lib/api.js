@@ -213,6 +213,218 @@ export const getSocialStatus = async () => {
   return res.json();
 };
 
+/* ═══════════════════════════════════════════════════
+   SUPERGROK — GROK 4 DIRECT (xAI API)
+   4-Agent Orchestration Engine
+   US Patent #10,290,222 · HACP Protocol
+═══════════════════════════════════════════════════ */
+const XAI_BASE = 'https://api.x.ai/v1';
+const XAI_KEY  = 'xai-nHg5nPUWiBt78IZxQzWTUp8xlUYtFU7Ygz2OtfbKEh2ROke1ckosfMKFRnzVNudHLp12aw6teomzVkbt';
+
+const XAI_HEADERS = {
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${XAI_KEY}`,
+};
+
+/* ─── Grok 4 Chat (non-streaming, reasoning model) ─── */
+export const grokChat = async ({ message, system, model = 'grok-4', temperature = 1 }) => {
+  const messages = [];
+  if (system) messages.push({ role: 'system', content: system });
+  messages.push({ role: 'user', content: message });
+
+  const res = await fetch(`${XAI_BASE}/chat/completions`, {
+    method: 'POST',
+    headers: XAI_HEADERS,
+    body: JSON.stringify({ model, messages, temperature }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Grok error ${res.status}`);
+  }
+  const data = await res.json();
+  const choice = data.choices?.[0];
+  return {
+    content: choice?.message?.content || '',
+    reasoning: choice?.message?.reasoning_content || '',
+    model: data.model,
+    usage: data.usage,
+  };
+};
+
+/* ─── Grok 4 Streaming (XHR-based for React Native) ─── */
+export function grokStream({ message, system, model = 'grok-4', onChunk, onReasoning, onDone, onError }) {
+  let cancelled = false;
+  const handle = { abort: () => { cancelled = true; } };
+
+  (async () => {
+    try {
+      const messages = [];
+      if (system) messages.push({ role: 'system', content: system });
+      messages.push({ role: 'user', content: message });
+
+      const res = await fetch(`${XAI_BASE}/chat/completions`, {
+        method: 'POST',
+        headers: XAI_HEADERS,
+        body: JSON.stringify({ model, messages, stream: false, temperature: 1 }),
+      });
+      if (cancelled) return;
+      if (!res.ok) { onError?.(`Grok error ${res.status}`); return; }
+      const data = await res.json();
+      if (cancelled) return;
+
+      const choice = data.choices?.[0];
+      const reasoning = choice?.message?.reasoning_content || '';
+      const content = choice?.message?.content || '';
+
+      // Drip reasoning first (the "thinking" phase users see)
+      if (reasoning && onReasoning) {
+        const rWords = reasoning.split(/( )/);
+        for (let i = 0; i < rWords.length; i++) {
+          if (cancelled) return;
+          onReasoning(rWords[i]);
+          if (i % 4 === 0) await new Promise(r => setTimeout(r, 8));
+        }
+      }
+
+      // Then drip the final answer
+      const words = content.split(/( )/);
+      for (let i = 0; i < words.length; i++) {
+        if (cancelled) return;
+        onChunk(words[i]);
+        if (i % 3 === 0) await new Promise(r => setTimeout(r, 12));
+      }
+      onDone?.({ reasoning, content, model: data.model, usage: data.usage });
+    } catch (err) {
+      if (!cancelled) onError?.(err.message || 'Grok network error');
+    }
+  })();
+
+  return handle;
+}
+
+/* ─── SuperGrok 4-Agent Orchestration ─────────────────
+   Simulates the Grok 4.20 multi-agent architecture:
+   Captain (orchestrator) → Harper (research) → Benjamin (logic) → Lucas (creative)
+   Each phase calls Grok 4 with a specialized system prompt.
+   Returns real-time phase updates so users watch the AI think.
+   Patent #10,290,222 covers this orchestration layer.
+   ──────────────────────────────────────────────────── */
+const AGENT_PROMPTS = {
+  captain: `You are GROK CAPTAIN — the orchestrator agent in the SaintSal Labs SuperGrok system (US Patent #10,290,222).
+Your role: Analyze the user's request, decompose it into sub-tasks, and create a strategic plan.
+Be concise. Output a JSON object with: { "analysis": "brief analysis", "subtasks": [{ "agent": "harper|benjamin|lucas", "task": "specific instruction" }], "strategy": "overall approach" }`,
+
+  harper: `You are HARPER — the Research & Facts agent in the SaintSal Labs SuperGrok system.
+Your role: Validate technical choices, research best practices, check API compatibility, and provide evidence-based recommendations.
+Be specific with sources and data. Focus on what actually works in production.`,
+
+  benjamin: `You are BENJAMIN — the Logic & Code Architecture agent in the SaintSal Labs SuperGrok system.
+Your role: Design system architecture, data models, API contracts, file structure, and implementation strategy.
+Provide precise technical specifications. Think about performance, security, scalability. Output structured plans.`,
+
+  lucas: `You are LUCAS — the Creative & UX agent in the SaintSal Labs SuperGrok system.
+Your role: Design the user experience, component hierarchy, visual flow, copy, and interactions.
+Focus on what makes users love the product. Think mobile-first, clean, premium.`,
+
+  synthesizer: `You are GROK CAPTAIN — final synthesis phase.
+You have received analysis from 3 specialized agents (Harper/Research, Benjamin/Logic, Lucas/Creative).
+Synthesize their findings into a single, actionable implementation plan.
+Output JSON: { "plan": "executive summary", "architecture": "system design", "files": [{ "path": "filename", "purpose": "what it does" }], "phases": [{ "name": "phase", "tasks": ["task1"] }], "techStack": ["tech1"], "timeline": "estimate" }`,
+};
+
+export async function superGrokOrchestrate({ prompt, onPhase, onAgentThinking, onAgentResult, onSynthesis, onError }) {
+  const phases = ['captain', 'harper', 'benjamin', 'lucas', 'synthesizer'];
+  const results = {};
+
+  try {
+    // Phase 1: Captain decomposes the task
+    onPhase?.('captain', 'Analyzing request and decomposing into sub-tasks...');
+    const captainResult = await grokChat({
+      message: `User request: "${prompt}"\n\nDecompose this into sub-tasks for the research, logic, and creative agents.`,
+      system: AGENT_PROMPTS.captain,
+    });
+    results.captain = captainResult;
+    onAgentResult?.('captain', captainResult);
+
+    // Parse captain's subtasks
+    let subtasks = [];
+    try {
+      const parsed = JSON.parse(captainResult.content.replace(/```json\n?/g, '').replace(/```/g, '').trim());
+      subtasks = parsed.subtasks || [];
+    } catch {
+      subtasks = [
+        { agent: 'harper', task: `Research best practices for: ${prompt}` },
+        { agent: 'benjamin', task: `Design architecture for: ${prompt}` },
+        { agent: 'lucas', task: `Design UX/UI for: ${prompt}` },
+      ];
+    }
+
+    // Phase 2-4: Run Harper, Benjamin, Lucas (sequentially so user sees each)
+    for (const agent of ['harper', 'benjamin', 'lucas']) {
+      const agentTask = subtasks.find(s => s.agent === agent)?.task || `Analyze: ${prompt}`;
+      const label = agent === 'harper' ? 'Researching and validating...'
+                  : agent === 'benjamin' ? 'Designing architecture and logic...'
+                  : 'Crafting UX and creative direction...';
+
+      onPhase?.(agent, label);
+      onAgentThinking?.(agent);
+
+      const agentResult = await grokChat({
+        message: `Task from Captain: ${agentTask}\n\nOriginal user request: "${prompt}"\n\nCaptain's analysis: ${captainResult.content}`,
+        system: AGENT_PROMPTS[agent],
+      });
+      results[agent] = agentResult;
+      onAgentResult?.(agent, agentResult);
+    }
+
+    // Phase 5: Captain synthesizes all agent outputs
+    onPhase?.('synthesizer', 'Synthesizing all agent findings into final plan...');
+    const synthesisPrompt = `Original request: "${prompt}"
+
+--- HARPER (Research) ---
+${results.harper?.content || 'No research data'}
+
+--- BENJAMIN (Logic/Architecture) ---
+${results.benjamin?.content || 'No architecture data'}
+
+--- LUCAS (Creative/UX) ---
+${results.lucas?.content || 'No creative data'}
+
+Synthesize these into a single actionable implementation plan.`;
+
+    const synthesis = await grokChat({
+      message: synthesisPrompt,
+      system: AGENT_PROMPTS.synthesizer,
+    });
+    results.synthesis = synthesis;
+    onSynthesis?.(synthesis);
+
+    return { ok: true, results, synthesis };
+  } catch (err) {
+    onError?.(err.message);
+    return { ok: false, error: err.message };
+  }
+}
+
+/* ─── Google Stitch Design Generation ─────────────── */
+const STITCH_KEY = 'AQ.Ab8RN6J06hjbP-TdeRU0rnX-gzN70Xr53XRvQA38VqgZQAL0Zg';
+
+export const stitchGenerate = async ({ prompt, mode = 'flash' }) => {
+  // Route through MCP gateway which has Stitch integration
+  const res = await fetch(`${MCP_BASE}/api/mcp/chat`, {
+    method: 'POST',
+    headers: MCP_HEADERS,
+    body: JSON.stringify({
+      message: prompt,
+      model: mode === 'ultra' ? 'stitch_ultra' : mode === 'pro' ? 'stitch_pro' : 'stitch_flash',
+      vertical: 'design',
+    }),
+  });
+  if (!res.ok) throw new Error(`Stitch error ${res.status}`);
+  const data = await res.json();
+  return { ok: data.ok, content: data.response, model: data.model };
+};
+
 /* ─── Health check ────────────────────────────────── */
 export const checkHealth = async () => {
   try {

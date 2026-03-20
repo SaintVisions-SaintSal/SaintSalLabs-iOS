@@ -11,9 +11,12 @@ import {
   ActivityIndicator, Animated, Dimensions, Alert,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { C, T } from '../../config/theme';
 import { SALMark } from '../../components';
 import useBuilderProject from '../../hooks/useBuilderProject';
+import { stitchGenerate } from '../../lib/api';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -23,6 +26,13 @@ const VIEW_MODES = [
   { id: 'code',    label: 'Code',    icon: '⟨⟩' },
   { id: 'preview', label: 'Preview', icon: '👁' },
   { id: 'split',   label: 'Split',   icon: '◫' },
+];
+
+/* ── Build Modes (Think → Plan → Build) ──────────── */
+const BUILD_MODES = [
+  { id: 'quick',  label: 'Quick Build',  icon: '⚡', desc: 'SAL generates directly' },
+  { id: 'grok',   label: 'SuperGrok',    icon: '🧠', desc: 'Think → Plan → Build' },
+  { id: 'stitch', label: 'Stitch Design', icon: '🎨', desc: 'Google Stitch UI gen' },
 ];
 
 /* ── Starter Prompts ─────────────────────────────── */
@@ -60,10 +70,13 @@ const LANG_ICONS = {
    MAIN COMPONENT
 ═══════════════════════════════════════════════════ */
 export default function BuilderV2Screen() {
+  const router = useRouter();
   const project = useBuilderProject();
   const [viewMode, setViewMode] = useState('chat');
+  const [buildMode, setBuildMode] = useState('quick');
   const [input, setInput] = useState('');
   const [showFileTree, setShowFileTree] = useState(false);
+  const [showModeSelector, setShowModeSelector] = useState(false);
   const chatScrollRef = useRef(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const webViewRef = useRef(null);
@@ -93,13 +106,36 @@ export default function BuilderV2Screen() {
     }
   }, [project.generating, project.conversation]);
 
-  /* ── Handle send ───────────────────────────────── */
+  /* ── Handle send (routes by build mode) ────────── */
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || project.generating) return;
     setInput('');
+
+    // SuperGrok mode → navigate to orchestration screen
+    if (buildMode === 'grok') {
+      router.push({ pathname: '/supergrok', params: { prompt: text } });
+      return;
+    }
+
+    // Stitch mode → generate design then build
+    if (buildMode === 'stitch') {
+      try {
+        const design = await stitchGenerate({ prompt: text, mode: 'pro' });
+        if (design?.content) {
+          await project.generate(`Build this based on the following Stitch design:\n${design.content}\n\nOriginal request: ${text}`);
+        } else {
+          await project.generate(text);
+        }
+      } catch {
+        await project.generate(text);
+      }
+      return;
+    }
+
+    // Quick mode → direct generation
     await project.generate(text);
-  }, [input, project]);
+  }, [input, project, buildMode, router]);
 
   /* ── Handle starter prompt ─────────────────────── */
   const handleStarter = useCallback((text) => {
@@ -128,6 +164,14 @@ export default function BuilderV2Screen() {
       </View>
       <View style={s.headerRight}>
         <TouchableOpacity
+          style={[s.headerBtn, buildMode === 'grok' && { borderColor: C.amber + '44' }]}
+          onPress={() => setShowModeSelector(!showModeSelector)}
+        >
+          <Text style={s.headerBtnIcon}>
+            {BUILD_MODES.find(m => m.id === buildMode)?.icon || '⚡'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={s.headerBtn}
           onPress={() => setShowFileTree(!showFileTree)}
         >
@@ -140,6 +184,40 @@ export default function BuilderV2Screen() {
       </View>
     </View>
   );
+
+  /* ═══ RENDER: Build Mode Selector (overlay) ═══ */
+  const renderModeSelector = () => {
+    if (!showModeSelector) return null;
+    return (
+      <View style={s.modeSelectorOverlay}>
+        <View style={s.modeSelector}>
+          <Text style={s.modeSelectorTitle}>BUILD MODE</Text>
+          {BUILD_MODES.map(mode => (
+            <TouchableOpacity
+              key={mode.id}
+              style={[
+                s.modeSelectorItem,
+                buildMode === mode.id && s.modeSelectorItemActive,
+              ]}
+              onPress={() => { setBuildMode(mode.id); setShowModeSelector(false); }}
+            >
+              <Text style={s.modeSelectorIcon}>{mode.icon}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[
+                  s.modeSelectorLabel,
+                  buildMode === mode.id && { color: C.amber },
+                ]}>{mode.label}</Text>
+                <Text style={s.modeSelectorDesc}>{mode.desc}</Text>
+              </View>
+              {buildMode === mode.id && (
+                <Text style={{ color: C.amber, fontSize: 14 }}>✓</Text>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
+  };
 
   /* ═══ RENDER: View Mode Tabs ═══════════════════ */
   const renderModeTabs = () => (
@@ -488,6 +566,7 @@ export default function BuilderV2Screen() {
   return (
     <SafeAreaView style={s.safe}>
       {renderHeader()}
+      {renderModeSelector()}
       {renderModeTabs()}
 
       <View style={s.main}>
@@ -581,6 +660,29 @@ const s = StyleSheet.create({
     width: 16, height: 16, borderRadius: 8,
     backgroundColor: C.amber, alignItems: 'center', justifyContent: 'center',
   },
+
+  /* ── Mode Selector Overlay ──────────────────────── */
+  modeSelectorOverlay: {
+    position: 'absolute', top: 60, right: 12, zIndex: 100,
+  },
+  modeSelector: {
+    width: 220, backgroundColor: C.bgElevated,
+    borderRadius: 14, borderWidth: 1, borderColor: C.border,
+    padding: 8, shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 16,
+    elevation: 10,
+  },
+  modeSelectorTitle: {
+    fontSize: 9, fontWeight: '800', letterSpacing: 1.2,
+    color: C.textGhost, paddingHorizontal: 10, paddingVertical: 6,
+  },
+  modeSelectorItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 10, paddingVertical: 10, borderRadius: 10,
+  },
+  modeSelectorItemActive: { backgroundColor: C.amberGhost },
+  modeSelectorIcon: { fontSize: 18 },
+  modeSelectorLabel: { fontSize: 13, fontWeight: '700', color: C.text },
+  modeSelectorDesc: { fontSize: 10, color: C.textDim, marginTop: 1 },
 
   /* ── Mode Tabs ──────────────────────────────────── */
   modeBar: {

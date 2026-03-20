@@ -29,6 +29,7 @@ const MORE_ITEMS = [
   { icon: '💼', label: 'Career Suite',       route: '/(stack)/business-formation' },
   { icon: '🎤', label: 'Voice AI',           route: '/(stack)/sal-chat' },
   { icon: '📋', label: 'Business Plan',      route: '/(stack)/business-formation-v2' },
+  { icon: '🧠', label: 'SuperGrok',          route: '/(stack)/supergrok' },
   { icon: '⚡', label: 'Builder IDE',        route: '/(stack)/high-fidelity-ide' },
   { icon: '📁', label: 'File Explorer',      route: '/(stack)/file-explorer' },
   { icon: '👁', label: 'Builder Preview',    route: '/(stack)/builder-preview' },
