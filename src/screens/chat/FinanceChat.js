@@ -22,8 +22,8 @@ import { mcpChat } from '../../lib/api';
 const PERPLEXITY_API_KEY = '';
 const XAI_API_KEY =
   '';
-const ALPACA_API_KEY_ID = 'PKHKCFYWMTDFX5345KKLTYJZH7';
-const ALPACA_SECRET_KEY = 'AYcWRX8y5wfbiKMDxUVBuBBG7Bmsjdfw42aTZPK2hXnM';
+const ALPACA_API_KEY_ID = ''; // Backend proxy
+const ALPACA_SECRET_KEY = ''; // Backend proxy
 
 const SAL_FINANCE_SYSTEM = `You are SAL Finance — institutional-grade financial intelligence for SaintSal™ Labs, backed by US Patent #10,290,222. You think like a Goldman Sachs portfolio manager. You provide: DCF analysis with specific assumptions, technical + fundamental breakdowns, macro context, earnings analysis, crypto intelligence, options strategy. Use specific numbers, percentages, price targets. Format your response with clear sections. Cite data sources inline as [Alpaca Markets], [Bloomberg], [SEC Filing], etc.`;
 

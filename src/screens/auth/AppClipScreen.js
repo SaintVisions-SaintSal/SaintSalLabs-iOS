@@ -17,7 +17,7 @@ const CARD  = 'rgba(255,255,255,0.04)';
 
 const PATHS = [
   { icon: '🔍', name: 'Intelligence', desc: 'Search 5 AI engines', route: '/(tabs)/search' },
-  { icon: '💬', name: 'Chat',         desc: 'Multi-model AI chat', route: '/(tabs)/chat'   },
+  { icon: '💬', name: 'Chat',         desc: 'Multi-model AI chat', route: '/(stack)/sal-chat'   },
   { icon: '⚡', name: 'Builder',      desc: 'Build with AI',       route: '/(tabs)/build'  },
 ];
 

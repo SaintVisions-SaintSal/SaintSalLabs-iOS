@@ -29,8 +29,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 /* ── Credentials & endpoints ── */
 const SUPABASE_URL  = 'https://euxrlpuegeiggedqbkiv.supabase.co';
 const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1eHJscHVlZ2VpZ2dlZHFia2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5NTM1MTYsImV4cCI6MjA4MTUyOTUxNn0.KpvXVTIDXeGOBOQOhdPopVbYYfjB-RgPSyJJY3IY474';
-const ALPACA_KEY_ID = 'PKHKCFYWMTDFX5345KKLTYJZH7';
-const ALPACA_SECRET = 'AYcWRX8y5wfbiKMDxUVBuBBG7Bmsjdfw42aTZPK2hXnM';
+const ALPACA_KEY_ID = ''; // Backend proxy
+const ALPACA_SECRET = ''; // Backend proxy
 const ALPACA_BASE   = 'https://paper-api.alpaca.markets/v2';
 const BACKEND_BASE  = 'https://saintsallabs-api.onrender.com';
 

@@ -19,8 +19,8 @@ import { mcpChat } from '../../lib/api';
 const SUPABASE_URL = 'https://euxrlpuegeiggedqbkiv.supabase.co';
 const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1eHJscHVlZ2VpZ2dlZHFia2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5NTM1MTYsImV4cCI6MjA4MTUyOTUxNn0.KpvXVTIDXeGOBOQOhdPopVbYYfjB-RgPSyJJY3IY474';
-const RENTCAST_API = 'e14286fed9e243c6afcba08fcce4bd8f';
-const PROPERTY_API = 'papi_43c517cb3b7081bb6c159480e86a14e3bac535e47dcf6f8d';
+const RENTCAST_API = ''; // Removed — comps go through backend proxy
+const PROPERTY_API = ''; // Removed — search goes through backend proxy
 const PERPLEXITY_API_KEY = '';
 // MCP gateway handles all AI routing (Build #70)
 

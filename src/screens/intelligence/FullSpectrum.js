@@ -23,7 +23,7 @@ const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1eHJscHVlZ2VpZ2dlZHFia2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5NTM1MTYsImV4cCI6MjA4MTUyOTUxNn0.KpvXVTIDXeGOBOQOhdPopVbYYfjB-RgPSyJJY3IY474';
 // MCP gateway handles all AI routing (Build #70)
 const PERPLEXITY_API_KEY = '';
-const TAVILY_API_KEY = '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';
+const TAVILY_API_KEY = ''; // Removed — search goes through MCP gateway
 const EXA_API_KEY = 'b27bdba9-bd2a-49fd-a4ef-d096cdfe66eb';
 const XAI_API_KEY = '';
 const MXBAI_API_KEY = 'mxb_1vHGNsbhgA5weMKLIEpGRXPlndGN';

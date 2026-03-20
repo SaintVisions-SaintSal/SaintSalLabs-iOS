@@ -26,8 +26,8 @@ import { mcpChat } from '../../lib/api';
 
 /* ── API credentials ── */
 // MCP gateway handles all AI routing (Build #70)
-const RENTCAST_KEY    = 'e14286fed9e243c6afcba08fcce4bd8f';
-const PROPERTY_KEY    = 'papi_43c517cb3b7081bb6c159480e86a14e3bac535e47dcf6f8d';
+const RENTCAST_KEY    = ''; // Removed — comps go through backend proxy
+const PROPERTY_KEY    = ''; // Removed — search goes through backend proxy
 const PERPLEXITY_KEY  = '';
 const EXA_KEY         = 'b27bdba9-bd2a-49fd-a4ef-d096cdfe66eb';
 const SUPABASE_URL    = 'https://euxrlpuegeiggedqbkiv.supabase.co';

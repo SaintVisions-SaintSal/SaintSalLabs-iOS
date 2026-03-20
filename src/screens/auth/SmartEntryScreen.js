@@ -254,7 +254,7 @@ export default function SmartEntryScreen() {
             title="SAL CHAT"
             subtitle="Talk to SAL across every vertical — finance, real estate, creative"
             pulse={pulse}
-            onPress={() => router.replace('/(tabs)/chat')}
+            onPress={() => router.replace('/(stack)/sal-chat')}
           />
           <FeatureCard
             icon="⚡"
@@ -318,7 +318,7 @@ export default function SmartEntryScreen() {
             title="CONTINUE CHAT"
             subtitle={lastConvo || 'Pick up where you left off'}
             pulse={pulse}
-            onPress={() => router.replace('/(tabs)/chat')}
+            onPress={() => router.replace('/(stack)/sal-chat')}
           />
           <FeatureCard
             icon="⚡"
@@ -375,7 +375,7 @@ export default function SmartEntryScreen() {
           title="CONTINUE CHAT"
           subtitle={lastConvo || 'Resume your last conversation'}
           pulse={pulse}
-          onPress={() => guardGuest(() => router.replace('/(tabs)/chat'))}
+          onPress={() => guardGuest(() => router.replace('/(stack)/sal-chat'))}
         />
         <FeatureCard
           icon="⚡"
