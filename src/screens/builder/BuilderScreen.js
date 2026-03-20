@@ -12,8 +12,6 @@ import {
   ActivityIndicator, Animated, Dimensions, Alert, Share,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { LinearGradient } from 'expo-linear-gradient';
-import { C } from '../../config/theme';
 import { SALMark } from '../../components';
 import useAgentPipeline, {
   AGENTS, AGENT_IDLE, AGENT_THINKING, AGENT_COMPLETE, AGENT_ERROR,
