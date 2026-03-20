@@ -6,33 +6,48 @@
 ═══════════════════════════════════════════════════ */
 
 export const C = {
-  // Backgrounds
-  bg:          '#0C0C0F',
-  bgCard:      '#111116',
-  bgElevated:  '#141418',
-  bgInput:     '#111118',
-  bgHover:     '#18181F',
-  sidebar:     '#090910',
-  tabBar:      '#070709',
+  // Backgrounds — Kinetic Labs "Deep Charcoal" palette
+  bg:          '#0F0F0F',
+  bgCard:      '#131313',
+  bgElevated:  '#1C1B1B',
+  bgInput:     '#0E0E0E',
+  bgHover:     '#2A2A2A',
+  sidebar:     '#0E0E0E',
+  tabBar:      '#0A0A0A',
 
-  // Borders
+  // Surface system (material-style tonal hierarchy)
+  surface:         '#131313',
+  surfaceDim:      '#131313',
+  surfaceLow:      '#1C1B1B',
+  surfaceContainer:'#201F1F',
+  surfaceHigh:     '#2A2A2A',
+  surfaceHighest:  '#353534',
+  surfaceBright:   '#3A3939',
+  surfaceVariant:  '#353534',
+
+  // Borders — "No-Line Rule" (use elevation, not strokes)
   border:      '#1C1C24',
   borderSm:    '#141420',
   borderGlow:  '#F59E0B28',
+  outlineVariant: '#534434',
 
-  // Brand
+  // Brand — SaintSal Gold
   amber:       '#F59E0B',
   amberDim:    '#F59E0B99',
   amberGhost:  '#F59E0B15',
   gold:        '#D4AF37',
-  goldBright:  '#FFD700',
+  goldBright:  '#FFC174',
+  goldGradStart: '#FFC174',
+  goldGradEnd:   '#F59E0B',
   orange:      '#ec5b13',
 
-  // Semantic
+  // Semantic — Neon Green for live, Error for faults
   green:       '#22C55E',
   greenGhost:  '#22C55E15',
+  greenBright: '#4AE176',
   red:         '#EF4444',
   redGhost:    '#EF444415',
+  errorLight:  '#FFB4AB',
   purple:      '#818CF8',
   purpleGhost: '#818CF815',
   pink:        '#EC4899',
@@ -40,12 +55,14 @@ export const C = {
   blue:        '#3B82F6',
   blueGhost:   '#3B82F615',
 
-  // Typography
-  text:        '#E8E6E1',
-  textSub:     '#C5C2BC',
+  // Typography — Kinetic Labs tokens
+  text:        '#E5E2E1',
+  textSub:     '#D8C3AD',
   textMuted:   '#9CA3AF',
   textDim:     '#6B7280',
   textGhost:   '#444455',
+  onSurface:   '#E5E2E1',
+  onSurfaceVariant: '#D8C3AD',
 
   // Neon (for key info highlighting only)
   neonGold:    '#FFD700',

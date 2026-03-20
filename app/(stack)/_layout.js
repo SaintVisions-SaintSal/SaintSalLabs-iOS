@@ -9,7 +9,7 @@ export default function StackLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: '#0C0C0F' },
+        contentStyle: { backgroundColor: '#0F0F0F' },
         animation: 'slide_from_right',
       }}
     >
@@ -135,6 +135,12 @@ export default function StackLayout() {
 
       {/* Build #68 — GHL Command Center */}
       <Stack.Screen name="ghl-command" />
+
+      {/* Build #73 — Premium Kinetic Labs Screens */}
+      <Stack.Screen name="builder-preview" />
+      <Stack.Screen name="file-explorer" />
+      <Stack.Screen name="builder-settings" />
+      <Stack.Screen name="kinetic-dashboard" />
     </Stack>
   );
 }
