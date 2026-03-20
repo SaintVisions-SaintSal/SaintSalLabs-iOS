@@ -1,11 +1,13 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, Animated, Alert,
+  StyleSheet, SafeAreaView, Animated, Alert, ActivityIndicator, Linking,
 } from 'react-native';
 import { C } from '../../config/theme';
 import { useRouter } from 'expo-router';
 import { SALMark } from '../../components';
+import { MCP_BASE, MCP_KEY } from '../../lib/api';
+import { useAuth } from '../../lib/AuthContext';
 
 const INFRA_CARDS = [
   { id: 'airbyte', icon: '🔄', name: 'Airbyte Engine', desc: 'ETL Data Synchronization', status: 'Active', statusColor: C.green },
@@ -38,20 +40,111 @@ export default function SocialConnectionsScreen() {
     ).start();
   }, []);
 
-  const handleConnect = (id) => {
-    Alert.alert('Connect Platform', `OAuth flow would open for ${platforms.find(p => p.id === id)?.name}`);
+  const { session } = useAuth();
+  const [connecting, setConnecting] = useState(null);
+  const [loadingPlatforms, setLoadingPlatforms] = useState(false);
+
+  /* ── Fetch real connection status from backend ── */
+  const fetchConnections = useCallback(async () => {
+    try {
+      setLoadingPlatforms(true);
+      const res = await fetch(`${MCP_BASE}/api/social/connections`, {
+        headers: {
+          'x-sal-key': MCP_KEY,
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.connections) {
+          setPlatforms(prev => prev.map(p => {
+            const conn = data.connections.find(c => c.platform === p.id);
+            if (conn) {
+              return {
+                ...p,
+                connected: true,
+                status: 'Connected',
+                followers: conn.followers || null,
+                lastSync: conn.last_sync || 'Just now',
+              };
+            }
+            return p;
+          }));
+        }
+      }
+    } catch (e) {
+      console.warn('[Social] Failed to fetch connections:', e.message);
+    } finally {
+      setLoadingPlatforms(false);
+    }
+  }, [session]);
+
+  useEffect(() => { fetchConnections(); }, []);
+
+  /* ── Start OAuth flow for a platform ── */
+  const handleConnect = async (id) => {
+    const platform = platforms.find(p => p.id === id);
+    setConnecting(id);
+    try {
+      const res = await fetch(`${MCP_BASE}/api/social/auth/${id}`, {
+        headers: {
+          'x-sal-key': MCP_KEY,
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
+        },
+      });
+      const data = await res.json();
+
+      if (data.auth_url) {
+        // Open OAuth URL in system browser
+        const canOpen = await Linking.canOpenURL(data.auth_url);
+        if (canOpen) {
+          await Linking.openURL(data.auth_url);
+          // After returning, refresh connection status
+          setTimeout(() => fetchConnections(), 3000);
+        } else {
+          Alert.alert('Error', 'Cannot open authentication URL. Please try again.');
+        }
+      } else if (data.setup_required) {
+        Alert.alert(
+          `${platform?.name} Setup`,
+          data.message || 'OAuth not configured for this platform yet.',
+          [
+            { text: 'OK' },
+            data.docs_url ? { text: 'View Docs', onPress: () => Linking.openURL(data.docs_url) } : null,
+          ].filter(Boolean)
+        );
+      } else if (data.error) {
+        Alert.alert('Connection Error', data.error);
+      }
+    } catch (e) {
+      Alert.alert('Error', `Failed to start ${platform?.name} connection: ${e.message}`);
+    } finally {
+      setConnecting(null);
+    }
   };
 
   const handleDisconnect = (id) => {
+    const platform = platforms.find(p => p.id === id);
     Alert.alert(
       'Disconnect',
-      `Remove ${platforms.find(p => p.id === id)?.name} connection?`,
+      `Remove ${platform?.name} connection?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Disconnect',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
+            try {
+              await fetch(`${MCP_BASE}/api/social/connections/${id}`, {
+                method: 'DELETE',
+                headers: {
+                  'x-sal-key': MCP_KEY,
+                  ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
+                },
+              });
+            } catch (e) {
+              console.warn('[Social] Disconnect API error:', e.message);
+            }
             setPlatforms(prev =>
               prev.map(p => p.id === id
                 ? { ...p, connected: false, status: 'Disconnected', followers: null, lastSync: null }
@@ -201,10 +294,13 @@ export default function SocialConnectionsScreen() {
                       style={s.connectBtn}
                       onPress={() => handleConnect(p.id)}
                       activeOpacity={0.8}
+                      disabled={connecting === p.id}
                     >
-                      <Text style={s.connectBtnText}>
-                        {p.status === 'Auth Required' ? 'Connect' : 'Auth Platform'}
-                      </Text>
+                      {connecting === p.id ? (
+                        <ActivityIndicator size="small" color={C.bg} />
+                      ) : (
+                        <Text style={s.connectBtnText}>Connect</Text>
+                      )}
                     </TouchableOpacity>
                   )}
                 </View>

@@ -108,7 +108,14 @@ export default function TabLayout() {
     });
   }, []);
 
-  const handleMore = (route) => closeSheet(() => router.push(route));
+  const handleMore = (route) => {
+    // Navigate FIRST, then close sheet — avoids race condition
+    // where animation callback doesn't fire on iOS
+    setSheetOpen(false);
+    slideY.setValue(SCREEN_H);
+    backdrop.setValue(0);
+    router.push(route);
+  };
 
   const handleSignOut = () => {
     closeSheet(async () => {

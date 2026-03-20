@@ -4,11 +4,11 @@
    conversation history, generation, deployment
 ═══════════════════════════════════════════════════ */
 import { useState, useCallback, useRef } from 'react';
-import { API_BASE, API_KEY } from '../lib/api';
+import { MCP_BASE, MCP_KEY } from '../lib/api';
 
 const HEADERS = {
   'Content-Type': 'application/json',
-  'x-sal-key': API_KEY,
+  'x-sal-key': MCP_KEY,
 };
 
 const DEFAULT_FILES = [
@@ -88,7 +88,7 @@ export default function useBuilderProject() {
       const controller = new AbortController();
       abortRef.current = controller;
 
-      const res = await fetch(`${API_BASE}/api/builder/v2/generate`, {
+      const res = await fetch(`${MCP_BASE}/api/builder/v2/generate`, {
         method: 'POST',
         headers: HEADERS,
         body: JSON.stringify({
