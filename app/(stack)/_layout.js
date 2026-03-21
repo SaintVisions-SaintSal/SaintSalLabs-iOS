@@ -14,7 +14,6 @@ export default function StackLayout() {
       }}
     >
       {/* Builder */}
-      <Stack.Screen name="mobile-ide" />
       <Stack.Screen name="builder-deploy" />
 
       {/* Social */}
@@ -42,7 +41,6 @@ export default function StackLayout() {
       <Stack.Screen name="elite-deploy" />
 
       {/* Navigation */}
-      <Stack.Screen name="navigation-hub" />
 
       {/* SAL Chat Modes (Phase 3) */}
       <Stack.Screen name="sal-chat" />
@@ -55,8 +53,6 @@ export default function StackLayout() {
 
       {/* Builder (Phase 5) */}
       <Stack.Screen name="builder-planning" />
-      <Stack.Screen name="builder-viewport" />
-      <Stack.Screen name="build-connections" />
 
       {/* Social (Phase 6) */}
       <Stack.Screen name="social-content-gen" />
@@ -66,7 +62,6 @@ export default function StackLayout() {
       <Stack.Screen name="re-manifest" />
 
       {/* GHL (Phase 8) */}
-      <Stack.Screen name="ghl-smart-bridge" />
 
       {/* Platform (Phase 9) */}
       <Stack.Screen name="elite-connectors" />
@@ -94,11 +89,7 @@ export default function StackLayout() {
 
       {/* Stitch Screens (Phase 11) — additional screens */}
       <Stack.Screen name="domain-ssl-command" />
-      <Stack.Screen name="connections-hub" />
-      <Stack.Screen name="viewport-simulator" />
-      <Stack.Screen name="file-system-apis" />
       <Stack.Screen name="github-console-v2" />
-      <Stack.Screen name="elite-nav-hub" />
 
       {/* Smart Entry — universal launch screen */}
       <Stack.Screen name="smart-entry" options={{ animation: 'fade' }} />
@@ -120,10 +111,7 @@ export default function StackLayout() {
       <Stack.Screen name="legal-vault-v2" />
       <Stack.Screen name="github-console-v3" />
       <Stack.Screen name="hook-workflow-v2" />
-      <Stack.Screen name="build-connections-v2" />
-      <Stack.Screen name="builder-viewport-v2" />
       <Stack.Screen name="co-ceo-desk" />
-      <Stack.Screen name="navigation-hub-v2" />
 
       {/* NOTE: credit-topup, social-generator, social-connections already declared above */}
 
@@ -144,6 +132,10 @@ export default function StackLayout() {
 
       {/* Build #85 — Voice AI (ElevenLabs Conversational Agent) */}
       <Stack.Screen name="voice-ai" />
+
+      {/* Build #89 — Restructure: Career Suite + GHL Intel Hub */}
+      <Stack.Screen name="career-suite" />
+      <Stack.Screen name="ghl-intel-hub" />
     </Stack>
   );
 }

@@ -19,6 +19,7 @@ const { height: SCREEN_H } = Dimensions.get('window');
 
 /* ── More Sheet Items (full spec list) ── */
 const MORE_ITEMS = [
+  // Verticals
   { icon: '🏀', label: 'Sports',             route: '/(stack)/elite-intelligence' },
   { icon: '📰', label: 'News',               route: '/(stack)/full-spectrum-intel' },
   { icon: '💻', label: 'Tech',               route: '/(stack)/elite-intel-hub' },
@@ -26,20 +27,16 @@ const MORE_ITEMS = [
   { icon: '🏠', label: 'Real Estate',        route: '/(stack)/elite-real-estate' },
   { icon: '🏥', label: 'Medical',            route: '/(stack)/full-spectrum-v2' },
   { icon: '🃏', label: 'CookinCards',        route: '/(stack)/portfolio' },
-  { icon: '💼', label: 'Career Suite',       route: '/(stack)/business-formation' },
+  // Tools
+  { icon: '💼', label: 'Career & Biz HQ',    route: '/(stack)/career-suite' },
   { icon: '🎤', label: 'Voice AI',           route: '/(stack)/voice-ai' },
-  { icon: '📋', label: 'Business Plan',      route: '/(stack)/business-formation-v2' },
-  { icon: '🧠', label: 'SuperGrok',          route: '/(tabs)/builder' },
-  { icon: '⚡', label: 'Builder IDE',        route: '/(stack)/high-fidelity-ide' },
-  { icon: '📁', label: 'File Explorer',      route: '/(stack)/file-explorer' },
-  { icon: '👁', label: 'Builder Preview',    route: '/(stack)/builder-preview' },
-  { icon: '🔧', label: 'Builder Settings',   route: '/(stack)/builder-settings' },
-  { icon: '🌐', label: 'Domains',            route: '/(stack)/domain-ssl-command' },
   { icon: '🏢', label: 'Business Center',    route: '/(stack)/home-base-command' },
-  { icon: '🔗', label: 'GHL Command',        route: '/(stack)/ghl-command' },
-  { icon: '🧩', label: 'Integrations',       route: '/(stack)/connectors-hub' },
+  { icon: '🔗', label: 'GHL Intel Hub',      route: '/(stack)/ghl-intel-hub' },
+  { icon: '📝', label: 'Business Formation', route: '/(stack)/business-formation-v2' },
+  { icon: '🌐', label: 'Domains',            route: '/(stack)/domain-ssl-command' },
+  // Account
   { icon: '💰', label: 'Pricing',            route: '/(stack)/pricing' },
-  { icon: '👤', label: 'Account',            route: '/(stack)/business-dna-setup' },
+  { icon: '👤', label: 'Account & DNA',      route: '/(stack)/business-dna-setup' },
   { icon: '⚙️', label: 'Settings',           route: '/(stack)/api-settings' },
 ];
 
