@@ -6,15 +6,15 @@
 ═══════════════════════════════════════════════════ */
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
+  View, Text, ScrollView, TouchableOpacity, TextInput, Image,
   StyleSheet, SafeAreaView, ActivityIndicator, KeyboardAvoidingView,
-  Platform, Animated, Keyboard,
+  Platform, Animated, Keyboard, Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MarkdownText from '../../components/MarkdownText';
-import { streamSalChat } from '../../lib/api';
+import { streamSalChat, MCP_BASE, MCP_KEY } from '../../lib/api';
 
 const GOLD = '#D4AF37';
 const BG = '#0A0A0A';
@@ -23,13 +23,25 @@ const CARD_BG = '#141416';
 const VERTICALS = [
   { id: 'all',         label: 'All',          icon: '✨', route: null },
   { id: 'sports',      label: 'Sports',       icon: '🏀', route: null },
-  { id: 'news',        label: 'News',         icon: '📰', route: '/(stack)/full-spectrum-intel' },
-  { id: 'tech',        label: 'Tech',         icon: '💻', route: '/(stack)/elite-intel-hub' },
-  { id: 'finance',     label: 'Finance',      icon: '📈', route: '/(stack)/finance-chat' },
+  { id: 'news',        label: 'News',         icon: '📰', route: null },
+  { id: 'tech',        label: 'Tech',         icon: '💻', route: null },
+  { id: 'finance',     label: 'Finance',      icon: '📈', route: null },
   { id: 'realestate',  label: 'Real Estate',  icon: '🏠', route: '/(stack)/elite-real-estate' },
-  { id: 'medical',     label: 'Medical',      icon: '🏥', route: '/(stack)/full-spectrum-v2' },
+  { id: 'medical',     label: 'Medical',      icon: '🏥', route: null },
   { id: 'cookin',      label: 'CookinCards',  icon: '🃏', route: '/(stack)/portfolio' },
 ];
+
+/* ── Vertical-specific suggestions ── */
+const VERTICAL_SUGGESTIONS = {
+  all: ['What are today\'s top market movers?', 'Latest AI companies to watch in 2026', 'Breaking news analysis', 'Best real estate deals right now'],
+  sports: ['NBA playoff standings and predictions', 'NFL draft top prospects 2026', 'March Madness bracket analysis', 'Fantasy football waiver pickups'],
+  news: ['Biggest story in the world right now', 'Fed rate decision impact analysis', 'Top geopolitical risks 2026', 'AI regulation latest developments'],
+  tech: ['Best AI APIs for production 2026', 'Compare GPT-5 vs Claude 4 for coding', 'Top YC startups this batch', 'React Native vs Flutter in 2026'],
+  finance: ['Analyze NVDA — technicals + fundamentals', 'Bitcoin price targets Q2 2026', 'Best dividend stocks for income', 'Build a $50K diversified portfolio'],
+  realestate: ['Best BRRRR markets under $200K', 'Analyze: $450K SFR, $2800 rent, 20% down', 'How to find foreclosures in California', 'Commercial vs residential investing'],
+  medical: ['Latest FDA drug approvals 2026', 'AI in healthcare breakthroughs', 'CRISPR gene therapy progress', 'Top biotech stocks to watch'],
+  cookin: ['Charizard 1st edition price history', 'Best Pokemon 30th anniversary cards', 'PSA 10 vs BGS 9.5 value difference', 'Most undervalued vintage cards'],
+};
 
 const TIERS = [
   { id: 'mini', label: 'Mini', desc: 'Fast' },
@@ -66,6 +78,23 @@ export default function SearchChatHome() {
   const [msgCount, setMsgCount] = useState(0);
   const [showSignupPrompt, setShowSignupPrompt] = useState(false);
   const [showTierPicker, setShowTierPicker] = useState(false);
+  const [trending, setTrending] = useState([]);
+  const [trendingLoading, setTrendingLoading] = useState(false);
+
+  // Fetch trending content when vertical changes
+  useEffect(() => {
+    const catMap = { all: 'top', sports: 'sports', news: 'news', tech: 'tech', finance: 'finance', medical: 'medical' };
+    const cat = catMap[activeVertical];
+    if (!cat) { setTrending([]); return; } // RE and CookinCards navigate away
+    setTrendingLoading(true);
+    fetch(`${MCP_BASE}/api/discover/${cat}`, { headers: { 'x-sal-key': MCP_KEY } })
+      .then(r => r.json())
+      .then(data => {
+        setTrending((data.topics || []).slice(0, 2)); // Just top 2 articles
+        setTrendingLoading(false);
+      })
+      .catch(() => { setTrending([]); setTrendingLoading(false); });
+  }, [activeVertical]);
 
   // Load free message count
   useEffect(() => {
@@ -204,33 +233,38 @@ export default function SearchChatHome() {
         >
           {messages.length === 0 ? (
             <View style={s.welcomeArea}>
-              {/* Featured cards */}
-              <View style={s.featRow}>
-                <View style={s.featCard}>
-                  <Text style={s.featIcon}>📊</Text>
-                  <Text style={s.featTitle}>Markets</Text>
-                  <Text style={s.featSub}>S&P 500 · NASDAQ · BTC</Text>
+              {/* Trending content from API */}
+              {trending.length > 0 && (
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={s.trendingLabel}>📰 TRENDING NOW</Text>
+                  {trending.map((article, i) => (
+                    <TouchableOpacity
+                      key={i}
+                      style={s.trendingCard}
+                      onPress={() => article.url ? Linking.openURL(article.url) : null}
+                      activeOpacity={0.8}
+                    >
+                      <View style={s.trendingBadge}>
+                        <Text style={s.trendingBadgeText}>{article.category || activeVertical.toUpperCase()}</Text>
+                      </View>
+                      <Text style={s.trendingTitle} numberOfLines={2}>{article.title}</Text>
+                      {article.summary ? (
+                        <Text style={s.trendingSummary} numberOfLines={2}>{article.summary.slice(0, 120)}</Text>
+                      ) : null}
+                      <Text style={s.trendingTime}>{article.time || 'Just now'} · {article.domain || ''}</Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-                <View style={s.featCard}>
-                  <Text style={s.featIcon}>🏀</Text>
-                  <Text style={s.featTitle}>Scores</Text>
-                  <Text style={s.featSub}>Live games & standings</Text>
+              )}
+              {trendingLoading && (
+                <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+                  <ActivityIndicator color={GOLD} size="small" />
                 </View>
-                <View style={s.featCard}>
-                  <Text style={s.featIcon}>📰</Text>
-                  <Text style={s.featTitle}>News</Text>
-                  <Text style={s.featSub}>Breaking stories today</Text>
-                </View>
-              </View>
+              )}
 
-              {/* Suggested prompts */}
-              <Text style={s.suggestLabel}>Try asking</Text>
-              {[
-                'What are today\'s top market movers?',
-                'Analyze NVDA earnings and price target',
-                'Latest NBA scores and standings',
-                'Top AI companies to watch in 2026',
-              ].map((prompt, i) => (
+              {/* Vertical-specific suggested prompts */}
+              <Text style={s.suggestLabel}>Ask SAL about {VERTICALS.find(v => v.id === activeVertical)?.label || 'anything'}</Text>
+              {(VERTICAL_SUGGESTIONS[activeVertical] || VERTICAL_SUGGESTIONS.all).map((prompt, i) => (
                 <TouchableOpacity key={i} style={s.suggestChip} onPress={() => handleChip(prompt)}>
                   <Text style={s.suggestText}>{prompt}</Text>
                   <Text style={s.suggestArrow}>→</Text>
@@ -242,7 +276,11 @@ export default function SearchChatHome() {
               <View key={i} style={[s.msgRow, msg.role === 'user' && s.msgRowUser]}>
                 {msg.role === 'assistant' && (
                   <View style={s.salAvatar}>
-                    <Text style={{ fontSize: 16 }}>🤖</Text>
+                    <Image
+                      source={require('../../../assets/logo-80.png')}
+                      style={{ width: 24, height: 24, borderRadius: 12 }}
+                      resizeMode="contain"
+                    />
                   </View>
                 )}
                 <View style={[s.msgBubble, msg.role === 'user' ? s.msgUser : s.msgAssistant]}>
@@ -375,15 +413,25 @@ const s = StyleSheet.create({
 
   chatArea: { flex: 1 },
 
-  welcomeArea: { padding: 16, paddingTop: 20 },
-  featRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
-  featCard: {
-    flex: 1, backgroundColor: CARD_BG, borderRadius: 14, padding: 14,
+  welcomeArea: { padding: 16, paddingTop: 12 },
+
+  /* Trending article cards */
+  trendingLabel: {
+    fontSize: 11, fontWeight: '800', color: 'rgba(255,255,255,0.4)',
+    letterSpacing: 1.5, marginBottom: 10,
+  },
+  trendingCard: {
+    backgroundColor: CARD_BG, borderRadius: 14, padding: 16, marginBottom: 10,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
   },
-  featIcon: { fontSize: 24, marginBottom: 8 },
-  featTitle: { fontSize: 14, fontWeight: '700', color: '#fff', marginBottom: 2 },
-  featSub: { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
+  trendingBadge: {
+    alignSelf: 'flex-start', backgroundColor: 'rgba(212,175,55,0.15)',
+    borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, marginBottom: 8,
+  },
+  trendingBadgeText: { fontSize: 9, fontWeight: '800', color: GOLD, letterSpacing: 0.5, textTransform: 'uppercase' },
+  trendingTitle: { fontSize: 16, fontWeight: '700', color: '#fff', lineHeight: 22, marginBottom: 6 },
+  trendingSummary: { fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 19, marginBottom: 6 },
+  trendingTime: { fontSize: 10, color: 'rgba(255,255,255,0.25)' },
 
   suggestLabel: {
     fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.35)',
