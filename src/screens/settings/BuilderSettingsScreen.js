@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   KINETIC LABS — BUILDER SETTINGS
+   SAINTSALLABS — BUILDER SETTINGS
    Source control, Intelligence mesh, Env vars, Deploy
    Matches: settings.jpg / settings1.html
    US Patent #10,290,222 · HACP Protocol

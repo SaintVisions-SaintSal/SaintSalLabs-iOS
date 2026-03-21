@@ -789,7 +789,7 @@ export default function BuilderScreen() {
 
 
 /* ═══════════════════════════════════════════════════
-   STYLES — KINETIC BLUEPRINT DESIGN SYSTEM
+   STYLES — SAINTSALLABS BLUEPRINT DESIGN SYSTEM
    #00FF88 neon · 0px radius · Grid aesthetic
 ═══════════════════════════════════════════════════ */
 const s = StyleSheet.create({

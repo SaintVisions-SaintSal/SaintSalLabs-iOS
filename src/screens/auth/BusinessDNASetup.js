@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { C } from '../../config/theme';
+import { supabase } from '../../lib/supabase';
 
 const SUPABASE_URL = 'https://euxrlpuegeiggedqbkiv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1eHJscHVlZ2VpZ2dlZHFia2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5NTM1MTYsImV4cCI6MjA4MTUyOTUxNn0.KpvXVTIDXeGOBOQOhdPopVbYYfjB-RgPSyJJY3IY474';
@@ -90,7 +91,16 @@ export default function BusinessDNASetup() {
   const saveProfile = async () => {
     setSaving(true);
     try {
+      // Get authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert('Sign In Required', 'Please sign in to save your Business DNA.');
+        setSaving(false);
+        return;
+      }
+
       const payload = {
+        user_id: user.id,
         business_name: form.businessName,
         website: form.website,
         tagline: form.tagline,
@@ -109,7 +119,7 @@ export default function BusinessDNASetup() {
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
-          'Prefer': 'return=minimal',
+          'Prefer': 'resolution=merge-duplicates,return=minimal',
         },
         body: JSON.stringify(payload),
       });

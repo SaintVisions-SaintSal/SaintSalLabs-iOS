@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   KINETIC LABS — BUILDER PREVIEW
+   SAINTSALLABS — BUILDER PREVIEW
    Premium phone mockup with dashboard preview
    Revenue, Leads, Conversion, Activity Feed
    Matches: preview1.jpg / code-copy-2.html
@@ -53,7 +53,7 @@ export default function BuilderPreviewScreen() {
         {/* ═══ Header ═══ */}
         <View style={s.header}>
           <View style={s.headerLeft}>
-            <Text style={s.headerBrand}>KINETIC LABS</Text>
+            <Text style={s.headerBrand}>SAINTSALLABS</Text>
           </View>
           {/* Device toggles */}
           <View style={s.deviceBar}>

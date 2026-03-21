@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   KINETIC LABS — FILE EXPLORER
+   SAINTSALLABS — FILE EXPLORER
    Code editor + syntax highlighting + build log + deploy
    Matches: files.jpg / files1.html
    US Patent #10,290,222 · HACP Protocol
