@@ -11,7 +11,7 @@ import {
   Platform, Animated, Keyboard, Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MarkdownText from '../../components/MarkdownText';
 import { streamSalChat, MCP_BASE, MCP_KEY } from '../../lib/api';
@@ -66,6 +66,7 @@ const MSG_COUNT_KEY = '@sal_free_msg_count';
 export default function SearchChatHome() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { vertical: routeVertical } = useLocalSearchParams();
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
   const xhrRef = useRef(null);
@@ -80,6 +81,13 @@ export default function SearchChatHome() {
   const [showTierPicker, setShowTierPicker] = useState(false);
   const [trending, setTrending] = useState([]);
   const [trendingLoading, setTrendingLoading] = useState(false);
+
+  // Set vertical from route params (when navigated from More sheet)
+  useEffect(() => {
+    if (routeVertical && routeVertical !== activeVertical) {
+      setActiveVertical(routeVertical);
+    }
+  }, [routeVertical]);
 
   // Fetch trending content when vertical changes
   useEffect(() => {

@@ -19,13 +19,13 @@ const { height: SCREEN_H } = Dimensions.get('window');
 
 /* ── More Sheet Items (full spec list) ── */
 const MORE_ITEMS = [
-  // Verticals
-  { icon: '🏀', label: 'Sports',             route: '/(stack)/elite-intelligence' },
-  { icon: '📰', label: 'News',               route: '/(stack)/full-spectrum-intel' },
-  { icon: '💻', label: 'Tech',               route: '/(stack)/elite-intel-hub' },
-  { icon: '📈', label: 'Finance',            route: '/(stack)/finance-chat' },
+  // Verticals — route to Search tab with vertical pre-selected
+  { icon: '🏀', label: 'Sports',             route: '/(tabs)', params: { vertical: 'sports' } },
+  { icon: '📰', label: 'News',               route: '/(tabs)', params: { vertical: 'news' } },
+  { icon: '💻', label: 'Tech',               route: '/(tabs)', params: { vertical: 'tech' } },
+  { icon: '📈', label: 'Finance',            route: '/(tabs)', params: { vertical: 'finance' } },
   { icon: '🏠', label: 'Real Estate',        route: '/(stack)/elite-real-estate' },
-  { icon: '🏥', label: 'Medical',            route: '/(stack)/full-spectrum-v2' },
+  { icon: '🏥', label: 'Medical',            route: '/(tabs)', params: { vertical: 'medical' } },
   { icon: '🃏', label: 'CookinCards',        route: '/(stack)/portfolio' },
   // Tools
   { icon: '💼', label: 'Career & Biz HQ',    route: '/(stack)/career-suite' },
@@ -113,13 +113,17 @@ export default function TabLayout() {
     });
   }, []);
 
-  const handleMore = (route) => {
+  const handleMore = (item) => {
     // Navigate FIRST, then close sheet — avoids race condition
     // where animation callback doesn't fire on iOS
     setSheetOpen(false);
     slideY.setValue(SCREEN_H);
     backdrop.setValue(0);
-    router.push(route);
+    if (item.params) {
+      router.push({ pathname: item.route, params: item.params });
+    } else {
+      router.push(item.route);
+    }
   };
 
   const handleSignOut = () => {
@@ -236,7 +240,7 @@ export default function TabLayout() {
                   <TouchableOpacity
                     key={item.label}
                     style={sheet.gridItem}
-                    onPress={() => handleMore(item.route)}
+                    onPress={() => handleMore(item)}
                     activeOpacity={0.7}
                   >
                     <View style={sheet.iconCircle}>
