@@ -55,7 +55,7 @@ export default function InvestorAnalysisScreen() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <View style={s.salMark}><Text style={s.salMarkText}>S</Text></View>
+          <Image source={require('../../../assets/logo-80.png')} style={{ width: 28, height: 28, borderRadius: 14 }} resizeMode="contain" />
           <View>
             <Text style={s.headerTitle}>Analysis Engine</Text>
             <Text style={s.headerSub}>Investor Intelligence</Text>

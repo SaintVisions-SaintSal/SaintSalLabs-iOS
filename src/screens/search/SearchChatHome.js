@@ -22,7 +22,7 @@ const CARD_BG = '#141416';
 
 const VERTICALS = [
   { id: 'all',         label: 'All',          icon: '✨', route: null },
-  { id: 'sports',      label: 'Sports',       icon: '🏀', route: '/(stack)/elite-intelligence' },
+  { id: 'sports',      label: 'Sports',       icon: '🏀', route: null },
   { id: 'news',        label: 'News',         icon: '📰', route: '/(stack)/full-spectrum-intel' },
   { id: 'tech',        label: 'Tech',         icon: '💻', route: '/(stack)/elite-intel-hub' },
   { id: 'finance',     label: 'Finance',      icon: '📈', route: '/(stack)/finance-chat' },

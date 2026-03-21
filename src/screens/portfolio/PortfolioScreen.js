@@ -51,7 +51,7 @@ export default function PortfolioScreen() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <View style={s.salMark}><Text style={s.salMarkText}>S</Text></View>
+          <Image source={require('../../../assets/logo-80.png')} style={{ width: 28, height: 28, borderRadius: 14 }} resizeMode="contain" />
           <Text style={s.headerTitle}>My Portfolio</Text>
         </View>
         <TouchableOpacity style={s.notifBtn}>

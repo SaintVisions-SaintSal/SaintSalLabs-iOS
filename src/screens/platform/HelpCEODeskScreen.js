@@ -184,7 +184,7 @@ export default function HelpCEODeskScreen() {
                 <View key={i} style={[s.msgWrap, msg.role === 'user' ? s.msgUser : s.msgAssistant]}>
                   {msg.role === 'assistant' && (
                     <View style={s.msgAvatar}>
-                      <Text style={s.msgAvatarTxt}>S</Text>
+                      <Image source={require('../../../assets/logo-80.png')} style={{ width: 20, height: 20, borderRadius: 10 }} resizeMode="contain" />
                     </View>
                   )}
                   <View style={[s.msgBubble, msg.role === 'user' ? s.userBubble : s.aiBubble]}>

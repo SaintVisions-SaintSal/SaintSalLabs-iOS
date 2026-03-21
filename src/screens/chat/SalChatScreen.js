@@ -8,7 +8,7 @@
 ═══════════════════════════════════════════════════ */
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  View, Text, TextInput, TouchableOpacity, StyleSheet, Image,
   SafeAreaView, ScrollView, Animated, Alert, KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -344,7 +344,11 @@ function MessageBubble({ msg, accent }) {
     <View style={[b.wrap, isUser ? b.userWrap : b.assistantWrap]}>
       {!isUser && (
         <View style={[b.avatar, { borderColor: accent + '44', backgroundColor: accent + '18' }]}>
-          <Text style={b.avatarTxt}>S</Text>
+          <Image
+            source={require('../../../assets/logo-80.png')}
+            style={{ width: 24, height: 24, borderRadius: 12 }}
+            resizeMode="contain"
+          />
         </View>
       )}
       <View style={[b.bubble, isUser
