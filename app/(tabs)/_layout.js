@@ -27,7 +27,7 @@ const MORE_ITEMS = [
   { icon: '🏥', label: 'Medical',            route: '/(stack)/full-spectrum-v2' },
   { icon: '🃏', label: 'CookinCards',        route: '/(stack)/portfolio' },
   { icon: '💼', label: 'Career Suite',       route: '/(stack)/business-formation' },
-  { icon: '🎤', label: 'Voice AI',           route: '/(stack)/sal-chat' },
+  { icon: '🎤', label: 'Voice AI',           route: '/(stack)/voice-ai' },
   { icon: '📋', label: 'Business Plan',      route: '/(stack)/business-formation-v2' },
   { icon: '🧠', label: 'SuperGrok',          route: '/(tabs)/builder' },
   { icon: '⚡', label: 'Builder IDE',        route: '/(stack)/high-fidelity-ide' },

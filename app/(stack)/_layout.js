@@ -142,7 +142,8 @@ export default function StackLayout() {
       <Stack.Screen name="builder-settings" />
       <Stack.Screen name="kinetic-dashboard" />
 
-      {/* Build #78 — SuperGrok folded into unified Builder tab */}
+      {/* Build #85 — Voice AI (ElevenLabs Conversational Agent) */}
+      <Stack.Screen name="voice-ai" />
     </Stack>
   );
 }
