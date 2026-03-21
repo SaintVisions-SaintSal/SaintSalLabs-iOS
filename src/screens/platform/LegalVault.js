@@ -2,7 +2,7 @@
    SAINTSAL LABS — LEGAL COMPLIANCE VAULT
    elite_legal_compliance_vault — HIPAA + Contracts + Claude
 ═══════════════════════════════════════════════════ */
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, SafeAreaView, StatusBar, ActivityIndicator, Alert,

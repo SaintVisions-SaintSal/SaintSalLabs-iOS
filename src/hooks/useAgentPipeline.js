@@ -288,8 +288,10 @@ export default function useAgentPipeline() {
             content: f.content,
           }));
           setFiles(mapped);
-          setActiveFilePath(mapped[0]?.path || 'index.html');
-          setPreviewEntry(mapped.find(f => f.path.endsWith('.html'))?.path || mapped[0]?.path || 'index.html');
+          const htmlFile = mapped.find(f => f.path.endsWith('.html'));
+          const entryPath = htmlFile?.path || mapped[0]?.path || 'index.html';
+          setActiveFilePath(entryPath);
+          setPreviewEntry(entryPath);
         }
 
         setAgentMessages(prev => ({ ...prev, claude: `${data.files?.length || 0} files generated` }));

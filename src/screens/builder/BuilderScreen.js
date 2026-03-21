@@ -613,6 +613,7 @@ export default function BuilderScreen() {
 
         {/* WebView */}
         <WebView
+          key={pipe.files.length + '-' + (pipe.files[0]?.content?.length || 0)}
           ref={webViewRef}
           source={{ html }}
           style={{ flex: 1, backgroundColor: '#000' }}

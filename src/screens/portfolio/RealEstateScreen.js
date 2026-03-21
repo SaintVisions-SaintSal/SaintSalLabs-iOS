@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, Alert,
+  StyleSheet, SafeAreaView, Alert, Image,
 } from 'react-native';
 import { C } from '../../config/theme';
 import { useRouter } from 'expo-router';

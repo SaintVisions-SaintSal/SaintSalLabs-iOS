@@ -2,7 +2,7 @@
    SAINTSAL LABS — BUSINESS FORMATION CENTER
    elite_business_formation_center — CorpNet + Claude AI
 ═══════════════════════════════════════════════════ */
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, SafeAreaView, StatusBar, ActivityIndicator, Alert,

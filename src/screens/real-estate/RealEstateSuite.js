@@ -2,7 +2,7 @@
    SAINTSAL LABS — REAL ESTATE SUITE
    generated_screen — Full RE dashboard
 ═══════════════════════════════════════════════════ */
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, SafeAreaView, StatusBar, ActivityIndicator, Alert,
