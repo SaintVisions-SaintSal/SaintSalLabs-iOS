@@ -86,6 +86,9 @@ export default function SearchChatHome() {
   useEffect(() => {
     if (routeVertical && routeVertical !== activeVertical) {
       setActiveVertical(routeVertical);
+      setMessages([]);   // fresh chat for new vertical
+      setStreaming(false);
+      if (xhrRef.current) { xhrRef.current.abort(); xhrRef.current = null; }
     }
   }, [routeVertical]);
 
@@ -279,14 +282,24 @@ export default function SearchChatHome() {
                       onPress={() => article.url ? Linking.openURL(article.url) : null}
                       activeOpacity={0.8}
                     >
-                      <View style={s.trendingBadge}>
-                        <Text style={s.trendingBadgeText}>{article.category || activeVertical.toUpperCase()}</Text>
-                      </View>
-                      <Text style={s.trendingTitle} numberOfLines={2}>{article.title}</Text>
-                      {article.summary ? (
-                        <Text style={s.trendingSummary} numberOfLines={2}>{article.summary.slice(0, 120)}</Text>
+                      {/* Article image */}
+                      {article.image ? (
+                        <Image
+                          source={{ uri: article.image }}
+                          style={s.trendingImage}
+                          resizeMode="cover"
+                        />
                       ) : null}
-                      <Text style={s.trendingTime}>{article.time || 'Just now'} · {article.domain || ''}</Text>
+                      <View style={{ padding: 16 }}>
+                        <View style={s.trendingBadge}>
+                          <Text style={s.trendingBadgeText}>{article.category || activeVertical.toUpperCase()}</Text>
+                        </View>
+                        <Text style={s.trendingTitle} numberOfLines={2}>{article.title}</Text>
+                        {article.summary ? (
+                          <Text style={s.trendingSummary} numberOfLines={2}>{article.summary.slice(0, 120)}</Text>
+                        ) : null}
+                        <Text style={s.trendingTime}>{article.time || 'Just now'} · {article.domain || ''}</Text>
+                      </View>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -470,9 +483,14 @@ const s = StyleSheet.create({
     letterSpacing: 1.5, marginBottom: 10,
   },
   trendingCard: {
-    backgroundColor: CARD_BG, borderRadius: 14, padding: 16, marginBottom: 10,
+    backgroundColor: CARD_BG, borderRadius: 14, marginBottom: 10,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    overflow: 'hidden',
   },
+  trendingImage: {
+    width: '100%', height: 160, borderTopLeftRadius: 13, borderTopRightRadius: 13,
+  },
+  trendingBody: { padding: 16 },
   trendingBadge: {
     alignSelf: 'flex-start', backgroundColor: 'rgba(212,175,55,0.15)',
     borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, marginBottom: 8,

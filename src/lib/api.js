@@ -75,7 +75,7 @@ export function connectAgentSSE({
   xhr.setRequestHeader('Content-Type', 'application/json');
   xhr.setRequestHeader('x-sal-key', MCP_KEY);
   xhr.setRequestHeader('Accept', 'text/event-stream');
-  xhr.timeout = 180000; // 3 min for complex builds
+  xhr.timeout = 300000; // 5 min for complex full-stack builds
 
   /* ── Parse SSE events from XHR responseText delta ── */
   xhr.onprogress = () => {

@@ -114,12 +114,14 @@ export default function TabLayout() {
   }, []);
 
   const handleMore = (item) => {
-    // Navigate FIRST, then close sheet — avoids race condition
-    // where animation callback doesn't fire on iOS
+    // Close sheet THEN navigate — clean transition
     setSheetOpen(false);
     slideY.setValue(SCREEN_H);
     backdrop.setValue(0);
-    if (item.params) {
+    if (item.params?.vertical) {
+      // Vertical items: navigate to Search tab (index) with vertical param
+      router.navigate({ pathname: '/(tabs)', params: item.params });
+    } else if (item.params) {
       router.push({ pathname: item.route, params: item.params });
     } else {
       router.push(item.route);
