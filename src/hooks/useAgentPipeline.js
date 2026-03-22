@@ -226,10 +226,12 @@ export default function useAgentPipeline() {
       onPlanning: (data) => {
         setPhase(PHASE_PLANNING);
         setAgentStates(prev => ({ ...prev, grok: AGENT_THINKING }));
-        setAgentMessages(prev => ({ ...prev, grok: data.message || 'Analyzing request...' }));
+        const msg = data.message || 'Analyzing request...';
+        setAgentMessages(prev => ({ ...prev, grok: msg }));
         setTerminalBuffer(prev => [...prev,
-          { type: 'agent', agent: 'grok', text: `[GROK] ${data.message || 'Planning...'}`, ts: Date.now() },
+          { type: 'agent', agent: 'grok', text: `[GROK] ${msg}`, ts: Date.now() },
         ]);
+        setConversation(prev => [...prev, { role: 'assistant', content: `🧠 Grok: ${msg}` }]);
       },
 
       /* ── Plan Ready ── */
@@ -243,16 +245,21 @@ export default function useAgentPipeline() {
           { type: 'info', text: `  APIs: ${(data.plan?.apis || []).join(', ')}`, ts: Date.now() },
           { type: 'info', text: `  Complexity: ${data.plan?.complexity || 'unknown'} · Est: ${data.plan?.estimated_time || '?'}`, ts: Date.now() },
         ]);
+        const title = data.plan?.title || 'Plan ready';
+        const eta = data.plan?.estimated_time ? ` · Est ${data.plan.estimated_time}` : '';
+        setConversation(prev => [...prev, { role: 'assistant', content: `📋 Blueprint locked in: "${title}"${eta}` }]);
       },
 
       /* ── Building (Stitch) ── */
       onBuilding: (data) => {
         setPhase(PHASE_BUILDING);
         setAgentStates(prev => ({ ...prev, stitch: AGENT_THINKING }));
-        setAgentMessages(prev => ({ ...prev, stitch: data.message || 'Generating design...' }));
+        const msg = data.message || 'Generating design...';
+        setAgentMessages(prev => ({ ...prev, stitch: msg }));
         setTerminalBuffer(prev => [...prev,
-          { type: 'agent', agent: 'stitch', text: `[STITCH] ${data.message || 'Building...'}`, ts: Date.now() },
+          { type: 'agent', agent: 'stitch', text: `[STITCH] ${msg}`, ts: Date.now() },
         ]);
+        setConversation(prev => [...prev, { role: 'assistant', content: `🎨 Stitch: ${msg}` }]);
       },
 
       /* ── Stitch Ready ── */
@@ -263,16 +270,19 @@ export default function useAgentPipeline() {
         setTerminalBuffer(prev => [...prev,
           { type: 'success', text: '[STITCH] Design system ready', ts: Date.now() },
         ]);
+        setConversation(prev => [...prev, { role: 'assistant', content: '🎨 Stitch: Design system ready. Handing off to Claude...' }]);
       },
 
       /* ── Wiring (Claude) ── */
       onWiring: (data) => {
         setPhase(PHASE_WIRING);
         setAgentStates(prev => ({ ...prev, claude: AGENT_THINKING }));
-        setAgentMessages(prev => ({ ...prev, claude: data.message || 'Wiring code...' }));
+        const msg = data.message || 'Wiring code...';
+        setAgentMessages(prev => ({ ...prev, claude: msg }));
         setTerminalBuffer(prev => [...prev,
-          { type: 'agent', agent: 'claude', text: `[CLAUDE] ${data.message || 'Wiring...'}`, ts: Date.now() },
+          { type: 'agent', agent: 'claude', text: `[CLAUDE] ${msg}`, ts: Date.now() },
         ]);
+        setConversation(prev => [...prev, { role: 'assistant', content: `⚡ Claude: ${msg}` }]);
       },
 
       /* ── Files Ready ── */

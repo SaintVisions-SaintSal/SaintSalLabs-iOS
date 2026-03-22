@@ -252,7 +252,19 @@ export const streamChat = ({ provider = 'anthropic', model, system, messages, on
 export const SAL_BACKEND = MCP_BASE;
 
 export const streamSalChat = ({ mode = 'creative', messages, system, onChunk, onDone, onError }) => {
-  const verticalMap = { creative: 'creative', finance: 'finance', realestate: 'realestate', global: 'general' };
+  const verticalMap = {
+    creative: 'creative',
+    finance: 'finance',
+    realestate: 'realestate',
+    global: 'general',
+    // search-enabled verticals (web search active on backend)
+    sports: 'sports',
+    news: 'news',
+    tech: 'tech',
+    medical: 'medical',
+    all: 'general',
+    cookin: 'general',
+  };
   const vertical = verticalMap[mode] || 'general';
   const lastUser = messages.filter(m => m.role === 'user').pop();
   const message = lastUser?.content || '';

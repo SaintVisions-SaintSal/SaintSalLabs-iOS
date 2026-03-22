@@ -94,14 +94,27 @@ export default function SearchChatHome() {
     const catMap = { all: 'top', sports: 'sports', news: 'news', tech: 'tech', finance: 'finance', medical: 'medical' };
     const cat = catMap[activeVertical];
     if (!cat) { setTrending([]); return; } // RE and CookinCards navigate away
+
+    setTrending([]);       // clear stale content immediately
     setTrendingLoading(true);
-    fetch(`${MCP_BASE}/api/discover/${cat}`, { headers: { 'x-sal-key': MCP_KEY } })
+
+    const controller = new AbortController();
+    fetch(`${MCP_BASE}/api/discover/${cat}`, {
+      headers: { 'x-sal-key': MCP_KEY },
+      signal: controller.signal,
+    })
       .then(r => r.json())
       .then(data => {
-        setTrending((data.topics || []).slice(0, 2)); // Just top 2 articles
+        setTrending((data.topics || []).slice(0, 2));
         setTrendingLoading(false);
       })
-      .catch(() => { setTrending([]); setTrendingLoading(false); });
+      .catch(err => {
+        if (err.name === 'AbortError') return; // vertical changed — ignore
+        setTrending([]);
+        setTrendingLoading(false);
+      });
+
+    return () => controller.abort();
   }, [activeVertical]);
 
   // Load free message count
@@ -149,7 +162,7 @@ export default function SearchChatHome() {
     }));
 
     xhrRef.current = streamSalChat({
-      mode: activeVertical === 'all' ? 'creative' : activeVertical === 'finance' ? 'finance' : activeVertical === 'realestate' ? 'realestate' : 'creative',
+      mode: activeVertical === 'finance' ? 'finance' : activeVertical === 'realestate' ? 'realestate' : activeVertical,
       system: systemPrompt,
       messages: chatMessages,
       onChunk: (token) => {
