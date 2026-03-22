@@ -162,7 +162,7 @@ export default function SearchChatHome() {
     }));
 
     xhrRef.current = streamSalChat({
-      mode: activeVertical === 'finance' ? 'finance' : activeVertical === 'realestate' ? 'realestate' : activeVertical,
+      mode: activeVertical,
       system: systemPrompt,
       messages: chatMessages,
       onChunk: (token) => {
@@ -174,6 +174,20 @@ export default function SearchChatHome() {
           }
           return updated;
         });
+      },
+      onSources: (sources) => {
+        // Sources from Tavily/Perplexity — render as mini pills above the response
+        if (sources?.length) {
+          const srcText = sources.slice(0, 5).map(s => `[${s.domain || 'Source'}](${s.url})`).join(' · ');
+          setMessages(prev => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last && last.role === 'assistant') {
+              updated[updated.length - 1] = { ...last, sources };
+            }
+            return updated;
+          });
+        }
       },
       onDone: () => {
         setStreaming(false);
@@ -305,6 +319,20 @@ export default function SearchChatHome() {
                   </View>
                 )}
                 <View style={[s.msgBubble, msg.role === 'user' ? s.msgUser : s.msgAssistant]}>
+                  {/* Source pills from web search */}
+                  {msg.sources?.length > 0 && (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+                      {msg.sources.slice(0, 5).map((src, si) => (
+                        <TouchableOpacity
+                          key={si}
+                          style={s.sourcePill}
+                          onPress={() => src.url ? Linking.openURL(src.url) : null}
+                        >
+                          <Text style={s.sourcePillText} numberOfLines={1}>{src.domain || 'Source'}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
                   {msg.role === 'assistant' ? (
                     <MarkdownText content={msg.content || '...'} streaming={msg.streaming} />
                   ) : (
@@ -479,6 +507,12 @@ const s = StyleSheet.create({
   msgTextUser: { fontSize: 15, color: BG, lineHeight: 22 },
   msgText: { fontSize: 15, color: '#fff', lineHeight: 22 },
   typingDots: { marginTop: 4 },
+  sourcePill: {
+    backgroundColor: 'rgba(212,175,55,0.12)', borderRadius: 10,
+    paddingHorizontal: 10, paddingVertical: 4, marginRight: 6,
+    borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)',
+  },
+  sourcePillText: { fontSize: 10, fontWeight: '600', color: GOLD, maxWidth: 120 },
 
   tierRow: {
     flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 8,

@@ -251,25 +251,75 @@ export const streamChat = ({ provider = 'anthropic', model, system, messages, on
 /* ─── SAL Chat (mode-routed) ─────────────────────── */
 export const SAL_BACKEND = MCP_BASE;
 
-export const streamSalChat = ({ mode = 'creative', messages, system, onChunk, onDone, onError }) => {
+/**
+ * Stream chat via /api/chat — the SEARCH-ENABLED endpoint.
+ * Uses XHR for Hermes SSE compatibility.
+ * Backend does: Tavily search → Perplexity research → Gemini/Claude/Grok stream.
+ * Returns real web data, sources, and citations.
+ */
+export const streamSalChat = ({ mode = 'creative', messages, system, onChunk, onDone, onError, onSources }) => {
   const verticalMap = {
-    creative: 'creative',
-    finance: 'finance',
-    realestate: 'realestate',
-    global: 'general',
-    // search-enabled verticals (web search active on backend)
-    sports: 'sports',
-    news: 'news',
-    tech: 'tech',
-    medical: 'medical',
-    all: 'general',
-    cookin: 'general',
+    creative: 'search', finance: 'finance', realestate: 'realestate',
+    global: 'search', sports: 'sports', news: 'news', tech: 'tech',
+    medical: 'medical', all: 'search', cookin: 'search',
   };
-  const vertical = verticalMap[mode] || 'general';
+  const vertical = verticalMap[mode] || 'search';
   const lastUser = messages.filter(m => m.role === 'user').pop();
   const message = lastUser?.content || '';
   const history = messages.slice(0, -1).map(m => ({ role: m.role, content: m.content }));
-  return mcpStream({ message, model: 'pro', vertical, history, onChunk, onDone, onError });
+
+  let cancelled = false;
+  const xhr = new XMLHttpRequest();
+  const handle = { abort: () => { cancelled = true; xhr.abort(); } };
+
+  xhr.open('POST', `${MCP_BASE}/api/chat`);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('Accept', 'text/event-stream');
+  xhr.timeout = 60000;
+
+  let lastIndex = 0;
+  let eventBuffer = '';
+
+  xhr.onprogress = () => {
+    if (cancelled) return;
+    const newData = xhr.responseText.slice(lastIndex);
+    lastIndex = xhr.responseText.length;
+    eventBuffer += newData;
+    const parts = eventBuffer.split('\n\n');
+    eventBuffer = parts.pop() || '';
+    for (const raw of parts) {
+      if (!raw.trim()) continue;
+      const dataMatch = raw.match(/^data:\s*(.+)$/m);
+      if (!dataMatch) continue;
+      try {
+        const d = JSON.parse(dataMatch[1].trim());
+        if (d.type === 'text' && d.content) onChunk?.(d.content);
+        else if (d.type === 'sources' && d.sources) onSources?.(d.sources);
+        else if (d.type === 'done') onDone?.();
+      } catch {}
+    }
+  };
+
+  xhr.onload = () => {
+    if (cancelled) return;
+    if (eventBuffer.trim()) {
+      const dataMatch = eventBuffer.match(/^data:\s*(.+)$/m);
+      if (dataMatch) {
+        try {
+          const d = JSON.parse(dataMatch[1].trim());
+          if (d.type === 'text' && d.content) onChunk?.(d.content);
+        } catch {}
+      }
+      eventBuffer = '';
+    }
+    onDone?.();
+  };
+
+  xhr.onerror = () => { if (!cancelled) onError?.('Network error'); };
+  xhr.ontimeout = () => { if (!cancelled) onError?.('Request timed out'); };
+
+  xhr.send(JSON.stringify({ message, vertical, history, search: true }));
+  return handle;
 };
 
 /* ─── Builder streaming (Quick Build, non-SSE) ──── */
