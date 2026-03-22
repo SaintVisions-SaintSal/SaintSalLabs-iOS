@@ -124,8 +124,8 @@ export const getProfile = async (userId) => {
   return data ?? null;
 };
 
-/** Get user_profiles row (shared with saintsal.ai webapp)
- *  Fields: role, tier, compute_minutes_used, stripe_customer_id, etc.
+/** Get user_profiles row (view aliasing profiles — same data, iOS-compat field names)
+ *  Fields: user_id, tier, role, compute_minutes_used, stripe_customer_id, etc.
  */
 export const getUserProfile = async (userId) => {
   const { data, error } = await supabase
@@ -135,6 +135,13 @@ export const getUserProfile = async (userId) => {
     .single();
   if (error && error.code !== 'PGRST116') throw error;
   return data ?? null;
+};
+
+/** Get the current user's full profile (convenience wrapper) */
+export const getCurrentUserProfile = async () => {
+  const user = await getUser().catch(() => null);
+  if (!user) return null;
+  return getUserProfile(user.id);
 };
 
 /** Tier compute limits (matches saintsal.ai webapp) */
@@ -155,19 +162,18 @@ export const STRIPE_PRICE_IDS = {
   enterprise: 'price_1T7p1uL47U80vDLAR4Wk6uW0',
 };
 
-/** Deduct compute seconds after an AI call
- *  Hits the Labs backend endpoint
- */
+/** Deduct compute seconds after an AI call — hits MCP gateway */
 export const deductCompute = async (seconds) => {
   try {
     const session = await supabase.auth.getSession();
     const token = session?.data?.session?.access_token;
     const res = await fetch(
-      'https://saintsallabs-api.onrender.com/api/website-builder/compute-deduct',
+      'https://www.saintsallabs.com/api/metering/deduct',
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-sal-key': 'saintvision_gateway_2025',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ seconds }),
@@ -182,13 +188,29 @@ export const deductCompute = async (seconds) => {
   }
 };
 
-/** Check if user has compute remaining */
+/** Check if user has compute remaining
+ *  Works with both profiles table (credits_remaining) and user_profiles view (monthly_requests)
+ */
 export const hasComputeLeft = (userProfile) => {
   if (!userProfile) return false;
-  const tier  = userProfile.tier || userProfile.role || 'free';
+  const tier = userProfile.tier || userProfile.plan_tier || userProfile.role || 'free';
+  if (tier === 'enterprise') return true;
   const limit = TIER_LIMITS[tier] ?? TIER_LIMITS.free;
-  const used  = userProfile.compute_minutes_used ?? 0;
-  return used < limit;
+  // Support both field naming conventions
+  const used = userProfile.monthly_requests ?? userProfile.compute_minutes_used ?? 0;
+  const remaining = userProfile.credits_remaining ?? (limit - used);
+  return remaining > 0;
+};
+
+/** Get credits remaining for a user profile */
+export const getCreditsRemaining = (userProfile) => {
+  if (!userProfile) return 0;
+  const tier = userProfile.tier || userProfile.plan_tier || 'free';
+  if (tier === 'enterprise') return Infinity;
+  if (userProfile.credits_remaining != null) return userProfile.credits_remaining;
+  const limit = TIER_LIMITS[tier] ?? TIER_LIMITS.free;
+  const used = userProfile.monthly_requests ?? 0;
+  return Math.max(0, limit - used);
 };
 
 /** Upsert user profile (for Business DNA onboarding) */
