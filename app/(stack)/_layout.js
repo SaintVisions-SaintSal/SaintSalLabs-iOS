@@ -124,11 +124,11 @@ export default function StackLayout() {
       {/* Build #68 — GHL Command Center */}
       <Stack.Screen name="ghl-command" />
 
-      {/* Build #73 — Premium Kinetic Labs Screens */}
+      {/* Build #89 — SAL HQ + Career Suite + GHL Hub */}
       <Stack.Screen name="builder-preview" />
       <Stack.Screen name="file-explorer" />
       <Stack.Screen name="builder-settings" />
-      <Stack.Screen name="kinetic-dashboard" />
+      {/* kinetic-dashboard redirects to SAL HQ (Build #89) */}
 
       {/* Build #85 — Voice AI (ElevenLabs Conversational Agent) */}
       <Stack.Screen name="voice-ai" />
