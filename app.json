@@ -92,8 +92,6 @@
       "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 5000
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    }
+    "runtimeVersion": "2.0.2"
   }
 }
