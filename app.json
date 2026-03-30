@@ -26,7 +26,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.saintvision.saintsallabs",
-      "buildNumber": "48",
+      "buildNumber": "49",
       "requireFullScreen": false,
       "infoPlist": {
         "NSMicrophoneUsageDescription": "SAL Voice AI needs microphone access for real-time voice conversations.",
