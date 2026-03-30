@@ -100,6 +100,24 @@ export default function SALHeadquarters() {
   const [businessProfile, setBusinessProfile] = useState(null);
   const [profileLoading, setProfileLoading]   = useState(true);
 
+  /* ── GHL pipeline stats ── */
+  const [ghlStats, setGhlStats] = useState(null);
+  const [ghlLoading, setGhlLoading] = useState(true);
+
+  const loadGhlStats = useCallback(async () => {
+    setGhlLoading(true);
+    try {
+      const res = await fetch(`${MCP_BASE}/api/ghl/stats`, {
+        headers: { 'x-sal-key': MCP_KEY },
+      });
+      if (res.ok) setGhlStats(await res.json());
+    } catch (e) {
+      console.warn('SALHeadquarters: ghl/stats fetch:', e?.message);
+    } finally {
+      setGhlLoading(false);
+    }
+  }, []);
+
   /* ── Refreshing state ── */
   const [refreshing, setRefreshing] = useState(false);
 
@@ -125,13 +143,14 @@ export default function SALHeadquarters() {
   }, [user?.id]);
 
   useEffect(() => { loadBusinessProfile(); }, [loadBusinessProfile]);
+  useEffect(() => { loadGhlStats(); }, [loadGhlStats]);
 
   /* ── Pull-to-refresh ── */
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.allSettled([refresh(), loadBusinessProfile()]);
+    await Promise.allSettled([refresh(), loadBusinessProfile(), loadGhlStats()]);
     setRefreshing(false);
-  }, [refresh, loadBusinessProfile]);
+  }, [refresh, loadBusinessProfile, loadGhlStats]);
 
   /* ── Credits progress bar width (0–1) ── */
   const creditsPct = creditsTotal > 0 ? Math.min(1, creditsUsed / creditsTotal) : 0;
@@ -388,7 +407,40 @@ export default function SALHeadquarters() {
         </TouchableOpacity>
 
         {/* ════════════════════════════════════════════
-            SECTION 5 — QUICK SETTINGS
+            SECTION 5 — PIPELINE INTEL (GHL)
+        ════════════════════════════════════════════ */}
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionBar} />
+          <Text style={styles.sectionTitle}>PIPELINE INTEL</Text>
+          <TouchableOpacity onPress={() => router.push('/(stack)/ghl-intel-hub')} activeOpacity={0.7}>
+            <Text style={styles.sectionLink}>View All →</Text>
+          </TouchableOpacity>
+        </View>
+
+        {ghlLoading ? (
+          <ActivityIndicator color={GOLD} size="small" style={{ marginBottom: 16 }} />
+        ) : (
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>CONTACTS</Text>
+              <Text style={styles.statValue}>{ghlStats?.contacts ?? '—'}</Text>
+              <Text style={styles.statSub}>total</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>DEALS</Text>
+              <Text style={styles.statValue}>{ghlStats?.opportunities ?? '—'}</Text>
+              <Text style={styles.statSub}>active</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>PIPELINES</Text>
+              <Text style={styles.statValue}>{ghlStats?.pipelines ?? '—'}</Text>
+              <Text style={styles.statSub}>running</Text>
+            </View>
+          </View>
+        )}
+
+        {/* ════════════════════════════════════════════
+            SECTION 6 — QUICK SETTINGS
         ════════════════════════════════════════════ */}
         <View style={styles.sectionHeader}>
           <View style={styles.sectionBar} />
@@ -483,6 +535,12 @@ const styles = StyleSheet.create({
     color: TEXT,
     letterSpacing: 2,
     textTransform: 'uppercase',
+    flex: 1,
+  },
+  sectionLink: {
+    fontSize: 12,
+    color: GOLD,
+    fontWeight: '600',
   },
 
   /* ════════════════════════════════════════════

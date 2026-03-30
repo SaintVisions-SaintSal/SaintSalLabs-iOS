@@ -683,7 +683,7 @@ export default function BuilderScreen() {
       <View style={s.header}>
         <View style={s.headerLeft}>
           <View style={s.headerDot} />
-          <Text style={s.headerTitle}>MISSION BRIDGE v4.20</Text>
+          <Text style={s.headerTitle}>SAL BUILDER</Text>
         </View>
         <TouchableOpacity
           style={s.headerReset}
