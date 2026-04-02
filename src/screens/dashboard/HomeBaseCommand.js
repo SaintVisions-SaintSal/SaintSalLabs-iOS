@@ -31,7 +31,7 @@ const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const ALPACA_KEY_ID = 'PKHKCFYWMTDFX5345KKLTYJZH7';
 const ALPACA_SECRET = 'AYcWRX8y5wfbiKMDxUVBuBBG7Bmsjdfw42aTZPK2hXnM';
 const ALPACA_BASE   = 'https://paper-api.alpaca.markets/v2';
-const BACKEND_BASE  = 'https://saintsallabs-api.onrender.com';
+const BACKEND_BASE  = 'https://www.saintsallabs.com';
 
 const GOLD  = '#D4AF37';
 const BG    = '#0F0F0F';

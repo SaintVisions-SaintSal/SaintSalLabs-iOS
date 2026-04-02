@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const GOLD = '#D4AF37';
-const LABS_API = 'https://saintsallabs-api.onrender.com';
+const LABS_API = 'https://www.saintsallabs.com';
 
 export default function ComputeBar({ accessToken, visible = true }) {
   const router = useRouter();

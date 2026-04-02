@@ -7,7 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { C } from '../../config/theme';
 import AuthContext from '../../lib/AuthContext';
 
-const LABS_API = 'https://saintsallabs-api.onrender.com/api/mcp/stripe';
+const LABS_API = 'https://www.saintsallabs.com/api/mcp/stripe';
 const SAL_KEY  = 'sal-live-2026';
 
 const PLAN_META = {

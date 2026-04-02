@@ -11,7 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { C } from '../../config/theme';
 
-const LABS_API = 'https://saintsallabs-api.onrender.com';
+const LABS_API = 'https://www.saintsallabs.com';
 const CF_API = 'https://api.cloudflare.com/client/v4';
 const CF_TOKEN = 'd65144b645f701d0f80a4878161bb2f07be';
 

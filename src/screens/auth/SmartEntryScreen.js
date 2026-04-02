@@ -23,7 +23,7 @@ const GOLD_DIM    = 'rgba(212,175,55,0.1)';
 const MUTED       = 'rgba(255,255,255,0.5)';
 const DIM         = 'rgba(255,255,255,0.2)';
 
-const LABS_API = 'https://saintsallabs-api.onrender.com';
+const LABS_API = 'https://www.saintsallabs.com';
 
 /* ── Pulse animation hook ────────────────────────── */
 function usePulse(duration = 2000) {

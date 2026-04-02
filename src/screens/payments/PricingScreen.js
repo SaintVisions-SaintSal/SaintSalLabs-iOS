@@ -14,7 +14,7 @@ import { C } from '../../config/theme';
 const SUPABASE_URL = 'https://euxrlpuegeiggedqbkiv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1eHJscHVlZ2VpZ2dlZHFia2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5NTM1MTYsImV4cCI6MjA4MTUyOTUxNn0.KpvXVTIDXeGOBOQOhdPopVbYYfjB-RgPSyJJY3IY474';
 
-const LABS_API = 'https://saintsallabs-api.onrender.com';
+const LABS_API = 'https://www.saintsallabs.com';
 
 const STRIPE_PRICE_IDS = {
   Free:       'price_1T7p1tL47U80vDLAe9aWVKA0',

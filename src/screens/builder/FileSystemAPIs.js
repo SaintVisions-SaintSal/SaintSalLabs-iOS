@@ -13,7 +13,7 @@ import { C } from '../../config/theme';
 
 const GITHUB_TOKEN = ''; // Proxied via Labs backend
 const GITHUB_REPO = 'saintsal-org/builder-core';
-const LABS_API = 'https://saintsallabs-api.onrender.com';
+const LABS_API = 'https://www.saintsallabs.com';
 
 const DEFAULT_FILES = [
   { name: 'app.js', type: 'js', size: '12.4 KB', modified: '2 min ago', active: true },

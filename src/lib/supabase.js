@@ -163,7 +163,7 @@ export const deductCompute = async (seconds) => {
     const session = await supabase.auth.getSession();
     const token = session?.data?.session?.access_token;
     const res = await fetch(
-      'https://saintsallabs-api.onrender.com/api/website-builder/compute-deduct',
+      'https://www.saintsallabs.com/api/metering/deduct',
       {
         method: 'POST',
         headers: {

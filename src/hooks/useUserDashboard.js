@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { API_KEY } from '../lib/api';
 
-const BACKEND_BASE = 'https://saintsallabs-api.onrender.com';
+const BACKEND_BASE = 'https://www.saintsallabs.com';
 
 export function useUserDashboard() {
   const [user, setUser]           = useState(null);
