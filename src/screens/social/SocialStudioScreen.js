@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, ActivityIndicator,
+  StyleSheet, SafeAreaView, ActivityIndicator, Clipboard, Alert, Platform,
 } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { C } from '../../config/theme';
-import { generateSocial } from '../../lib/api';
+import { generateSocial, publishToSocials } from '../../lib/api';
 import { SALMark } from '../../components';
+import { AuthContext } from '../../lib/AuthContext';
 
 const TABS = [
   { id: 'social', label: 'Social' },
@@ -17,20 +18,26 @@ const TABS = [
 ];
 
 const PLATFORM_CHIPS = [
-  { id: 'twitter', label: 'X / Twitter', icon: '𝕏' },
-  { id: 'linkedin', label: 'LinkedIn', icon: '💼' },
-  { id: 'instagram', label: 'Instagram', icon: '📸' },
-  { id: 'tiktok', label: 'TikTok', icon: '🎵' },
+  { id: 'facebook',       label: 'Facebook',        icon: '📘' },
+  { id: 'instagram',      label: 'Instagram',        icon: '📸' },
+  { id: 'linkedin',       label: 'LinkedIn',         icon: '💼' },
+  { id: 'tiktok',         label: 'TikTok',           icon: '🎵' },
+  { id: 'googlebusiness', label: 'Google Business',  icon: '📍' },
 ];
 
 export default function SocialStudioScreen() {
   const router = useRouter();
+  const { profile, session } = useContext(AuthContext);
+
   const [activeTab, setActiveTab] = useState('social');
   const [prompt, setPrompt] = useState('');
-  const [selected, setSelected] = useState(['twitter']);
+  const [selected, setSelected] = useState(['facebook', 'instagram']);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  const [publishingId, setPublishingId] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pendingPublish, setPendingPublish] = useState(null); // { platformId, content }
 
   const togglePlatform = (id) => {
     setSelected(prev =>
@@ -53,13 +60,47 @@ export default function SocialStudioScreen() {
   };
 
   const handleCopy = (platformId, text) => {
-    Clipboard.setStringAsync(text);
+    Clipboard.setString(text);
     setCopiedId(platformId);
     setTimeout(() => setCopiedId(null), 1500);
   };
 
   const handleRegenerate = () => {
     if (prompt.trim() && selected.length > 0) handleGenerate();
+  };
+
+  const doPublish = async (platformId, content, scheduleDate = null) => {
+    setPublishingId(platformId);
+    try {
+      await publishToSocials({
+        content,
+        mediaUrls: [],
+        platforms: [platformId],
+        scheduleDate,
+        ghl_location_id: profile?.ghl_location_id || '',
+        accessToken: session?.access_token || '',
+      });
+      Alert.alert('', scheduleDate ? 'Scheduled in your GHL Social Calendar 🔥' : 'Published to your social accounts!');
+    } catch (e) {
+      Alert.alert('Publish Failed', e.message || 'Something went wrong. Try again.');
+    } finally {
+      setPublishingId(null);
+      setPendingPublish(null);
+    }
+  };
+
+  const handlePostNow = (platformId, content) => doPublish(platformId, content, null);
+
+  const handleSchedule = (platformId, content) => {
+    setPendingPublish({ platformId, content });
+    setShowDatePicker(true);
+  };
+
+  const onDatePicked = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate && pendingPublish) {
+      doPublish(pendingPublish.platformId, pendingPublish.content, selectedDate.toISOString());
+    }
   };
 
   return (
@@ -180,23 +221,35 @@ export default function SocialStudioScreen() {
 
                 {/* Card Footer */}
                 <View style={s.cardFooter}>
-                  <View style={s.cardEngagement}>
-                    <Text style={s.engageIcon}>💬</Text>
-                    <Text style={s.engageIcon}>🔄</Text>
-                    <Text style={s.engageIcon}>❤️</Text>
-                  </View>
+                  <TouchableOpacity
+                    style={s.copyPostBtn}
+                    onPress={() => handleCopy(p.id, result[p.id])}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={s.copyPostBtnText}>
+                      {copiedId === p.id ? '✓ Copied' : '📋 Copy'}
+                    </Text>
+                  </TouchableOpacity>
                   <View style={s.cardActions}>
-                    <TouchableOpacity style={s.scheduleBtn} activeOpacity={0.7}>
+                    <TouchableOpacity
+                      style={s.scheduleBtn}
+                      onPress={() => handleSchedule(p.id, result[p.id])}
+                      disabled={!!publishingId}
+                      activeOpacity={0.7}
+                    >
                       <Text style={s.scheduleBtnText}>🕐 Schedule</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={s.copyPostBtn}
-                      onPress={() => handleCopy(p.id, result[p.id])}
+                      style={s.postNowBtn}
+                      onPress={() => handlePostNow(p.id, result[p.id])}
+                      disabled={!!publishingId}
                       activeOpacity={0.7}
                     >
-                      <Text style={s.copyPostBtnText}>
-                        {copiedId === p.id ? '✓ Copied' : '📋 Copy Post'}
-                      </Text>
+                      {publishingId === p.id ? (
+                        <ActivityIndicator size="small" color={C.bg} />
+                      ) : (
+                        <Text style={s.postNowBtnText}>🚀 Post Now</Text>
+                      )}
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -222,6 +275,17 @@ export default function SocialStudioScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* DateTimePicker for scheduling */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={new Date()}
+          mode="datetime"
+          display={Platform.OS === 'ios' ? 'inline' : 'default'}
+          minimumDate={new Date()}
+          onChange={onDatePicked}
+        />
+      )}
 
       {/* Bottom Nav */}
       <View style={s.bottomNav}>
@@ -330,9 +394,15 @@ const s = StyleSheet.create({
   },
   scheduleBtnText: { fontSize: 10, fontWeight: '600', color: C.textMuted },
   copyPostBtn: {
-    backgroundColor: C.amber, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+    borderWidth: 1, borderColor: C.border,
   },
-  copyPostBtnText: { fontSize: 10, fontWeight: '700', color: C.bg },
+  copyPostBtnText: { fontSize: 10, fontWeight: '600', color: C.textMuted },
+  postNowBtn: {
+    backgroundColor: C.amber, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
+    minWidth: 80, alignItems: 'center',
+  },
+  postNowBtnText: { fontSize: 10, fontWeight: '700', color: C.bg },
 
   errorCard: {
     marginHorizontal: 16, marginTop: 16, padding: 16,

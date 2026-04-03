@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "SaintSal\u2122 Labs",
+    "name": "SaintSal™ Labs",
     "slug": "saintsallabs",
     "version": "2.0.2",
-    "description": "Elite AI intelligence platform. Research, build, and analyze across every vertical \u2014 powered by Claude, GPT, Gemini, and Grok. Patent #10,290,222.",
+    "description": "Elite AI intelligence platform. Research, build, and analyze across every vertical — powered by Claude, GPT, Gemini, and Grok. Patent #10,290,222.",
     "keywords": [
       "AI",
       "intelligence",
@@ -26,7 +26,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.saintvision.saintsallabs",
-      "buildNumber": "49",
+      "buildNumber": "48",
       "requireFullScreen": false,
       "infoPlist": {
         "NSMicrophoneUsageDescription": "SAL Voice AI needs microphone access for real-time voice conversations.",
@@ -42,9 +42,9 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "name": "SaintSal\u2122 Labs \u2014 Elite AI Intelligence Platform",
+      "name": "SaintSal™ Labs — Elite AI Intelligence Platform",
       "shortName": "SaintSal Labs",
-      "description": "Research, build, and analyze across every vertical \u2014 powered by Claude, GPT, Gemini, and Grok. Patent #10,290,222.",
+      "description": "Research, build, and analyze across every vertical — powered by Claude, GPT, Gemini, and Grok. Patent #10,290,222.",
       "themeColor": "#D4AF37",
       "backgroundColor": "#0F0F0F"
     },
@@ -73,7 +73,8 @@
             "enableShrinkResourcesInReleaseBuilds": false
           }
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true
@@ -86,12 +87,6 @@
         "projectId": "af0fb455-43bc-4de1-a3e0-52db3e394651"
       }
     },
-    "owner": "saint-vision-technologies-llc",
-    "updates": {
-      "enabled": true,
-      "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 5000
-    },
-    "runtimeVersion": "2.0.2"
+    "owner": "saint-vision-technologies-llc"
   }
 }
