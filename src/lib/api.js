@@ -353,7 +353,7 @@ export const generateSocial = async ({ prompt, platforms }) => {
 
 /* ─── Gemini search ──────────────────────────────── */
 export const searchGemini = async (query) => {
-  const res = await fetch(`${API_BASE}/api/search/gemini`, { method: 'POST', headers: HEADERS, body: JSON.stringify({ query }) });
+  const res = await fetch(`${MCP_BASE}/api/search/gemini`, { method: 'POST', headers: MCP_HEADERS, body: JSON.stringify({ query }) });
   if (!res.ok) throw new Error(`Search failed: ${res.status}`);
   return res.json();
 };
@@ -423,8 +423,8 @@ export const checkHealth = async () => {
 
 export const checkComputeQuota = async (accessToken) => {
   try {
-    const res = await fetch(`${API_BASE}/api/builder/compute-quota`, {
-      headers: { 'x-sal-key': API_KEY, ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
+    const res = await fetch(`${MCP_BASE}/api/builder/compute-quota`, {
+      headers: { 'x-sal-key': MCP_KEY, ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
     });
     if (!res.ok) return { minutesLeft: 30, tier: 'guest' };
     return res.json();
@@ -433,9 +433,9 @@ export const checkComputeQuota = async (accessToken) => {
 
 export const deductComputeSeconds = async (seconds, userId, accessToken) => {
   try {
-    await fetch(`${API_BASE}/api/metering/deduct`, {
+    await fetch(`${MCP_BASE}/api/metering/deduct`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
+      headers: { 'Content-Type': 'application/json', 'x-sal-key': MCP_KEY, ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
       body: JSON.stringify({ seconds, user_id: userId }),
     });
   } catch (e) { console.warn('[metering] deduct error:', e.message); }
