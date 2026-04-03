@@ -14,9 +14,10 @@ import {
   Animated,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
+import { mcpChat } from '../../lib/api';
 
-const ANTHROPIC_API_KEY =
-  'LABS_BACKEND_PROXY';
+// MCP gateway handles all AI routing (Build #70)
 const PERPLEXITY_API_KEY = '';
 const EXA_API_KEY = 'b27bdba9-bd2a-49fd-a4ef-d096cdfe66eb';
 const SUPABASE_URL = 'https://euxrlpuegeiggedqbkiv.supabase.co';
@@ -178,30 +179,15 @@ export default function GlobalIntelChat({ navigation }) {
         .slice(-8)
         .map((m) => ({ role: m.role, content: m.text }));
 
-      const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-opus-4-5',
-          max_tokens: 1200,
-          system: getSystemPrompt(),
-          messages: [
-            ...history,
-            {
-              role: 'user',
-              content: `${text}${contextBlock}`,
-            },
-          ],
-        }),
+      const mcpRes = await mcpChat({
+        message: `${text}${contextBlock}`,
+        model: 'pro',
+        vertical: 'general',
+        history: history.slice(-10),
       });
 
-      if (claudeRes.ok) {
-        const claudeData = await claudeRes.json();
-        const responseText = claudeData.content?.[0]?.text || 'Intelligence stream unavailable.';
+      if (mcpRes.ok) {
+        const responseText = mcpRes.response || 'Intelligence stream unavailable.';
 
         setMessages((prev) => [
           ...prev,
@@ -281,6 +267,7 @@ export default function GlobalIntelChat({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
+        <ScreenHeader title="Global Intelligence" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

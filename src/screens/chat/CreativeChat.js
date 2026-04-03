@@ -23,11 +23,13 @@ import {
   Animated,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
+import { mcpChat } from '../../lib/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 /* ── API credentials ── */
-const ANTHROPIC_KEY = 'LABS_BACKEND_PROXY';
+// MCP gateway handles all AI routing (Build #70)
 const OPENAI_KEY    = '';
 const RUNWAY_KEY    = '';
 const REPLICATE_TOKEN = '';
@@ -92,24 +94,13 @@ export default function CreativeChat() {
       const history = messages.map(m => ({ role: m.role, content: m.content }));
       history.push({ role: 'user', content: userMsg });
 
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_KEY,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-opus-4-5',
-          max_tokens: 1500,
-          system: SYSTEM_PROMPT,
-          messages: history,
-        }),
+      const mcpRes = await mcpChat({
+        message: userMsg,
+        model: 'pro',
+        vertical: 'creative',
+        history: history.slice(-10),
       });
-
-      if (!res.ok) throw new Error(`Claude error ${res.status}`);
-      const data = await res.json();
-      const aiText = data.content?.[0]?.text || 'Creative vision coming...';
+      const aiText = mcpRes.response || 'Creative vision coming...';
 
       const aiMsg = {
         id: (Date.now() + 1).toString(),
@@ -320,6 +311,7 @@ export default function CreativeChat() {
 
   return (
     <SafeAreaView style={styles.container}>
+        <ScreenHeader title="Creative AI" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

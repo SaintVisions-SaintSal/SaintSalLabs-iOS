@@ -60,7 +60,7 @@ export default function SignUpScreen() {
             email: email.trim().toLowerCase(),
           });
         } catch {}
-        router.replace('/business-dna-setup');
+        router.replace('/(auth)/business-dna');
       }
     } catch (e) {
       setError('Registration failed. Please try again.');
@@ -194,7 +194,7 @@ export default function SignUpScreen() {
           {/* Login link */}
           <View style={styles.loginRow}>
             <Text style={styles.loginText}>ALREADY A SUBJECT? </Text>
-            <TouchableOpacity onPress={() => router.push('/sign-in')}>
+            <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
               <Text style={styles.loginLink}>INITIALIZE SESSION</Text>
             </TouchableOpacity>
           </View>

@@ -15,14 +15,10 @@ import {
   Alert,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
+import { mcpChat } from '../../lib/api';
 
-const ANTHROPIC_API_KEY =
-  'LABS_BACKEND_PROXY';
-const PERPLEXITY_API_KEY = '';
-const XAI_API_KEY =
-  '';
-const ALPACA_API_KEY_ID = 'PKHKCFYWMTDFX5345KKLTYJZH7';
-const ALPACA_SECRET_KEY = 'AYcWRX8y5wfbiKMDxUVBuBBG7Bmsjdfw42aTZPK2hXnM';
+// MCP gateway handles all AI routing — no direct API calls (Build #95)
 
 const SAL_FINANCE_SYSTEM = `You are SAL Finance — institutional-grade financial intelligence for SaintSal™ Labs, backed by US Patent #10,290,222. You think like a Goldman Sachs portfolio manager. You provide: DCF analysis with specific assumptions, technical + fundamental breakdowns, macro context, earnings analysis, crypto intelligence, options strategy. Use specific numbers, percentages, price targets. Format your response with clear sections. Cite data sources inline as [Alpaca Markets], [Bloomberg], [SEC Filing], etc.`;
 
@@ -129,62 +125,19 @@ export default function FinanceChat({ navigation }) {
     setMarketLoading(false);
   };
 
+  // Context gathering via MCP gateway (no direct API calls — Build #95)
   const fetchGrokContext = async (query) => {
     try {
-      const res = await fetch('https://api.x.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${XAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'grok-beta',
-          messages: [
-            {
-              role: 'system',
-              content:
-                'You are a real-time financial intelligence agent. Provide current market context, breaking financial news, and real-time sentiment. Be concise — 2-3 sentences with specific data.',
-            },
-            { role: 'user', content: `Real-time context for: ${query}` },
-          ],
-          max_tokens: 250,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return data.choices?.[0]?.message?.content || '';
-      }
-    } catch { /* silent fail */ }
-    return '';
+      const data = await mcpChat({ message: `Real-time market context for: ${query}. Be concise — 2-3 sentences with specific data.`, model: 'fast', vertical: 'finance' });
+      return data.response || '';
+    } catch { return ''; }
   };
 
   const fetchPerplexityMarketContext = async (query) => {
     try {
-      const res = await fetch('https://api.perplexity.ai/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${PERPLEXITY_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'llama-3.1-sonar-large-128k-online',
-          messages: [
-            {
-              role: 'system',
-              content:
-                'You are a financial research analyst. Provide current market data, analyst consensus, and recent news. Include specific price targets, EPS estimates, and institutional flows. 3-4 sentences max.',
-            },
-            { role: 'user', content: query },
-          ],
-          max_tokens: 350,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return data.choices?.[0]?.message?.content || '';
-      }
-    } catch { /* silent fail */ }
-    return '';
+      const data = await mcpChat({ message: query, model: 'pro', vertical: 'finance' });
+      return data.response || '';
+    } catch { return ''; }
   };
 
   const detectTickers = (text) => {
@@ -234,30 +187,15 @@ export default function FinanceChat({ navigation }) {
         .slice(-6)
         .map((m) => ({ role: m.role, content: m.text }));
 
-      const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-opus-4-5',
-          max_tokens: 1400,
-          system: SAL_FINANCE_SYSTEM,
-          messages: [
-            ...history,
-            {
-              role: 'user',
-              content: `${text}${contextBlock}`,
-            },
-          ],
-        }),
+      const mcpRes = await mcpChat({
+        message: `${text}${contextBlock}`,
+        model: 'pro',
+        vertical: 'finance',
+        history: history.slice(-10),
       });
 
-      if (claudeRes.ok) {
-        const data = await claudeRes.json();
-        const responseText = data.content?.[0]?.text || 'Analysis unavailable.';
+      if (mcpRes.ok) {
+        const responseText = mcpRes.response || 'Analysis unavailable.';
 
         const hasFinancialData =
           mentionedTickers.length > 0 ||
@@ -416,6 +354,7 @@ export default function FinanceChat({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
+        <ScreenHeader title="Finance AI" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

@@ -6,8 +6,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  SafeAreaView, ScrollView, Animated, Alert, TextInput, Clipboard,
+  SafeAreaView, ScrollView, Animated, Alert, TextInput,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { SAL_BACKEND, API_BASE, API_KEY } from '../../lib/api';
 
@@ -152,7 +153,7 @@ export default function HookWorkflowScreen() {
             <View style={s.endpointCard}>
               <Text style={s.endpointLabel}>POST</Text>
               <Text style={s.endpointUrl} numberOfLines={1}>{SAL_ENDPOINT}</Text>
-              <TouchableOpacity onPress={() => { Clipboard.setString(SAL_ENDPOINT); Alert.alert('Copied!', 'Endpoint URL copied.'); }}>
+              <TouchableOpacity onPress={() => { Clipboard.setStringAsync(SAL_ENDPOINT); Alert.alert('Copied!', 'Endpoint URL copied.'); }}>
                 <Text style={s.copyIcon}>⧉</Text>
               </TouchableOpacity>
             </View>

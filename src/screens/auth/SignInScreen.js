@@ -240,7 +240,7 @@ export default function SignInScreen() {
           {/* Footer nav */}
           <View style={styles.footerNav}>
             <Text style={styles.footerText}>NEW SUBJECT? </Text>
-            <TouchableOpacity onPress={() => router.push('/sign-up')}>
+            <TouchableOpacity onPress={() => router.push('/(auth)/signup')}>
               <Text style={styles.footerLink}>CREATE ACCOUNT</Text>
             </TouchableOpacity>
           </View>

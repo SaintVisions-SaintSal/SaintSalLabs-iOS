@@ -15,6 +15,7 @@ import {
   Share,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (SCREEN_WIDTH - 32 - 24) / 3;
@@ -327,6 +328,7 @@ export default function ImageHub({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe}>
+        <ScreenHeader title="Image Hub" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

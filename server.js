@@ -49,10 +49,112 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ── Anthropic Claude SSE ──────────────────────────────
+// ── Gemini streaming helper (used as fallback everywhere) ─
+async function streamGemini(req, res, { system, messages, max_tokens }) {
+  const keys = [GEMINI_KEY, GEMINI_KEY_FALLBACK].filter(Boolean);
+  if (!keys.length) return false;
+
+  // Convert messages to Gemini format
+  const geminiMessages = messages.map(m => ({
+    role: m.role === 'user' ? 'user' : 'model',
+    parts: [{ text: m.content }],
+  }));
+  const payload = {
+    contents: geminiMessages,
+    generationConfig: { maxOutputTokens: max_tokens || 4096, temperature: 0.7 },
+  };
+  if (system) payload.systemInstruction = { parts: [{ text: system }] };
+
+  for (const key of keys) {
+    try {
+      const upstream = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${key}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      );
+      if (!upstream.ok) continue;
+
+      res.setHeader('Content-Type',  'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection',    'keep-alive');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('X-SAL-Provider', 'gemini');
+
+      const reader = upstream.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const chunk = JSON.parse(line.slice(6));
+            const parts = chunk?.candidates?.[0]?.content?.parts || [];
+            for (const part of parts) {
+              if (part.text) {
+                // Emit in Anthropic SSE format so iOS app can parse it
+                res.write(`data: ${JSON.stringify({ type: 'content_block_delta', delta: { type: 'text_delta', text: part.text } })}\n\n`);
+              }
+            }
+          } catch {}
+        }
+      }
+      res.write('data: [DONE]\n\n');
+      res.end();
+      return true;
+    } catch (e) {
+      console.error('[Gemini stream fallback] error:', e.message);
+    }
+  }
+  return false;
+}
+
+// ── Non-streaming Gemini helper (for social JSON generation) ─
+async function chatGemini({ system, messages, max_tokens }) {
+  const keys = [GEMINI_KEY, GEMINI_KEY_FALLBACK].filter(Boolean);
+  if (!keys.length) return null;
+
+  const geminiMessages = messages.map(m => ({
+    role: m.role === 'user' ? 'user' : 'model',
+    parts: [{ text: m.content }],
+  }));
+  const payload = {
+    contents: geminiMessages,
+    generationConfig: { maxOutputTokens: max_tokens || 2048, temperature: 0.7 },
+  };
+  if (system) payload.systemInstruction = { parts: [{ text: system }] };
+
+  for (const key of keys) {
+    try {
+      const upstream = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      );
+      if (!upstream.ok) continue;
+      const data = await upstream.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (text) return text;
+    } catch {}
+  }
+  return null;
+}
+
+// ── Anthropic Claude SSE (with Gemini fallback) ──────────
 app.post('/api/chat/anthropic', auth, async (req, res) => {
   const { model, system, messages, max_tokens } = req.body;
   try {
+    if (!ANTHROPIC_KEY) throw new Error('ANTHROPIC_API_KEY not set');
     const upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method:  'POST',
       headers: {
@@ -70,6 +172,9 @@ app.post('/api/chat/anthropic', auth, async (req, res) => {
     });
 
     if (!upstream.ok) {
+      console.warn(`[Anthropic] HTTP ${upstream.status} — falling back to Gemini`);
+      const fell = await streamGemini(req, res, { system, messages, max_tokens });
+      if (fell) return;
       const err = await upstream.text();
       return res.status(upstream.status).json({ error: err });
     }
@@ -78,6 +183,7 @@ app.post('/api/chat/anthropic', auth, async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection',    'keep-alive');
     res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('X-SAL-Provider', 'anthropic');
 
     const reader  = upstream.body.getReader();
     const decoder = new TextDecoder();
@@ -88,8 +194,12 @@ app.post('/api/chat/anthropic', auth, async (req, res) => {
     }
     res.end();
   } catch (err) {
-    console.error('Anthropic error:', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('Anthropic error:', err.message, '— falling back to Gemini');
+    try {
+      const fell = await streamGemini(req, res, { system: req.body.system, messages: req.body.messages, max_tokens: req.body.max_tokens });
+      if (fell) return;
+    } catch {}
+    if (!res.headersSent) res.status(500).json({ error: err.message });
   }
 });
 
@@ -134,7 +244,9 @@ app.post('/api/builder', auth, async (req, res) => {
   const frameworkHint = framework ? `\nTarget framework: ${framework}.` : '';
   const system = customSystem || (BUILDER_SYSTEM + frameworkHint);
 
+  const msgs = [{ role: 'user', content: prompt + fileContext }];
   try {
+    if (!ANTHROPIC_KEY) throw new Error('ANTHROPIC_API_KEY not set');
     const upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method:  'POST',
       headers: {
@@ -146,12 +258,15 @@ app.post('/api/builder', auth, async (req, res) => {
         model:      tier === 'max' ? 'claude-opus-4-20250514' : 'claude-sonnet-4-20250514',
         max_tokens: 8192,
         system,
-        messages:   [{ role: 'user', content: prompt + fileContext }],
+        messages:   msgs,
         stream: true,
       }),
     });
 
     if (!upstream.ok) {
+      console.warn(`[Builder] Anthropic HTTP ${upstream.status} — falling back to Gemini`);
+      const fell = await streamGemini(req, res, { system, messages: msgs, max_tokens: 8192 });
+      if (fell) return;
       const err = await upstream.text();
       return res.status(upstream.status).json({ error: err });
     }
@@ -161,6 +276,7 @@ app.post('/api/builder', auth, async (req, res) => {
     res.setHeader('Connection',    'keep-alive');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('X-SAL-Tier', tier || 'pro');
+    res.setHeader('X-SAL-Provider', 'anthropic');
 
     const reader  = upstream.body.getReader();
     const decoder = new TextDecoder();
@@ -171,15 +287,20 @@ app.post('/api/builder', auth, async (req, res) => {
     }
     res.end();
   } catch (err) {
-    console.error('Builder error:', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('Builder error:', err.message, '— falling back to Gemini');
+    try {
+      const fell = await streamGemini(req, res, { system, messages: msgs, max_tokens: 8192 });
+      if (fell) return;
+    } catch {}
+    if (!res.headersSent) res.status(500).json({ error: err.message });
   }
 });
 
-// ── xAI Grok SSE ──────────────────────────────────────
+// ── xAI Grok SSE (with Gemini fallback) ──────────────
 app.post('/api/chat/xai', auth, async (req, res) => {
-  const { model, messages, max_tokens } = req.body;
+  const { model, system, messages, max_tokens } = req.body;
   try {
+    if (!XAI_KEY) throw new Error('XAI_API_KEY not set');
     const upstream = await fetch('https://api.x.ai/v1/chat/completions', {
       method:  'POST',
       headers: {
@@ -195,6 +316,9 @@ app.post('/api/chat/xai', auth, async (req, res) => {
     });
 
     if (!upstream.ok) {
+      console.warn(`[xAI] HTTP ${upstream.status} — falling back to Gemini`);
+      const fell = await streamGemini(req, res, { system, messages, max_tokens });
+      if (fell) return;
       const err = await upstream.text();
       return res.status(upstream.status).json({ error: err });
     }
@@ -203,6 +327,7 @@ app.post('/api/chat/xai', auth, async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection',    'keep-alive');
     res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('X-SAL-Provider', 'xai');
 
     const reader  = upstream.body.getReader();
     const decoder = new TextDecoder();
@@ -213,14 +338,20 @@ app.post('/api/chat/xai', auth, async (req, res) => {
     }
     res.end();
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('xAI error:', err.message, '— falling back to Gemini');
+    try {
+      const fell = await streamGemini(req, res, { system: req.body.system, messages: req.body.messages, max_tokens: req.body.max_tokens });
+      if (fell) return;
+    } catch {}
+    if (!res.headersSent) res.status(500).json({ error: err.message });
   }
 });
 
-// ── OpenAI (non-streaming, for social JSON) ───────────
+// ── OpenAI (non-streaming, with Gemini fallback) ──────
 app.post('/api/chat/openai', auth, async (req, res) => {
   const { model, messages, max_tokens } = req.body;
   try {
+    if (!OPENAI_KEY) throw new Error('OPENAI_API_KEY not set');
     const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
       method:  'POST',
       headers: {
@@ -235,13 +366,34 @@ app.post('/api/chat/openai', auth, async (req, res) => {
     });
 
     if (!upstream.ok) {
+      console.warn(`[OpenAI] HTTP ${upstream.status} — falling back to Gemini`);
+      // Fallback: use Gemini non-streaming, return in OpenAI response format
+      const geminiText = await chatGemini({ system: messages[0]?.role === 'system' ? messages[0].content : '', messages, max_tokens });
+      if (geminiText) {
+        return res.json({
+          choices: [{ message: { role: 'assistant', content: geminiText } }],
+          model: 'gemini-2.5-flash',
+          provider: 'gemini-fallback',
+        });
+      }
       const err = await upstream.text();
       return res.status(upstream.status).json({ error: err });
     }
     const data = await upstream.json();
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('OpenAI error:', err.message, '— falling back to Gemini');
+    try {
+      const geminiText = await chatGemini({ system: '', messages: req.body.messages, max_tokens: req.body.max_tokens });
+      if (geminiText) {
+        return res.json({
+          choices: [{ message: { role: 'assistant', content: geminiText } }],
+          model: 'gemini-2.5-flash',
+          provider: 'gemini-fallback',
+        });
+      }
+    } catch {}
+    if (!res.headersSent) res.status(500).json({ error: err.message });
   }
 });
 

@@ -14,14 +14,15 @@ import {
   Modal,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
+import { mcpChat } from '../../lib/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const SUPABASE_URL = 'https://euxrlpuegeiggedqbkiv.supabase.co';
 const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1eHJscHVlZ2VpZ2dlZHFia2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5NTM1MTYsImV4cCI6MjA4MTUyOTUxNn0.KpvXVTIDXeGOBOQOhdPopVbYYfjB-RgPSyJJY3IY474';
-const ANTHROPIC_API_KEY =
-  'LABS_BACKEND_PROXY';
+// MCP gateway handles all AI routing (Build #70)
 const OPENAI_API_KEY =
   '';
 const RUNWAY_API_KEY =
@@ -80,27 +81,12 @@ export default function ContentGenerator({ navigation }) {
       const platformList = selectedPlatforms.join(', ');
       const systemPrompt = `You are an elite social media content strategist for SaintSal Labs. Generate ${contentType} content optimized for ${platformList}. Tone: ${tone}. Return a JSON object with keys for each platform requested, each containing: "copy" (the post text), "hashtags" (array of 5 relevant hashtags), "cta" (call to action). Keep copy platform-appropriate (Twitter: under 280 chars, LinkedIn: professional, Instagram: engaging with emojis).`;
 
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-opus-4-5',
-          max_tokens: 1500,
-          messages: [
-            {
-              role: 'user',
-              content: `Topic: "${topic}"\n\nGenerate content. Return raw JSON only, no markdown.`,
-            },
-          ],
-          system: systemPrompt,
-        }),
+      const mcpRes = await mcpChat({
+        message: `${systemPrompt}\n\nTopic: "${topic}"\n\nGenerate content. Return raw JSON only, no markdown.`,
+        model: 'pro',
+        vertical: 'general',
       });
-      const data = await res.json();
-      const rawText = data?.content?.[0]?.text || '{}';
+      const rawText = mcpRes.response || '{}';
       let parsed = {};
       try {
         parsed = JSON.parse(rawText);
@@ -218,6 +204,7 @@ export default function ContentGenerator({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe}>
+        <ScreenHeader title="Content Generator" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

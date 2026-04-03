@@ -25,6 +25,7 @@ const INITIAL_FILES = [
     content: `import React from 'react';
 import { Hero } from './components';
 import Navbar from './components/Navbar';
+import { mcpChat } from '../../lib/api';
 
 export default function App() {
   return (
@@ -159,27 +160,13 @@ export default function HighFidelityIDE() {
         ? `Current file: ${activeFile.name}\n\nCurrent code:\n\`\`\`\n${codeContent.slice(0, 2000)}\n\`\`\`\n\nRequest: ${prompt}`
         : prompt;
 
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': ANTHROPIC_KEY,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-opus-4-5',
-          max_tokens: 4096,
-          system: AI_SYSTEM_PROMPT,
-          messages: [
-            ...aiMessages.slice(-6).map(m => ({ role: m.role, content: m.content })),
-            { role: 'user', content: contextPrompt },
-          ],
-        }),
+      const mcpRes = await mcpChat({
+        message: contextPrompt,
+        model: 'pro',
+        vertical: 'general',
+        history: aiMessages.slice(-6).map(m => ({ role: m.role, content: m.content })),
       });
-
-      if (!res.ok) throw new Error(`Claude API error: ${res.status}`);
-      const data = await res.json();
-      const content = data.content[0]?.text || '';
+      const content = mcpRes.response || '';
 
       const aiMsg = { role: 'assistant', content, timestamp: new Date().toISOString(), isCode: isCodeGen };
       setAiMessages(prev => [...prev, aiMsg]);

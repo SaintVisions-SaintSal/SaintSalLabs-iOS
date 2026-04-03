@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView,
+  StyleSheet, SafeAreaView, Image,
 } from 'react-native';
 import { C } from '../../config/theme';
 import { useRouter } from 'expo-router';
@@ -55,7 +55,7 @@ export default function InvestorAnalysisScreen() {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <View style={s.salMark}><Text style={s.salMarkText}>S</Text></View>
+          <Image source={require('../../../assets/logo-80.png')} style={{ width: 28, height: 28, borderRadius: 14 }} resizeMode="contain" />
           <View>
             <Text style={s.headerTitle}>Analysis Engine</Text>
             <Text style={s.headerSub}>Investor Intelligence</Text>

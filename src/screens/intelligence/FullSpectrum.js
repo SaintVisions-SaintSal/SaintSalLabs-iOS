@@ -13,16 +13,17 @@ import {
   Dimensions,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
+import { mcpChat } from '../../lib/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const SUPABASE_URL = 'https://euxrlpuegeiggedqbkiv.supabase.co';
 const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1eHJscHVlZ2VpZ2dlZHFia2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5NTM1MTYsImV4cCI6MjA4MTUyOTUxNn0.KpvXVTIDXeGOBOQOhdPopVbYYfjB-RgPSyJJY3IY474';
-const ANTHROPIC_API_KEY =
-  'LABS_BACKEND_PROXY';
+// MCP gateway handles all AI routing (Build #70)
 const PERPLEXITY_API_KEY = '';
-const TAVILY_API_KEY = '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';
+const TAVILY_API_KEY = ''; // Removed — search goes through MCP gateway
 const EXA_API_KEY = 'b27bdba9-bd2a-49fd-a4ef-d096cdfe66eb';
 const XAI_API_KEY = '';
 const MXBAI_API_KEY = 'mxb_1vHGNsbhgA5weMKLIEpGRXPlndGN';
@@ -229,29 +230,13 @@ export default function FullSpectrum({ navigation }) {
         .map((r) => `[${r.source.toUpperCase()}] ${r.title}: ${r.snippet}`)
         .join('\n\n');
 
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-opus-4-5',
-          max_tokens: 600,
-          system:
-            'You are the SaintSal Labs intelligence synthesis engine. Analyze the search results and provide a concise, high-signal synthesis. Identify key patterns, conflicts, and actionable insights. Be direct and strategic.',
-          messages: [
-            {
-              role: 'user',
-              content: `Query: "${searchQuery}"\n\nSearch Results:\n${snippets}\n\nProvide a 3-4 sentence synthesis with key takeaways.`,
-            },
-          ],
-        }),
+      const mcpRes = await mcpChat({
+        message: `Query: "${searchQuery}"\n\nSearch Results:\n${snippets}\n\nProvide a 3-4 sentence synthesis with key takeaways.`,
+        model: 'pro',
+        vertical: 'general',
       });
-      const data = await res.json();
-      if (data?.content?.[0]?.text) {
-        setSynthesis(data.content[0].text);
+      if (mcpRes.ok && mcpRes.response) {
+        setSynthesis(mcpRes.response);
       }
     } catch {
       setSynthesis('Unable to synthesize results. Review individual sources above.');
@@ -303,6 +288,7 @@ export default function FullSpectrum({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe}>
+        <ScreenHeader title="Full Spectrum Intel" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

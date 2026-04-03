@@ -21,11 +21,13 @@ import {
   Dimensions,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
+import { mcpChat } from '../../lib/api';
 
 /* ── API credentials ── */
-const ANTHROPIC_KEY   = 'LABS_BACKEND_PROXY';
-const RENTCAST_KEY    = 'e14286fed9e243c6afcba08fcce4bd8f';
-const PROPERTY_KEY    = 'papi_43c517cb3b7081bb6c159480e86a14e3bac535e47dcf6f8d';
+// MCP gateway handles all AI routing (Build #70)
+const RENTCAST_KEY    = ''; // Removed — comps go through backend proxy
+const PROPERTY_KEY    = ''; // Removed — search goes through backend proxy
 const PERPLEXITY_KEY  = '';
 const EXA_KEY         = 'b27bdba9-bd2a-49fd-a4ef-d096cdfe66eb';
 const SUPABASE_URL    = 'https://euxrlpuegeiggedqbkiv.supabase.co';
@@ -194,24 +196,13 @@ export default function REExecutiveChat() {
       const history = messages.map(m => ({ role: m.role, content: m.content }));
       history.push({ role: 'user', content: userMsg + contextBlock });
 
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_KEY,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-opus-4-5',
-          max_tokens: 2000,
-          system: SYSTEM_PROMPT,
-          messages: history,
-        }),
+      const mcpRes = await mcpChat({
+        message: userMsg + contextBlock,
+        model: 'pro',
+        vertical: 'realestate',
+        history: history.slice(-10),
       });
-
-      if (!res.ok) throw new Error(`Claude error ${res.status}`);
-      const data = await res.json();
-      const aiText = data.content?.[0]?.text || 'Underwriting engine unavailable.';
+      const aiText = mcpRes.response || 'Underwriting engine unavailable.';
 
       const aiMsg = {
         id: (Date.now() + 1).toString(),
@@ -318,6 +309,7 @@ export default function REExecutiveChat() {
 
   return (
     <SafeAreaView style={styles.container}>
+        <ScreenHeader title="RE Executive" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

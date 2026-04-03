@@ -1,0 +1,877 @@
+/* ═══════════════════════════════════════════════════
+   SAINTSALLABS — SUPERGROK ORCHESTRATION ENGINE
+   Premium Grok White-Label Aesthetic
+   Animated Orbital Agent Spinners
+   "Watch the AI Think Before It Builds"
+   US Patent #10,290,222 · HACP Protocol
+═══════════════════════════════════════════════════ */
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  View, Text, ScrollView, TouchableOpacity, TextInput,
+  StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform,
+  ActivityIndicator, Animated, Easing, Dimensions,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { C } from '../../config/theme';
+import { SALMark } from '../../components';
+import useGrokOrchestrator, { AGENTS } from '../../hooks/useGrokOrchestrator';
+
+const { width: SW, height: SH } = Dimensions.get('window');
+const ORBIT_R = SW * 0.28;        // Orbit radius
+const CENTER_R = 44;              // Center hub radius
+const AGENT_R = 28;               // Agent node radius
+
+/* ── Agent positions on orbit (top, right, bottom, left) ── */
+const AGENT_KEYS = ['captain', 'harper', 'benjamin', 'lucas'];
+const AGENT_ANGLES = [270, 0, 90, 180]; // degrees: top, right, bottom, left
+
+/* ═══════════════════════════════════════════════════
+   ORBITAL SPINNER — the hero animation
+   4 agents orbit a center hub with pulsing rings
+═══════════════════════════════════════════════════ */
+function OrbitalSpinner({ phaseStates, currentAgent, orchestrating }) {
+  const spinAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(0.4)).current;
+  const ringPulse = useRef(new Animated.Value(1)).current;
+  const agentScales = useRef(
+    AGENT_KEYS.reduce((a, k) => ({ ...a, [k]: new Animated.Value(1) }), {})
+  ).current;
+
+  /* Continuous orbit rotation when orchestrating */
+  useEffect(() => {
+    if (orchestrating) {
+      Animated.loop(
+        Animated.timing(spinAnim, {
+          toValue: 1,
+          duration: 8000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      ).start();
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 0.4, duration: 1200, useNativeDriver: true }),
+        ])
+      ).start();
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(ringPulse, { toValue: 1.15, duration: 2000, useNativeDriver: true }),
+          Animated.timing(ringPulse, { toValue: 1, duration: 2000, useNativeDriver: true }),
+        ])
+      ).start();
+    } else {
+      spinAnim.stopAnimation();
+      pulseAnim.stopAnimation();
+      ringPulse.stopAnimation();
+      spinAnim.setValue(0);
+      pulseAnim.setValue(0.4);
+      ringPulse.setValue(1);
+    }
+  }, [orchestrating]);
+
+  /* Pop active agent */
+  useEffect(() => {
+    if (currentAgent && agentScales[currentAgent]) {
+      Animated.sequence([
+        Animated.spring(agentScales[currentAgent], { toValue: 1.3, useNativeDriver: true, tension: 200, friction: 8 }),
+        Animated.spring(agentScales[currentAgent], { toValue: 1, useNativeDriver: true, tension: 120, friction: 10 }),
+      ]).start();
+    }
+  }, [currentAgent]);
+
+  const spinDeg = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  const allComplete = Object.values(phaseStates).every(s => s === 'complete');
+
+  return (
+    <View style={os.container}>
+      {/* Outer glow ring */}
+      <Animated.View style={[os.glowRing, { transform: [{ scale: ringPulse }] }]}>
+        <LinearGradient
+          colors={[
+            orchestrating ? '#F59E0B18' : allComplete ? '#22C55E12' : '#F59E0B08',
+            'transparent',
+          ]}
+          style={os.glowRingGrad}
+          start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
+        />
+      </Animated.View>
+
+      {/* Orbit track */}
+      <View style={os.orbitTrack} />
+
+      {/* Animated orbit group */}
+      <Animated.View style={[os.orbitGroup, orchestrating ? { transform: [{ rotate: spinDeg }] } : {}]}>
+        {AGENT_KEYS.map((key, i) => {
+          const angle = (AGENT_ANGLES[i] * Math.PI) / 180;
+          const x = Math.cos(angle) * ORBIT_R;
+          const y = Math.sin(angle) * ORBIT_R;
+          const agent = AGENTS[key];
+          const state = phaseStates[key];
+          const isActive = currentAgent === key;
+          const isComplete = state === 'complete';
+
+          const borderColor = isComplete ? '#22C55E'
+            : isActive ? (agent?.color || C.amber)
+            : C.border;
+
+          // Counter-rotate agent nodes so icons stay upright
+          const counterRotate = spinAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['0deg', '-360deg'],
+          });
+
+          return (
+            <Animated.View
+              key={key}
+              style={[
+                os.agentNode,
+                {
+                  left: SW * 0.5 - AGENT_R + x - 16,
+                  top: SW * 0.38 - AGENT_R + y,
+                  borderColor,
+                  backgroundColor: isActive ? (agent?.color || C.amber) + '22' : C.bgCard,
+                  transform: [
+                    { scale: agentScales[key] },
+                    ...(orchestrating ? [{ rotate: counterRotate }] : []),
+                  ],
+                },
+              ]}
+            >
+              <Text style={os.agentIcon}>{agent?.icon}</Text>
+              {isActive && orchestrating && (
+                <Animated.View style={[os.agentPulseRing, { opacity: pulseAnim, borderColor: agent?.color || C.amber }]} />
+              )}
+              {isComplete && (
+                <View style={os.checkBadge}>
+                  <Text style={os.checkMark}>✓</Text>
+                </View>
+              )}
+            </Animated.View>
+          );
+        })}
+      </Animated.View>
+
+      {/* Center hub */}
+      <View style={os.centerHub}>
+        <LinearGradient
+          colors={allComplete ? ['#22C55E', '#16A34A'] : orchestrating ? [C.amber, '#D97706'] : ['#1C1C24', '#1C1C24']}
+          style={os.centerGrad}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        >
+          {orchestrating ? (
+            <ActivityIndicator size="small" color="#000" />
+          ) : allComplete ? (
+            <Text style={os.centerIcon}>⚡</Text>
+          ) : (
+            <Text style={os.centerIcon}>🧠</Text>
+          )}
+        </LinearGradient>
+      </View>
+
+      {/* Agent labels (static, outside orbit) */}
+      {AGENT_KEYS.map((key, i) => {
+        const angle = (AGENT_ANGLES[i] * Math.PI) / 180;
+        const lx = Math.cos(angle) * (ORBIT_R + 42);
+        const ly = Math.sin(angle) * (ORBIT_R + 42);
+        const agent = AGENTS[key];
+        const state = phaseStates[key];
+        const isActive = currentAgent === key;
+
+        return (
+          <View
+            key={`label-${key}`}
+            style={[
+              os.agentLabel,
+              {
+                left: SW * 0.5 + lx - 40,
+                top: SW * 0.38 + ly - 10,
+              },
+            ]}
+          >
+            <Text style={[
+              os.agentLabelName,
+              isActive && { color: agent?.color || C.amber },
+              state === 'complete' && { color: '#22C55E' },
+            ]}>
+              {agent?.name}
+            </Text>
+            <Text style={os.agentLabelRole}>{agent?.role}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   MAIN COMPONENT
+═══════════════════════════════════════════════════ */
+export default function SuperGrokScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  const grok = useGrokOrchestrator();
+  const [input, setInput] = useState(params?.prompt || '');
+  const [activeView, setActiveView] = useState('agents'); // 'agents' | 'log' | 'plan'
+  const logScrollRef = useRef(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  /* Auto-start if prompt passed via params */
+  useEffect(() => {
+    if (params?.prompt && !grok.orchestrating && grok.logs.length === 0) {
+      setTimeout(() => {
+        setInput('');
+        grok.orchestrate(params.prompt);
+      }, 500);
+    }
+  }, []);
+
+  /* Fade in on mount */
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1, duration: 600, useNativeDriver: true,
+    }).start();
+  }, []);
+
+  /* Auto-scroll log */
+  useEffect(() => {
+    setTimeout(() => logScrollRef.current?.scrollToEnd({ animated: true }), 200);
+  }, [grok.logs]);
+
+  /* Switch to plan view when synthesis complete */
+  useEffect(() => {
+    if (grok.synthesis && !grok.orchestrating) {
+      setActiveView('plan');
+    }
+  }, [grok.synthesis, grok.orchestrating]);
+
+  const handleSend = useCallback(async () => {
+    const text = input.trim();
+    if (!text || grok.orchestrating) return;
+    setInput('');
+    setActiveView('agents');
+    await grok.orchestrate(text);
+  }, [input, grok]);
+
+  const handleExecute = useCallback(() => {
+    if (grok.synthesis) {
+      router.push({
+        pathname: '/(tabs)/builder',
+        params: { plan: grok.synthesis.content?.slice(0, 500) },
+      });
+    }
+  }, [grok.synthesis, router]);
+
+  /* ═══ RENDER: Header ═══════════════════════════ */
+  const renderHeader = () => (
+    <View style={s.header}>
+      <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+        <Text style={s.backIcon}>‹</Text>
+      </TouchableOpacity>
+      <View style={s.headerCenter}>
+        <View style={s.headerBrand}>
+          <Text style={s.headerGrok}>SUPERGROK</Text>
+          <View style={s.liveDot} />
+        </View>
+        <Text style={s.headerSub}>4-Agent Orchestration · Patent #10,290,222</Text>
+      </View>
+      <TouchableOpacity
+        onPress={() => { grok.reset(); setActiveView('agents'); }}
+        style={s.newBtn}
+      >
+        <Text style={s.newBtnText}>NEW</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  /* ═══ RENDER: View Toggle ══════════════════════ */
+  const renderViewToggle = () => (
+    <View style={s.viewToggle}>
+      {[
+        { id: 'agents', label: 'AGENTS', icon: '🧠' },
+        { id: 'log',    label: 'ACTIVITY', icon: '📋' },
+        { id: 'plan',   label: 'PLAN', icon: '⚡' },
+      ].map(v => (
+        <TouchableOpacity
+          key={v.id}
+          style={[s.viewTab, activeView === v.id && s.viewTabActive]}
+          onPress={() => setActiveView(v.id)}
+        >
+          <Text style={s.viewTabIcon}>{v.icon}</Text>
+          <Text style={[s.viewTabLabel, activeView === v.id && s.viewTabLabelActive]}>{v.label}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
+  /* ═══ RENDER: Agents View (Orbital Spinner) ═══ */
+  const renderAgentsView = () => (
+    <ScrollView style={s.content} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+      <OrbitalSpinner
+        phaseStates={grok.phaseStates}
+        currentAgent={grok.currentAgent}
+        orchestrating={grok.orchestrating}
+      />
+
+      {/* Status text below spinner */}
+      {grok.orchestrating && grok.currentAgent && (
+        <View style={s.statusBanner}>
+          <View style={[s.statusDot, { backgroundColor: AGENTS[grok.currentAgent]?.color || C.amber }]} />
+          <Text style={s.statusText}>
+            {AGENTS[grok.currentAgent]?.icon} {AGENTS[grok.currentAgent]?.name}: {grok.currentLabel}
+          </Text>
+        </View>
+      )}
+
+      {/* Welcome state */}
+      {!grok.orchestrating && grok.logs.length === 0 && (
+        <View style={s.welcome}>
+          <Text style={s.welcomeTitle}>Think → Plan → Build</Text>
+          <Text style={s.welcomeDesc}>
+            Grok 4 decomposes your idea into sub-tasks.{'\n'}
+            4 specialized agents analyze in parallel.{'\n'}
+            You watch them think. Then SAL executes.
+          </Text>
+          <View style={s.featureRow}>
+            {AGENT_KEYS.map(k => {
+              const a = AGENTS[k];
+              return (
+                <View key={k} style={s.featureChip}>
+                  <Text style={s.featureIcon}>{a?.icon}</Text>
+                  <Text style={s.featureName}>{a?.name}</Text>
+                </View>
+              );
+            })}
+          </View>
+          <View style={s.stitchBadge}>
+            <Text style={s.stitchBadgeText}>+ GOOGLE STITCH DESIGN ENGINE</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Completion state */}
+      {grok.synthesis && !grok.orchestrating && (
+        <View style={s.completeCard}>
+          <LinearGradient
+            colors={['#22C55E18', '#22C55E05', 'transparent']}
+            style={StyleSheet.absoluteFill}
+          />
+          <Text style={s.completeIcon}>✓</Text>
+          <Text style={s.completeTitle}>Orchestration Complete</Text>
+          <Text style={s.completeDesc}>
+            All 4 agents have finished analysis.{'\n'}Plan is ready for execution.
+          </Text>
+          <TouchableOpacity style={s.executeBtn} onPress={handleExecute}>
+            <LinearGradient
+              colors={[C.amber, '#D97706']}
+              style={s.executeBtnInner}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            >
+              <Text style={s.executeBtnText}>⚡ EXECUTE IN BUILDER</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.viewPlanBtn} onPress={() => setActiveView('plan')}>
+            <Text style={s.viewPlanText}>VIEW FULL PLAN →</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </ScrollView>
+  );
+
+  /* ═══ RENDER: Activity Log View ════════════════ */
+  const renderLogView = () => (
+    <ScrollView
+      ref={logScrollRef}
+      style={s.content}
+      contentContainerStyle={{ padding: 16 }}
+      showsVerticalScrollIndicator={false}
+    >
+      {grok.logs.length === 0 && (
+        <View style={s.emptyLog}>
+          <Text style={s.emptyLogIcon}>📋</Text>
+          <Text style={s.emptyLogText}>Activity will appear here when agents start working.</Text>
+        </View>
+      )}
+
+      {grok.logs.map((log, i) => {
+        const agent = AGENTS[log.agent] || { icon: '⚙', name: 'System', color: C.textDim };
+        return (
+          <View key={i} style={s.logEntry}>
+            <View style={s.logTimeline}>
+              <View style={[s.logDot, { backgroundColor: agent.color || C.textGhost }]} />
+              {i < grok.logs.length - 1 && (
+                <View style={[s.logConnector, { backgroundColor: (agent.color || C.textGhost) + '33' }]} />
+              )}
+            </View>
+            <View style={s.logBody}>
+              <View style={s.logHeader}>
+                <Text style={s.logHeaderIcon}>{agent.icon}</Text>
+                <Text style={[s.logHeaderName, { color: agent.color || C.textDim }]}>{agent.name}</Text>
+                <Text style={s.logHeaderTime}>
+                  {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </Text>
+              </View>
+              {log.type === 'phase' && (
+                <View style={[s.logPhaseTag, { borderColor: (agent.color || C.amber) + '33' }]}>
+                  <Text style={[s.logPhaseText, { color: agent.color || C.amber }]}>{log.content}</Text>
+                </View>
+              )}
+              {log.type === 'thinking' && (
+                <View style={s.logThinking}>
+                  <Text style={s.logThinkingText}>{log.content}</Text>
+                </View>
+              )}
+              {log.type === 'result' && (
+                <Text style={s.logResultText} numberOfLines={6}>{log.content}</Text>
+              )}
+              {log.type === 'error' && (
+                <Text style={s.logErrorText}>{log.content}</Text>
+              )}
+            </View>
+          </View>
+        );
+      })}
+
+      {grok.orchestrating && (
+        <View style={s.logThinkingLive}>
+          <ActivityIndicator size="small" color={AGENTS[grok.currentAgent]?.color || C.amber} />
+          <Text style={s.logThinkingLiveText}>
+            {AGENTS[grok.currentAgent]?.name || 'Agent'} is working...
+          </Text>
+        </View>
+      )}
+    </ScrollView>
+  );
+
+  /* ═══ RENDER: Plan View ════════════════════════ */
+  const renderPlanView = () => (
+    <ScrollView style={s.content} contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+      {!grok.synthesis ? (
+        <View style={s.emptyLog}>
+          <Text style={s.emptyLogIcon}>⚡</Text>
+          <Text style={s.emptyLogText}>Run an orchestration to generate a plan.</Text>
+        </View>
+      ) : (
+        <View>
+          {/* Synthesis output */}
+          <View style={s.planCard}>
+            <Text style={s.planCardTitle}>SYNTHESIZED PLAN</Text>
+            <Text style={s.planCardBody} selectable>{grok.synthesis.content}</Text>
+            {grok.synthesis.reasoning ? (
+              <View style={s.planReasoning}>
+                <Text style={s.planReasoningLabel}>GROK REASONING</Text>
+                <Text style={s.planReasoningText}>{grok.synthesis.reasoning}</Text>
+              </View>
+            ) : null}
+          </View>
+
+          {/* Individual agent outputs */}
+          {AGENT_KEYS.map(key => {
+            const output = grok.agentOutputs[key];
+            const agent = AGENTS[key];
+            if (!output) return null;
+            return (
+              <View key={key} style={s.agentOutputCard}>
+                <View style={s.agentOutputHeader}>
+                  <Text style={s.agentOutputIcon}>{agent?.icon}</Text>
+                  <Text style={[s.agentOutputName, { color: agent?.color }]}>{agent?.name}</Text>
+                  <Text style={s.agentOutputRole}>{agent?.role}</Text>
+                </View>
+                <Text style={s.agentOutputContent} numberOfLines={12} selectable>
+                  {output.content}
+                </Text>
+                {output.usage && (
+                  <Text style={s.agentOutputMeta}>
+                    {output.usage.total_tokens?.toLocaleString()} tokens · {output.model || 'grok-4'}
+                  </Text>
+                )}
+              </View>
+            );
+          })}
+
+          {/* Execute button */}
+          <TouchableOpacity style={s.executeBtn} onPress={handleExecute}>
+            <LinearGradient
+              colors={[C.amber, '#D97706']}
+              style={s.executeBtnInner}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            >
+              <Text style={s.executeBtnText}>⚡ EXECUTE IN BUILDER</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      )}
+    </ScrollView>
+  );
+
+  /* ═══ RENDER: Input Bar ════════════════════════ */
+  const renderInput = () => (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={90}
+    >
+      <View style={s.inputBar}>
+        <View style={s.inputRow}>
+          <TextInput
+            style={s.input}
+            value={input}
+            onChangeText={setInput}
+            placeholder="What should we build?"
+            placeholderTextColor={C.textGhost}
+            multiline
+            maxLength={2000}
+            editable={!grok.orchestrating}
+          />
+          <TouchableOpacity
+            style={[s.sendBtn, (!input.trim() && !grok.orchestrating) && s.sendBtnOff]}
+            onPress={grok.orchestrating ? grok.cancel : handleSend}
+            disabled={!input.trim() && !grok.orchestrating}
+          >
+            {grok.orchestrating ? (
+              <View style={s.stopSquare} />
+            ) : (
+              <Text style={s.sendArrow}>↑</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+        <Text style={s.inputFooter}>GROK 4 · STITCH · HACP PROTOCOL · PATENT #10,290,222</Text>
+      </View>
+    </KeyboardAvoidingView>
+  );
+
+  /* ═══ MAIN RENDER ═══════════════════════════════ */
+  return (
+    <Animated.View style={[s.root, { opacity: fadeAnim }]}>
+      <SafeAreaView style={s.safe}>
+        {renderHeader()}
+        {renderViewToggle()}
+        {activeView === 'agents' && renderAgentsView()}
+        {activeView === 'log' && renderLogView()}
+        {activeView === 'plan' && renderPlanView()}
+        {renderInput()}
+      </SafeAreaView>
+    </Animated.View>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   ORBITAL SPINNER STYLES
+═══════════════════════════════════════════════════ */
+const os = StyleSheet.create({
+  container: {
+    height: SW * 0.82,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  glowRing: {
+    position: 'absolute',
+    width: ORBIT_R * 2 + 80,
+    height: ORBIT_R * 2 + 80,
+    borderRadius: ORBIT_R + 40,
+    overflow: 'hidden',
+  },
+  glowRingGrad: { flex: 1 },
+  orbitTrack: {
+    position: 'absolute',
+    width: ORBIT_R * 2,
+    height: ORBIT_R * 2,
+    borderRadius: ORBIT_R,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderStyle: 'dashed',
+  },
+  orbitGroup: {
+    position: 'absolute',
+    width: SW,
+    height: SW * 0.76,
+  },
+  agentNode: {
+    position: 'absolute',
+    width: AGENT_R * 2,
+    height: AGENT_R * 2,
+    borderRadius: AGENT_R,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  agentIcon: { fontSize: 22 },
+  agentPulseRing: {
+    position: 'absolute',
+    width: AGENT_R * 2 + 12,
+    height: AGENT_R * 2 + 12,
+    borderRadius: AGENT_R + 6,
+    borderWidth: 2,
+  },
+  checkBadge: {
+    position: 'absolute', top: -4, right: -4,
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: '#22C55E',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  checkMark: { fontSize: 11, color: '#fff', fontWeight: '800' },
+  centerHub: {
+    position: 'absolute',
+    width: CENTER_R * 2,
+    height: CENTER_R * 2,
+    borderRadius: CENTER_R,
+    overflow: 'hidden',
+    shadowColor: C.amber,
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  centerGrad: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerIcon: { fontSize: 28 },
+  agentLabel: {
+    position: 'absolute',
+    width: 80,
+    alignItems: 'center',
+  },
+  agentLabelName: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: C.textMuted,
+    textAlign: 'center',
+  },
+  agentLabelRole: {
+    fontSize: 8,
+    color: C.textGhost,
+    textAlign: 'center',
+    marginTop: 1,
+  },
+});
+
+/* ═══════════════════════════════════════════════════
+   SCREEN STYLES
+═══════════════════════════════════════════════════ */
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.bg },
+  safe: { flex: 1 },
+
+  /* Header */
+  header: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  backIcon: { fontSize: 28, color: C.textMuted, fontWeight: '300', width: 28 },
+  headerCenter: { flex: 1, marginLeft: 8 },
+  headerBrand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerGrok: {
+    fontSize: 16, fontWeight: '900', color: C.text,
+    letterSpacing: 2,
+  },
+  liveDot: {
+    width: 6, height: 6, borderRadius: 3,
+    backgroundColor: '#22C55E',
+  },
+  headerSub: {
+    fontSize: 9, color: C.textGhost, letterSpacing: 0.5,
+    marginTop: 2,
+  },
+  newBtn: {
+    paddingHorizontal: 14, paddingVertical: 6,
+    borderRadius: 8, backgroundColor: C.bgCard,
+    borderWidth: 1, borderColor: C.border,
+  },
+  newBtnText: { fontSize: 10, fontWeight: '800', color: C.textDim, letterSpacing: 1 },
+
+  /* View Toggle */
+  viewToggle: {
+    flexDirection: 'row',
+    backgroundColor: C.bgCard,
+    borderBottomWidth: 1, borderBottomColor: C.border,
+    paddingHorizontal: 8, paddingVertical: 6,
+    gap: 6,
+  },
+  viewTab: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 8, borderRadius: 10,
+  },
+  viewTabActive: {
+    backgroundColor: C.amberGhost,
+    borderWidth: 1, borderColor: C.amber + '22',
+  },
+  viewTabIcon: { fontSize: 12 },
+  viewTabLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 1, color: C.textGhost },
+  viewTabLabelActive: { color: C.text },
+
+  /* Content */
+  content: { flex: 1 },
+
+  /* Status banner */
+  statusBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginHorizontal: 20, marginTop: -8, marginBottom: 8,
+    paddingHorizontal: 16, paddingVertical: 10,
+    borderRadius: 12, backgroundColor: C.bgCard,
+    borderWidth: 1, borderColor: C.border,
+  },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
+  statusText: { fontSize: 13, color: C.textSub, fontWeight: '600' },
+
+  /* Welcome */
+  welcome: { alignItems: 'center', paddingHorizontal: 24, paddingBottom: 20 },
+  welcomeTitle: {
+    fontSize: 22, fontWeight: '800', color: C.text,
+    letterSpacing: -0.3, marginBottom: 8,
+  },
+  welcomeDesc: {
+    fontSize: 13, lineHeight: 21, color: C.textMuted,
+    textAlign: 'center', marginBottom: 20,
+  },
+  featureRow: {
+    flexDirection: 'row', gap: 8, marginBottom: 12,
+  },
+  featureChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 99, backgroundColor: C.bgCard,
+    borderWidth: 1, borderColor: C.border,
+  },
+  featureIcon: { fontSize: 14 },
+  featureName: { fontSize: 11, fontWeight: '700', color: C.textSub },
+  stitchBadge: {
+    paddingHorizontal: 14, paddingVertical: 5,
+    borderRadius: 99, backgroundColor: '#818CF810',
+    borderWidth: 1, borderColor: '#818CF822',
+  },
+  stitchBadgeText: { fontSize: 9, fontWeight: '800', letterSpacing: 1, color: '#818CF8' },
+
+  /* Complete card */
+  completeCard: {
+    marginHorizontal: 20, marginBottom: 20,
+    padding: 24, borderRadius: 20, overflow: 'hidden',
+    backgroundColor: C.bgCard, borderWidth: 1, borderColor: '#22C55E33',
+    alignItems: 'center',
+  },
+  completeIcon: { fontSize: 36, color: '#22C55E', marginBottom: 8 },
+  completeTitle: { fontSize: 18, fontWeight: '800', color: '#22C55E', marginBottom: 4 },
+  completeDesc: { fontSize: 13, color: C.textMuted, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
+
+  /* Execute button */
+  executeBtn: { borderRadius: 14, overflow: 'hidden', width: '100%', marginBottom: 10 },
+  executeBtnInner: { paddingVertical: 15, alignItems: 'center' },
+  executeBtnText: { fontSize: 15, fontWeight: '900', color: '#000', letterSpacing: 0.5 },
+  viewPlanBtn: { paddingVertical: 10 },
+  viewPlanText: { fontSize: 12, fontWeight: '700', color: C.amber, letterSpacing: 0.5 },
+
+  /* Empty states */
+  emptyLog: { alignItems: 'center', paddingTop: 60 },
+  emptyLogIcon: { fontSize: 36, marginBottom: 12, opacity: 0.5 },
+  emptyLogText: { fontSize: 13, color: C.textGhost, textAlign: 'center' },
+
+  /* Log entries */
+  logEntry: { flexDirection: 'row', marginBottom: 16 },
+  logTimeline: { width: 24, alignItems: 'center' },
+  logDot: { width: 10, height: 10, borderRadius: 5, marginTop: 4 },
+  logConnector: { width: 2, flex: 1, marginTop: 4, borderRadius: 1 },
+  logBody: { flex: 1, marginLeft: 10 },
+  logHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  logHeaderIcon: { fontSize: 12 },
+  logHeaderName: { fontSize: 12, fontWeight: '700' },
+  logHeaderTime: { fontSize: 9, color: C.textGhost, marginLeft: 'auto' },
+  logPhaseTag: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 8, borderWidth: 1,
+    backgroundColor: C.amberGhost,
+  },
+  logPhaseText: { fontSize: 11, fontWeight: '700' },
+  logThinking: {
+    padding: 8, borderRadius: 8,
+    backgroundColor: '#818CF808', borderWidth: 1, borderColor: '#818CF818',
+  },
+  logThinkingText: { fontSize: 11, lineHeight: 17, color: C.textSub, fontStyle: 'italic' },
+  logResultText: { fontSize: 12, lineHeight: 19, color: C.textSub },
+  logErrorText: { fontSize: 12, color: '#EF4444' },
+  logThinkingLive: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    padding: 12, borderRadius: 10,
+    backgroundColor: C.bgCard, borderWidth: 1, borderColor: C.border,
+  },
+  logThinkingLiveText: { fontSize: 12, color: C.textMuted },
+
+  /* Plan view */
+  planCard: {
+    backgroundColor: C.bgCard, borderRadius: 16,
+    borderWidth: 1, borderColor: C.amber + '22',
+    padding: 16, marginBottom: 16,
+  },
+  planCardTitle: {
+    fontSize: 10, fontWeight: '800', letterSpacing: 1.2,
+    color: C.amber, marginBottom: 10,
+  },
+  planCardBody: {
+    fontSize: 13, lineHeight: 21, color: C.textSub, fontFamily: 'monospace',
+  },
+  planReasoning: {
+    marginTop: 12, padding: 10, borderRadius: 10,
+    backgroundColor: '#F59E0B08', borderWidth: 1, borderColor: '#F59E0B18',
+  },
+  planReasoningLabel: {
+    fontSize: 9, fontWeight: '800', letterSpacing: 1,
+    color: C.amber, marginBottom: 4,
+  },
+  planReasoningText: { fontSize: 11, lineHeight: 17, color: C.textMuted, fontStyle: 'italic' },
+
+  agentOutputCard: {
+    backgroundColor: C.bgCard, borderRadius: 14,
+    borderWidth: 1, borderColor: C.border,
+    padding: 14, marginBottom: 12,
+  },
+  agentOutputHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8,
+  },
+  agentOutputIcon: { fontSize: 18 },
+  agentOutputName: { fontSize: 13, fontWeight: '800' },
+  agentOutputRole: { fontSize: 10, color: C.textGhost },
+  agentOutputContent: { fontSize: 12, lineHeight: 19, color: C.textSub },
+  agentOutputMeta: {
+    fontSize: 9, color: C.textGhost, marginTop: 8,
+    borderTopWidth: 1, borderTopColor: C.border, paddingTop: 6,
+  },
+
+  /* Input bar */
+  inputBar: {
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderTopWidth: 1, borderTopColor: C.border,
+    backgroundColor: C.bg,
+  },
+  inputRow: {
+    flexDirection: 'row', alignItems: 'flex-end', gap: 8,
+    backgroundColor: C.bgInput, borderRadius: 16,
+    borderWidth: 1, borderColor: C.border,
+    paddingLeft: 14, paddingRight: 6, paddingVertical: 6,
+  },
+  input: {
+    flex: 1, fontSize: 15, color: C.text, maxHeight: 100,
+    paddingVertical: Platform.OS === 'ios' ? 6 : 4,
+  },
+  sendBtn: {
+    width: 36, height: 36, borderRadius: 12,
+    backgroundColor: C.amber,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  sendBtnOff: { backgroundColor: C.textGhost },
+  stopSquare: {
+    width: 12, height: 12, borderRadius: 2,
+    backgroundColor: '#000',
+  },
+  sendArrow: { fontSize: 18, fontWeight: '800', color: '#000' },
+  inputFooter: {
+    fontSize: 8, fontWeight: '800', letterSpacing: 1.2,
+    color: C.textGhost, textAlign: 'center',
+    paddingTop: 4, paddingBottom: 2,
+  },
+});

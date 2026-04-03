@@ -6,7 +6,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  SafeAreaView, ScrollView, Animated, Alert, Linking,
+  SafeAreaView, ScrollView, Animated, Alert, Linking, Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/AuthContext';
@@ -184,7 +184,7 @@ export default function HelpCEODeskScreen() {
                 <View key={i} style={[s.msgWrap, msg.role === 'user' ? s.msgUser : s.msgAssistant]}>
                   {msg.role === 'assistant' && (
                     <View style={s.msgAvatar}>
-                      <Text style={s.msgAvatarTxt}>S</Text>
+                      <Image source={require('../../../assets/logo-80.png')} style={{ width: 20, height: 20, borderRadius: 10 }} resizeMode="contain" />
                     </View>
                   )}
                   <View style={[s.msgBubble, msg.role === 'user' ? s.userBubble : s.aiBubble]}>

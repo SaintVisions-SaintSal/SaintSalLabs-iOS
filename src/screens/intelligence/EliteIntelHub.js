@@ -13,14 +13,15 @@ import {
   Alert,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
+import { mcpChat } from '../../lib/api';
 
 const SUPABASE_URL = 'https://euxrlpuegeiggedqbkiv.supabase.co';
 const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1eHJscHVlZ2VpZ2dlZHFia2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5NTM1MTYsImV4cCI6MjA4MTUyOTUxNn0.KpvXVTIDXeGOBOQOhdPopVbYYfjB-RgPSyJJY3IY474';
 const PERPLEXITY_API_KEY = '';
-const TAVILY_API_KEY = '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';
-const ANTHROPIC_API_KEY =
-  'LABS_BACKEND_PROXY';
+const TAVILY_API_KEY = ''; // Removed — search goes through MCP gateway
+// MCP gateway handles all AI routing (Build #70)
 
 const SEARCH_TABS = ['Web', 'News', 'Finance', 'People', 'Real Estate', 'Social'];
 
@@ -138,31 +139,15 @@ export default function EliteIntelHub({ navigation }) {
         perplexityContext = plxData.choices?.[0]?.message?.content || '';
       }
 
-      // Claude for final synthesis
-      const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-opus-4-5',
-          max_tokens: 1024,
-          system:
-            'You are SAL — the elite intelligence engine for SaintSal™ Labs backed by US Patent #10,290,222. Synthesize research into sharp, structured analysis. Use specific data points, percentages, and source references. Format clearly with bold key terms and cite sources inline like [Source 1]. Be authoritative and direct.',
-          messages: [
-            {
-              role: 'user',
-              content: `Query: ${query}\n\nSearch Context: ${tavilyContext}\n\nDeep Research: ${perplexityContext}\n\nSynthesize this into a comprehensive intelligence report.`,
-            },
-          ],
-        }),
+      // AI synthesis via MCP gateway (Claude → xAI → Gemini fallback)
+      const mcpRes = await mcpChat({
+        message: `Query: ${query}\n\nSearch Context: ${tavilyContext}\n\nDeep Research: ${perplexityContext}\n\nSynthesize this into a comprehensive intelligence report.`,
+        model: 'pro',
+        vertical: 'general',
       });
 
-      if (claudeRes.ok) {
-        const claudeData = await claudeRes.json();
-        const finalText = claudeData.content?.[0]?.text || 'No analysis available.';
+      if (mcpRes.ok) {
+        const finalText = mcpRes.response || 'No analysis available.';
         setStreamText(finalText);
       }
     } catch (err) {
@@ -290,6 +275,7 @@ export default function EliteIntelHub({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
+        <ScreenHeader title="Intelligence Hub" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.statusBar}>

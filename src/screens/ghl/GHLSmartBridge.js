@@ -24,12 +24,14 @@ import {
   Animated,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
+import { mcpChat } from '../../lib/api';
 
 /* ── Credentials ── */
 const GHL_TOKEN    = '';
 const GHL_LOCATION = 'oRA8vL3OSiCPjpwmEC0V';
 const GHL_BASE     = 'https://services.leadconnectorhq.com';
-const ANTHROPIC_KEY = 'LABS_BACKEND_PROXY';
+// MCP gateway handles all AI routing (Build #70)
 
 const GOLD  = '#D4AF37';
 const BG    = '#0F0F0F';
@@ -204,26 +206,12 @@ export default function GHLSmartBridge() {
     setGenFollowUp(true);
     setFollowUp('');
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_KEY,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-opus-4-5',
-          max_tokens: 400,
-          system: 'You are SAL, elite CRM strategist for SaintSal™ Labs. Generate a personalized, professional follow-up message for a sales contact. Keep it warm, specific, under 150 words, and action-oriented. Do not include subject lines.',
-          messages: [{
-            role: 'user',
-            content: `Write a follow-up message for: ${contact.firstName} ${contact.lastName} (${contact.email}). Tags: ${contact.tags?.join(', ') || 'none'}. Note: ${contactNote || 'No specific context provided'}.`,
-          }],
-        }),
+      const mcpRes = await mcpChat({
+        message: `Write a follow-up message for: ${contact.firstName} ${contact.lastName} (${contact.email}). Tags: ${contact.tags?.join(', ') || 'none'}. Note: ${contactNote || 'No specific context provided'}. Keep it warm, specific, under 150 words, and action-oriented.`,
+        model: 'pro',
+        vertical: 'general',
       });
-      if (!res.ok) throw new Error(`Claude ${res.status}`);
-      const data = await res.json();
-      setFollowUp(data.content?.[0]?.text || '');
+      setFollowUp(mcpRes.response || '');
     } catch (e) {
       setFollowUp(`Hi ${contact.firstName},\n\nI wanted to personally follow up and see how things are going. I believe we can add significant value to what you're building — would love to connect briefly this week.\n\nBest,\nSaintSal™ Labs Team`);
     } finally {
@@ -464,6 +452,7 @@ export default function GHLSmartBridge() {
 
   return (
     <SafeAreaView style={styles.container}>
+        <ScreenHeader title="GHL Smart Bridge" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLogoArea}>

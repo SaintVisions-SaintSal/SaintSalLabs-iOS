@@ -22,4 +22,4 @@ print('✅ Main app profile installed:', main_out)
 
 PYEOF
 
-echo "✅ Pre-install complete — both profiles installed"
+echo "✅ Pre-install complete — main app profile installed"

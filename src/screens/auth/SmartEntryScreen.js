@@ -98,13 +98,13 @@ function GuestGateModal({ visible, onClose, router, hard = false }) {
           </Text>
           <TouchableOpacity
             style={styles.sheetPrimary}
-            onPress={() => { onClose(); router.push('/(stack)/sign-up'); }}
+            onPress={() => { onClose(); router.push('/(auth)/signup'); }}
           >
             <Text style={styles.sheetPrimaryTxt}>Create Free Account</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.sheetSecondary}
-            onPress={() => { onClose(); router.push('/(stack)/sign-in'); }}
+            onPress={() => { onClose(); router.push('/(auth)/login'); }}
           >
             <Text style={styles.sheetSecondaryTxt}>Sign In</Text>
           </TouchableOpacity>
@@ -247,24 +247,24 @@ export default function SmartEntryScreen() {
             title="INTELLIGENCE"
             subtitle="Search, research, analyze anything — powered by Claude"
             pulse={pulse}
-            onPress={() => router.push('/(stack)/elite-intel-hub')}
+            onPress={() => router.replace('/(tabs)')}
           />
           <FeatureCard
             icon="💬"
             title="SAL CHAT"
             subtitle="Talk to SAL across every vertical — finance, real estate, creative"
             pulse={pulse}
-            onPress={() => router.push('/(stack)/sal-chat')}
+            onPress={() => router.replace('/(stack)/sal-chat')}
           />
           <FeatureCard
             icon="⚡"
             title="BUILDER"
             subtitle="Build apps, content, sites with AI — deploy instantly"
             pulse={pulse}
-            onPress={() => router.push('/(tabs)/builder')}
+            onPress={() => router.replace('/(tabs)/builder')}
           />
 
-          <TouchableOpacity onPress={() => router.push('/(stack)/sign-in')} style={styles.signInLink}>
+          <TouchableOpacity onPress={() => router.push('/(auth)/login')} style={styles.signInLink}>
             <Text style={styles.signInTxt}>Already a member? <Text style={styles.signInGold}>Sign In</Text></Text>
           </TouchableOpacity>
 
@@ -311,28 +311,28 @@ export default function SmartEntryScreen() {
             title="DASHBOARD"
             subtitle="Your hub — metrics, projects, quick actions"
             pulse={pulse}
-            onPress={() => router.push('/(tabs)')}
+            onPress={() => router.replace('/(tabs)')}
           />
           <FeatureCard
             icon="💬"
             title="CONTINUE CHAT"
             subtitle={lastConvo || 'Pick up where you left off'}
             pulse={pulse}
-            onPress={() => router.push('/(stack)/sal-chat')}
+            onPress={() => router.replace('/(stack)/sal-chat')}
           />
           <FeatureCard
             icon="⚡"
             title="BUILDER"
             subtitle={lastBuild || 'Build something new'}
             pulse={pulse}
-            onPress={() => router.push('/(tabs)/builder')}
+            onPress={() => router.replace('/(tabs)/builder')}
           />
           <FeatureCard
             icon="🔍"
             title="INTELLIGENCE"
             subtitle="Research, analyze, synthesize"
             pulse={pulse}
-            onPress={() => router.push('/(stack)/elite-intel-hub')}
+            onPress={() => router.replace('/(tabs)')}
           />
 
           {/* Tier badge + sign out */}
@@ -368,24 +368,24 @@ export default function SmartEntryScreen() {
           title="CONTINUE INTELLIGENCE"
           subtitle={`${guestMessages} searches this session`}
           pulse={pulse}
-          onPress={() => guardGuest(() => router.push('/(stack)/elite-intel-hub'))}
+          onPress={() => guardGuest(() => router.replace('/(tabs)'))}
         />
         <FeatureCard
           icon="💬"
           title="CONTINUE CHAT"
           subtitle={lastConvo || 'Resume your last conversation'}
           pulse={pulse}
-          onPress={() => guardGuest(() => router.push('/(stack)/sal-chat'))}
+          onPress={() => guardGuest(() => router.replace('/(stack)/sal-chat'))}
         />
         <FeatureCard
           icon="⚡"
           title="CONTINUE BUILDER"
           subtitle={lastBuild || `${Math.round(guestMinutes)} min used`}
           pulse={pulse}
-          onPress={() => guardGuest(() => router.push('/(tabs)/builder'))}
+          onPress={() => guardGuest(() => router.replace('/(tabs)/builder'))}
         />
 
-        <TouchableOpacity onPress={() => router.push('/(stack)/sign-in')} style={styles.signInLink}>
+        <TouchableOpacity onPress={() => router.push('/(auth)/login')} style={styles.signInLink}>
           <Text style={styles.signInTxt}>Already a member? <Text style={styles.signInGold}>Sign In</Text></Text>
         </TouchableOpacity>
 

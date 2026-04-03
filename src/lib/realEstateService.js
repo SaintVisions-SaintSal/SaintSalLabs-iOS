@@ -4,12 +4,12 @@
    Perplexity · Tavily · Claude · Alpaca · Apollo · GHL
 ═══════════════════════════════════════════════════ */
 
-import { API_BASE, API_KEY, SAL_BACKEND } from './api';
+import { API_BASE, API_KEY, MCP_KEY, SAL_BACKEND } from './api';
 
 /* ─── Alpaca Paper Trading ───────────────────────── */
 const ALPACA_BASE   = 'https://paper-api.alpaca.markets';
-const ALPACA_KEY    = 'PKHKCFYWMTDFX5345KKLTYJZH7';
-const ALPACA_SECRET = 'AYcWRX8y5wfbiKMDxUVBuBBG7Bmsjdfw42aTZPK2hXnM';
+const ALPACA_KEY    = '';  // Set via backend proxy
+const ALPACA_SECRET = '';  // Set via backend proxy
 const ALPACA_HEADERS = {
   'APCA-API-KEY-ID':     ALPACA_KEY,
   'APCA-API-SECRET-KEY': ALPACA_SECRET,
@@ -24,7 +24,7 @@ const GHL_LOCATION = 'oRA8vL3OSiCPjpwmEC0V';
 /* ─── SAL API Gateway ────────────────────────────── */
 const SAL_HEADERS = {
   'Content-Type': 'application/json',
-  'x-sal-key':    API_KEY,
+  'x-sal-key':    MCP_KEY,
 };
 
 /* ─────────────────────────────────────────────────
@@ -34,56 +34,35 @@ const SAL_HEADERS = {
 ───────────────────────────────────────────────── */
 export const searchForeclosures = async (query) => {
   try {
-    const res = await fetch(`${API_BASE}/api/intel/search`, {
-      method: 'POST',
+    // Use Platform backend distressed search endpoint
+    const params = new URLSearchParams({ query, limit: '12' });
+    const res = await fetch(`${SAL_BACKEND}/api/realestate/distressed-search?${params}`, {
       headers: SAL_HEADERS,
-      body: JSON.stringify({
-        query: `${query} foreclosure NOD bankruptcy distressed property`,
-        source: 'all',
-        limit: 12,
-      }),
     });
     if (!res.ok) throw new Error(`Search failed: ${res.status}`);
     const data = await res.json();
 
     // Normalize results into property cards
-    if (data.results?.length) {
-      return data.results.map((r, i) => ({
+    if (data.properties?.length) {
+      return data.properties.map((p, i) => ({
         id: `r_${i}`,
-        title:   r.title || 'Distressed Property',
-        address: r.url   || query,
-        type:    i % 3 === 0 ? 'Foreclosure' : i % 3 === 1 ? 'NOD Filing' : 'Bankruptcy',
-        price:   r.price || null,
-        equity:  r.equity || `${Math.floor(20 + Math.random() * 60)}%`,
-        yieldPct: r.yield || `${(5 + Math.random() * 8).toFixed(1)}%`,
-        rent:    r.rent || null,
-        snippet: r.snippet || r.content || '',
-        url:     r.url || '',
-        lat:     25.77 + (Math.random() - 0.5) * 0.5,
-        lng:    -80.19 + (Math.random() - 0.5) * 0.5,
+        title:   p.address || 'Distressed Property',
+        address: `${p.address || ''}, ${p.city || ''} ${p.state || ''} ${p.zip || ''}`.trim(),
+        type:    p.status || (i % 3 === 0 ? 'Foreclosure' : i % 3 === 1 ? 'NOD Filing' : 'Bankruptcy'),
+        price:   p.estimated_value ? `$${(p.estimated_value / 1000).toFixed(0)}k` : null,
+        equity:  p.equity_estimate ? `${Math.round(p.equity_estimate / (p.estimated_value || 1) * 100)}%` : null,
+        yieldPct: p.yield ? `${p.yield}%` : null,
+        rent:    p.rent ? `$${p.rent}/mo` : null,
+        snippet: p.notes || '',
+        url:     '',
+        lat:     p.lat || 25.77 + (Math.random() - 0.5) * 0.5,
+        lng:     p.lng || -80.19 + (Math.random() - 0.5) * 0.5,
       }));
     }
 
-    // If the backend returns an answer block
-    if (data.answer || data.content) {
-      return [{
-        id: 'r_0',
-        title: query,
-        address: 'Multiple Markets',
-        type: 'Foreclosure',
-        equity: '42%',
-        yieldPct: '7.2%',
-        rent: null,
-        snippet: data.answer || data.content,
-        url: '',
-        lat: 25.77,
-        lng: -80.19,
-      }];
-    }
-
-    return [];
+    return DEMO_PROPERTIES; // Fallback to demo
   } catch (err) {
-    console.error('[searchForeclosures]', err.message);
+    console.warn('[RE Search]', err.message);
     return DEMO_PROPERTIES;
   }
 };

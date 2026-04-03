@@ -1,12 +1,39 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, Alert, Clipboard,
+  StyleSheet, SafeAreaView, Alert, Linking,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { C } from '../../config/theme';
+import { useUserDashboard } from '../../hooks/useUserDashboard';
 
 const PROJECT = { name: 'SaintSal Builder', id: 'proj_saintsal_9x2kf' };
+
+/* ─── Saved Builds Summary (pulls from useUserDashboard) ─── */
+function BuildsSummary({ router }) {
+  const { builds } = useUserDashboard();
+  const recent = (builds || []).slice(0, 3);
+  if (recent.length === 0) {
+    return <Text style={{ color: C.textDim, fontSize: 12, fontStyle: 'italic', paddingVertical: 8 }}>No builds yet. Create one in the Builder tab.</Text>;
+  }
+  return (
+    <View>
+      {recent.map((b, i) => (
+        <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.border }}>
+          <View>
+            <Text style={{ fontSize: 13, color: C.text, fontWeight: '600' }}>{b.name || b.title || `Build ${i + 1}`}</Text>
+            <Text style={{ fontSize: 10, color: C.textDim }}>{b.created_at ? new Date(b.created_at).toLocaleDateString() : ''}</Text>
+          </View>
+          <Text style={{ fontSize: 10, color: C.amber }}>VIEW</Text>
+        </View>
+      ))}
+      <TouchableOpacity onPress={() => router.push('/(tabs)/builder')} style={{ paddingVertical: 10, alignItems: 'center' }}>
+        <Text style={{ fontSize: 12, color: C.amber, fontWeight: '700' }}>View All in Builder →</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
 
 const API_KEYS = [
   { label: 'Claude (Anthropic)', key: 'sk-ant-api03-xxxx-xxxx', provider: 'claude' },
@@ -40,7 +67,7 @@ export default function APISettingsScreen() {
   const copyKey = (provider) => {
     const val = keys[provider];
     if (!val) return Alert.alert('Empty', 'No key to copy');
-    Clipboard.setString(val);
+    Clipboard.setStringAsync(val);
     Alert.alert('Copied', 'API key copied to clipboard');
   };
 
@@ -85,7 +112,7 @@ export default function APISettingsScreen() {
             </View>
             <View style={[s.infoRow, { borderBottomWidth: 0 }]}>
               <Text style={s.infoLabel}>Project ID</Text>
-              <TouchableOpacity onPress={() => { Clipboard.setString(PROJECT.id); Alert.alert('Copied'); }}>
+              <TouchableOpacity onPress={() => { Clipboard.setStringAsync(PROJECT.id); Alert.alert('Copied'); }}>
                 <Text style={s.infoMono}>{PROJECT.id}</Text>
               </TouchableOpacity>
             </View>
@@ -170,7 +197,7 @@ export default function APISettingsScreen() {
             />
             <TouchableOpacity
               style={s.webhookCopy}
-              onPress={() => { Clipboard.setString(webhookUrl); Alert.alert('Copied'); }}
+              onPress={() => { Clipboard.setStringAsync(webhookUrl); Alert.alert('Copied'); }}
             >
               <Text style={{ fontSize: 14 }}>📋</Text>
             </TouchableOpacity>
@@ -204,13 +231,53 @@ export default function APISettingsScreen() {
         </View>
 
         {/* Save Button */}
-        <View style={[s.section, { marginBottom: 40 }]}>
+        <View style={[s.section, { marginBottom: 20 }]}>
           <TouchableOpacity
             style={s.saveBtn}
             onPress={() => Alert.alert('Saved', 'All settings saved successfully')}
           >
             <Text style={s.saveBtnText}>Save Credentials</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* ── Builder Config (Build #90) ── */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>⚙️ Builder Config</Text>
+          {[
+            { label: 'Default Framework', value: 'Next.js', icon: '⚛️' },
+            { label: 'Default Tier', value: 'Pro', icon: '💎' },
+            { label: 'Auto-Preview', value: 'Enabled', icon: '👁' },
+            { label: 'Code Theme', value: 'Dark', icon: '🎨' },
+          ].map((item, i) => (
+            <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border }}>
+              <Text style={{ fontSize: 14, color: C.text }}>{item.icon} {item.label}</Text>
+              <Text style={{ fontSize: 13, color: C.textMuted }}>{item.value}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* ── Deploy & Connect (Build #90) ── */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>🚀 Deploy & Connect</Text>
+          {[
+            { name: 'GitHub', desc: 'SaintVisions-SaintSal', status: 'connected', url: 'https://github.com/SaintVisions-SaintSal' },
+            { name: 'Render', desc: 'API Gateway + Platform', status: 'connected', url: 'https://render.com' },
+            { name: 'Cloudflare', desc: 'DNS + CDN', status: 'connected', url: 'https://dash.cloudflare.com' },
+          ].map((svc, i) => (
+            <TouchableOpacity key={i} onPress={() => Linking.openURL(svc.url)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border }}>
+              <View>
+                <Text style={{ fontSize: 14, color: C.text, fontWeight: '600' }}>{svc.name}</Text>
+                <Text style={{ fontSize: 11, color: C.textDim }}>{svc.desc}</Text>
+              </View>
+              <Text style={{ fontSize: 11, color: '#22C55E', fontWeight: '700' }}>• {svc.status}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* ── Saved Builds (Build #90) ── */}
+        <View style={[s.section, { marginBottom: 40 }]}>
+          <Text style={s.sectionTitle}>📁 Recent Builds</Text>
+          <BuildsSummary router={router} />
         </View>
       </ScrollView>
     </SafeAreaView>

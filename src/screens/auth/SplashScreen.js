@@ -63,10 +63,10 @@ export default function SplashScreen() {
         if (session) {
           router.replace('/(tabs)');
         } else {
-          router.replace('/sign-in');
+          router.replace('/(auth)/elite-auth');
         }
       } catch {
-        router.replace('/sign-in');
+        router.replace('/(auth)/elite-auth');
       }
     }, 2500);
 

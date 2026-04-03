@@ -17,7 +17,7 @@ const CARD  = 'rgba(255,255,255,0.04)';
 
 const PATHS = [
   { icon: '🔍', name: 'Intelligence', desc: 'Search 5 AI engines', route: '/(tabs)/search' },
-  { icon: '💬', name: 'Chat',         desc: 'Multi-model AI chat', route: '/(tabs)/chat'   },
+  { icon: '💬', name: 'Chat',         desc: 'Multi-model AI chat', route: '/(stack)/sal-chat'   },
   { icon: '⚡', name: 'Builder',      desc: 'Build with AI',       route: '/(tabs)/build'  },
 ];
 
@@ -109,7 +109,7 @@ export default function AppClipScreen() {
 
         {/* PRIMARY CTA — Apple HIG: one clear action */}
         <View style={s.actions}>
-          <TouchableOpacity style={s.primaryBtn} onPress={() => router.replace('/(auth)/sign-up')}>
+          <TouchableOpacity style={s.primaryBtn} onPress={() => router.replace('/(auth)/signup')}>
             <Text style={s.primaryBtnTxt}>⚡ START FREE — NO CARD NEEDED</Text>
           </TouchableOpacity>
 

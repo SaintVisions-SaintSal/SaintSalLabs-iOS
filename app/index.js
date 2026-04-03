@@ -1,31 +1,23 @@
 /* ═══════════════════════════════════════════════════
-   SAINTSALLABS — ROOT INDEX
-   Routes through SmartEntryScreen on every launch
+   SAINTSALLABS — ROOT INDEX (Build #68)
+   NO AUTH WALL. Everyone lands on Search tab.
+   Auth check runs silently to set user state.
 ═══════════════════════════════════════════════════ */
 import { useEffect } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '../src/lib/supabase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Index() {
   const router = useRouter();
 
   useEffect(() => {
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (session) {
-        router.replace('/(stack)/smart-entry?mode=returning');
-      } else {
-        const hasVisited = await AsyncStorage.getItem('sal_has_visited');
-        if (hasVisited) {
-          router.replace('/(stack)/smart-entry?mode=guest-returning');
-        } else {
-          router.replace('/(stack)/smart-entry?mode=first-time');
-        }
-      }
-    })();
+    // Always go to tabs — Search is the homepage, no auth gate
+    router.replace('/(tabs)');
   }, []);
 
-  return null;
+  return (
+    <View style={{ flex: 1, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center' }}>
+      <ActivityIndicator color="#D4AF37" size="large" />
+    </View>
+  );
 }

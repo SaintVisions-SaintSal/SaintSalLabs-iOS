@@ -12,8 +12,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { C } from '../../config/theme';
+import { mcpChat } from '../../lib/api';
 
-const ANTHROPIC_KEY = 'LABS_BACKEND_PROXY';
+// MCP gateway handles all AI routing (Build #70)
 const PERPLEXITY_KEY = '';
 const SUPABASE_URL = 'https://euxrlpuegeiggedqbkiv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1eHJscHVlZ2VpZ2dlZHFia2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5NTM1MTYsImV4cCI6MjA4MTUyOTUxNn0.KpvXVTIDXeGOBOQOhdPopVbYYfjB-RgPSyJJY3IY474';
@@ -111,24 +112,13 @@ export default function AIPlanningAgent() {
         { role: 'user', content: userMessage },
       ];
 
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': ANTHROPIC_KEY,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-opus-4-5',
-          max_tokens: 4096,
-          system: PLANNING_SYSTEM_PROMPT,
-          messages: conversationHistory,
-        }),
+      const mcpRes = await mcpChat({
+        message: userMessage,
+        model: 'pro',
+        vertical: 'general',
+        history: conversationHistory.slice(-10),
       });
-
-      if (!res.ok) throw new Error(`Claude API error: ${res.status}`);
-      const data = await res.json();
-      const assistantContent = data.content[0]?.text || '';
+      const assistantContent = mcpRes.response || '';
 
       updateTask(1, 'done');
       updateTask(2, 'running');

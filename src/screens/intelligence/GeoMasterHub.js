@@ -153,7 +153,7 @@ export default function GeoMasterHub() {
             <Text style={styles.mapPlaceholderIcon}>🗺️</Text>
             <Text style={styles.mapPlaceholderTitle}>GEO INTELLIGENCE MAP</Text>
             <Text style={styles.mapPlaceholderSub}>
-              Google Maps integration active{'\n'}Key: AIzaSyA2RxjYuME6mEa1-Sb-8ZfZjR0ujJ-lITQ
+              Google Maps integration active{'\n'}Key: AIzaSy•••••••••••••lITQ
             </Text>
             <View style={styles.mapModeRow}>
               {['standard', 'satellite', 'hybrid'].map((mode) => (

@@ -66,7 +66,7 @@ export default function BrandedAuthEmail() {
       const data = await res.json();
       if (res.ok && data.access_token) {
         Alert.alert('Identity Verified', 'Welcome to SaintSal™ Labs. Elite access granted.', [
-          { text: 'Launch Dashboard', onPress: () => router.replace('/(tabs)/dashboard') },
+          { text: 'Launch Dashboard', onPress: () => router.replace('/(tabs)') },
         ]);
       } else {
         Alert.alert('Verification Failed', data.error_description || 'Invalid or expired code.');

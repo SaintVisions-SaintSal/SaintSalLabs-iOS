@@ -13,15 +13,16 @@ import {
   Animated,
 } from 'react-native';
 import { C } from '../../config/theme';
+import ScreenHeader from '../../components/ScreenHeader';
+import { mcpChat } from '../../lib/api';
 
 const SUPABASE_URL = 'https://euxrlpuegeiggedqbkiv.supabase.co';
 const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1eHJscHVlZ2VpZ2dlZHFia2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5NTM1MTYsImV4cCI6MjA4MTUyOTUxNn0.KpvXVTIDXeGOBOQOhdPopVbYYfjB-RgPSyJJY3IY474';
-const RENTCAST_API = 'e14286fed9e243c6afcba08fcce4bd8f';
-const PROPERTY_API = 'papi_43c517cb3b7081bb6c159480e86a14e3bac535e47dcf6f8d';
+const RENTCAST_API = ''; // Removed — comps go through backend proxy
+const PROPERTY_API = ''; // Removed — search goes through backend proxy
 const PERPLEXITY_API_KEY = '';
-const ANTHROPIC_API_KEY =
-  'LABS_BACKEND_PROXY';
+// MCP gateway handles all AI routing (Build #70)
 
 const NAV_TABS = ['Deal Finder', 'Portfolio', 'Market Pulse'];
 const OPPORTUNITY_TYPES = ['Foreclosures', 'Notice of Default (NOD)', 'Bankruptcy Filings'];
@@ -198,30 +199,14 @@ export default function EliteREFinder({ navigation }) {
     } catch { /* use demo data */ }
 
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-opus-4-5',
-          max_tokens: 600,
-          system:
-            'You are SAL Real Estate — CookinCapital deal analysis methodology. Provide institutional-grade property analysis: ARV, cap rate, cash-on-cash return, BRRRR potential, risk factors. Use specific numbers. Be direct.',
-          messages: [
-            {
-              role: 'user',
-              content: `Analyze this investment opportunity:\n\nAddress: ${prop.address}, ${prop.city}\nEstimated Value: ${prop.value}\nEquity Position: ${prop.equity}\nGross Yield: ${prop.yield}\nRent Estimate: ${rentEstimate}\nStatus: ${prop.status}\n\nProvide: 1) Deal score (1-10), 2) BRRRR analysis, 3) Key risks, 4) Go/No-go recommendation.`,
-            },
-          ],
-        }),
+      const mcpRes = await mcpChat({
+        message: `Analyze this investment opportunity:\n\nAddress: ${prop.address}, ${prop.city}\nEstimated Value: ${prop.value}\nEquity Position: ${prop.equity}\nGross Yield: ${prop.yield}\nRent Estimate: ${rentEstimate}\nStatus: ${prop.status}\n\nProvide: 1) Deal score (1-10), 2) BRRRR analysis, 3) Key risks, 4) Go/No-go recommendation.`,
+        model: 'pro',
+        vertical: 'realestate',
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setAnalysis(data.content?.[0]?.text || 'Analysis unavailable.');
+      if (mcpRes.ok) {
+        setAnalysis(mcpRes.response || 'Analysis unavailable.');
       }
     } catch {
       setAnalysis('Analysis error. Please retry.');
@@ -320,6 +305,7 @@ export default function EliteREFinder({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
+        <ScreenHeader title="RE Property Finder" />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
