@@ -12,3 +12,10 @@ web-build/
 stitch-screens/saintsal.txt
 stitch-screens/
 saintsallabsclip.mobileprovision
+
+# Claude Code — never commit
+.claude/settings.local.json
+.env.local
+.env*.local
+AuthKey_*.p8
+*.p8
