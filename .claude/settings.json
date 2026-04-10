@@ -1,0 +1,63 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "write_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[PreToolUse] Validating no direct AI provider calls in file'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "write_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[PostToolUse] File written — remember: run Metro compile gate before shipping'"
+          }
+        ]
+      }
+    ],
+    "PreCommit": [
+      {
+        "type": "command",
+        "command": "grep -r 'sk-ant-\\|sk-\\|api\\.anthropic\\.com\\|api\\.openai\\.com' --include='*.js' app/ src/ && echo 'SECRET OR DIRECT AI CALL DETECTED — COMMIT BLOCKED' && exit 1 || echo 'PreCommit: Clean — no secrets or direct AI calls'"
+      }
+    ],
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "echo '=== SaintSal Labs iOS Session Started ===' && echo 'Repo: SaintSalLabs-iOS' && echo 'Stack: Expo | React Native | Hermes | EAS | TestFlight' && echo 'RULE: SSE = XHR only. AI = Gateway only.' && git log --oneline -5 2>/dev/null || true"
+      }
+    ],
+    "Notification": [
+      {
+        "type": "command",
+        "command": "echo '[SaintSal iOS] Notification: $NOTIFICATION_MESSAGE'"
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Write(app/**)",
+      "Write(src/**)",
+      "Write(assets/**)",
+      "Bash(git *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)"
+    ],
+    "deny": [
+      "Write(.env.local)",
+      "Write(AuthKey_*.p8)",
+      "Write(*.mobileprovision)",
+      "Write(.claude/settings.local.json)",
+      "Bash(rm -rf *)"
+    ]
+  }
+}
