@@ -12,6 +12,8 @@ export const MCP_KEY  = 'saintvision_gateway_2025';
 export const API_BASE = 'https://saintsallabs-api.onrender.com';
 export const API_KEY  = 'sal-live-2026';
 
+import { applySystem } from '../config/knowledgeCore';
+
 const HEADERS = {
   'Content-Type': 'application/json',
   'x-sal-key': API_KEY,
@@ -192,11 +194,11 @@ export function connectAgentSSE({
 ═══════════════════════════════════════════════════ */
 
 /* ─── MCP Chat (non-streaming, universal) ────────── */
-export const mcpChat = async ({ message, model = 'pro', vertical = 'general', history = [] }) => {
+export const mcpChat = async ({ message, model = 'pro', vertical = 'general', history = [], system }) => {
   const res = await fetch(`${MCP_BASE}/api/mcp/chat`, {
     method: 'POST',
     headers: MCP_HEADERS,
-    body: JSON.stringify({ message, model, vertical, history }),
+    body: JSON.stringify({ message: applySystem(message, system), model, vertical, history }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Request failed' }));
@@ -208,7 +210,9 @@ export const mcpChat = async ({ message, model = 'pro', vertical = 'general', hi
 };
 
 /* ─── Simulated streaming via MCP (word-drip) ───── */
-function mcpStream({ message, model, vertical, history, onChunk, onDone, onError }) {
+function mcpStream({ message, model, vertical, history, system, onChunk, onDone, onError }) {
+  // The MCP gateway has no `system` field, so identity rides in-band.
+  const outbound = applySystem(message, system);
   let cancelled = false;
   const handle = { abort: () => { cancelled = true; } };
 
@@ -217,7 +221,7 @@ function mcpStream({ message, model, vertical, history, onChunk, onDone, onError
       const res = await fetch(`${MCP_BASE}/api/mcp/chat`, {
         method: 'POST',
         headers: MCP_HEADERS,
-        body: JSON.stringify({ message, model: model || 'pro', vertical: vertical || 'general', history: history || [] }),
+        body: JSON.stringify({ message: outbound, model: model || 'pro', vertical: vertical || 'general', history: history || [] }),
       });
       if (cancelled) return;
       if (!res.ok) { onError?.(`Server error ${res.status}`); return; }
@@ -245,7 +249,7 @@ export const streamChat = ({ provider = 'anthropic', model, system, messages, on
   const lastUser = messages.filter(m => m.role === 'user').pop();
   const message = lastUser?.content || '';
   const history = messages.slice(0, -1).map(m => ({ role: m.role, content: m.content }));
-  return mcpStream({ message, model: 'pro', vertical: 'general', history, onChunk, onDone, onError });
+  return mcpStream({ message, model: 'pro', vertical: 'general', history, system, onChunk, onDone, onError });
 };
 
 /* ─── SAL Chat (mode-routed) ─────────────────────── */
@@ -318,7 +322,7 @@ export const streamSalChat = ({ mode = 'creative', messages, system, onChunk, on
   xhr.onerror = () => { if (!cancelled) onError?.('Network error'); };
   xhr.ontimeout = () => { if (!cancelled) onError?.('Request timed out'); };
 
-  xhr.send(JSON.stringify({ message, vertical, history, search: true }));
+  xhr.send(JSON.stringify({ message: applySystem(message, system), vertical, history, search: true }));
   return handle;
 };
 
@@ -327,7 +331,7 @@ export const streamBuilder = ({ prompt, files, system, onChunk, onDone, onError 
   const fileContext = files?.length
     ? '\n\nEXISTING FILES:\n' + files.map(f => `\`\`\`${f.lang} ${f.name}\n${f.content}\n\`\`\``).join('\n\n')
     : '';
-  return mcpStream({ message: prompt + fileContext, model: 'pro', vertical: 'general', onChunk, onDone, onError });
+  return mcpStream({ message: prompt + fileContext, model: 'pro', vertical: 'general', system, onChunk, onDone, onError });
 };
 
 
@@ -446,5 +450,5 @@ export const streamBuilderGenerate = ({ prompt, tier = 'free', type = 'code', fi
   const fileContext = files?.length
     ? '\n\nEXISTING FILES:\n' + files.map(f => `\`\`\`${f.language || f.lang || ''} ${f.path || f.name || ''}\n${f.content}\n\`\`\``).join('\n\n')
     : '';
-  return mcpStream({ message: prompt + fileContext, model: tier === 'max' ? 'max' : 'pro', vertical: 'general', onChunk, onDone, onError });
+  return mcpStream({ message: prompt + fileContext, model: tier === 'max' ? 'max' : 'pro', vertical: 'general', system, onChunk, onDone, onError });
 };
